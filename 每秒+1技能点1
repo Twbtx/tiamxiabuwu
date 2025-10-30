@@ -1,0 +1,369 @@
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+local DragUI = Instance.new("ScreenGui")
+DragUI.Name = "BrutalAttackUI"
+DragUI.Parent = playerGui
+DragUI.ResetOnSpawn = false
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 280, 0, 200)
+MainFrame.Position = UDim2.new(0.1, 0, 0.1, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+MainFrame.BorderSizePixel = 0
+MainFrame.Parent = DragUI
+
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 12)
+UICorner.Parent = MainFrame
+
+local DragBar = Instance.new("Frame")
+DragBar.Name = "DragBar"
+DragBar.Size = UDim2.new(1, 0, 0, 35)
+DragBar.Position = UDim2.new(0, 0, 0, 0)
+DragBar.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+DragBar.BorderSizePixel = 0
+DragBar.Parent = MainFrame
+
+local TitleLabel = Instance.new("TextLabel")
+TitleLabel.Name = "TitleLabel"
+TitleLabel.Size = UDim2.new(1, -40, 1, 0)
+TitleLabel.Position = UDim2.new(0, 10, 0, 0)
+TitleLabel.BackgroundTransparency = 1
+TitleLabel.Text = "天下布武"
+TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+TitleLabel.TextSize = 16
+TitleLabel.Font = Enum.Font.GothamBold
+TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+TitleLabel.Parent = DragBar
+
+local CloseButton = Instance.new("TextButton")
+CloseButton.Name = "CloseButton"
+CloseButton.Size = UDim2.new(0, 25, 0, 25)
+CloseButton.Position = UDim2.new(1, -30, 0, 5)
+CloseButton.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseButton.Text = "X"
+CloseButton.TextSize = 14
+CloseButton.Font = Enum.Font.GothamBold
+CloseButton.Parent = DragBar
+
+local ContentFrame = Instance.new("Frame")
+ContentFrame.Name = "ContentFrame"
+ContentFrame.Size = UDim2.new(1, 0, 1, -35)
+ContentFrame.Position = UDim2.new(0, 0, 0, 35)
+ContentFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+ContentFrame.BorderSizePixel = 0
+ContentFrame.Parent = MainFrame
+
+
+local ScrollingBackground = Instance.new("ScrollingFrame")
+ScrollingBackground.Name = "ScrollingBackground"
+ScrollingBackground.Size = UDim2.new(1, 0, 1, 0)
+ScrollingBackground.Position = UDim2.new(0, 0, 0, 0)
+ScrollingBackground.BackgroundTransparency = 1
+ScrollingBackground.BorderSizePixel = 0
+ScrollingBackground.ScrollBarThickness = 6
+ScrollingBackground.ScrollBarImageColor3 = Color3.fromRGB(100, 100, 100)
+ScrollingBackground.CanvasSize = UDim2.new(0, 0, 0, 180)
+ScrollingBackground.Parent = ContentFrame
+
+local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.Padding = UDim.new(0, 10)
+UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+UIListLayout.Parent = ScrollingBackground
+
+
+local remotes = Workspace:WaitForChild("__THINGS"):WaitForChild("__REMOTES")
+local updateStats = remotes:WaitForChild("update_stats")
+local dealDamage = remotes:WaitForChild("dealdamage")
+
+local callCount = 0
+local lastCallTime = tick()
+local callsPerSecond = 0
+local TARGET_CPS = 500
+
+local function trackCall()
+    callCount += 1
+end
+
+local StatusLabel = Instance.new("TextLabel")
+StatusLabel.Name = "StatusLabel"
+StatusLabel.Size = UDim2.new(0.9, 0, 0, 25)
+StatusLabel.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+StatusLabel.Text = "状态: 准备就绪 | 频率: 0/秒"
+StatusLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
+StatusLabel.TextSize = 12
+StatusLabel.Font = Enum.Font.Gotham
+StatusLabel.LayoutOrder = 1
+StatusLabel.Parent = ScrollingBackground
+
+local StatusCorner = Instance.new("UICorner")
+StatusCorner.CornerRadius = UDim.new(0, 6)
+StatusCorner.Parent = StatusLabel
+
+local function createButton(text, layoutOrder, color)
+    local button = Instance.new("TextButton")
+    button.Name = text .. "Button"
+    button.Size = UDim2.new(0.9, 0, 0, 40)
+    button.BackgroundColor3 = color or Color3.fromRGB(200, 0, 0)
+    button.Text = text
+    button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    button.TextSize = 14
+    button.Font = Enum.Font.GothamBold
+    button.LayoutOrder = layoutOrder
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = button
+    
+    return button
+end
+
+local startAttackBtn = createButton("开启攻击", 2, Color3.fromRGB(200, 0, 0))
+startAttackBtn.Parent = ScrollingBackground
+
+local stopAttackBtn = createButton("停止攻击", 3, Color3.fromRGB(100, 100, 100))
+stopAttackBtn.Parent = ScrollingBackground
+
+local upgradeBtn = createButton("全面升级属性", 4, Color3.fromRGB(255, 165, 0))
+upgradeBtn.Parent = ScrollingBackground
+
+
+local dragging = false
+local dragStart
+local startPos
+
+local function updateInput(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement then
+        return input
+    end
+    return nil
+end
+
+DragBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = MainFrame.Position
+        
+        local connection
+        connection = input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+                connection:Disconnect()
+            end
+        end)
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local delta = input.Position - dragStart
+        MainFrame.Position = UDim2.new(
+            startPos.X.Scale, 
+            startPos.X.Offset + delta.X,
+            startPos.Y.Scale, 
+            startPos.Y.Offset + delta.Y
+        )
+    end
+end)
+
+local attackActive = false
+local attackLoop = nil
+
+local function updateStatus(message, color)
+    StatusLabel.Text = "状态: " .. message .. " | 频率: "..callsPerSecond.."/秒"
+    StatusLabel.TextColor3 = color
+end
+
+local function getAllEntities()
+    local entities = {}
+    
+    local entityFolder = Workspace.__THINGS.Entity
+    if entityFolder then
+        for _, entity in pairs(entityFolder:GetChildren()) do
+            if entity:IsA("Model") then
+                table.insert(entities, entity)
+            end
+        end
+    end
+    
+    local bossFolder = Workspace.__THINGS.Boss
+    if bossFolder then
+        for _, boss in pairs(bossFolder:GetChildren()) do
+            if boss:IsA("Model") then
+                table.insert(entities, boss)
+            end
+        end
+    end
+    
+    return entities
+end
+
+local function startBrutalAttack()
+    if attackActive then return end
+    
+    attackActive = true
+    startAttackBtn.Text = "攻击中..."
+    startAttackBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+    
+    local lastEntityUpdate = 0
+    local entities = {}
+    
+    attackLoop = RunService.Heartbeat:Connect(function()
+        if tick() - lastEntityUpdate > 1 then
+            entities = getAllEntities()
+            lastEntityUpdate = tick()
+        end
+        
+        if #entities == 0 then return end
+        
+        local attacksPerFrame = math.ceil(TARGET_CPS / 60)
+        
+        for i = 1, attacksPerFrame do
+            if #entities > 0 then
+                local randomEntity = entities[math.random(1, #entities)]
+                
+                local randomPos = Vector3.new(
+                    math.random(-1500, 1500),
+                    math.random(0, 50),
+                    math.random(-1500, 1500)
+                )
+                
+                local args = {
+                    [1] = {
+                        [1] = "Melee",
+                        [2] = randomPos,
+                        [3] = randomEntity
+                    }
+                }
+                
+                dealDamage:FireServer(unpack(args))
+                trackCall()
+            end
+        end
+    end)
+    
+    updateStatus("攻击已启动", Color3.fromRGB(255, 0, 0))
+end
+
+local function brutalUpgrade()
+    updateStatus("升级中...", Color3.fromRGB(255, 165, 0))
+    
+    local stats = {
+        "Physical Damage",
+        "Magic Damage", 
+        "Health",
+        "Regeneration",
+        "Defence",
+        "Speed"
+    }
+    
+    for _, stat in pairs(stats) do
+        for i = 1, 50 do
+            local args = {
+                [1] = {
+                    [1] = stat,
+                    [2] = 999999
+                }
+            }
+            updateStats:FireServer(unpack(args))
+            trackCall()
+        end
+    end
+    
+    updateStatus("升级完成!", Color3.fromRGB(0, 255, 0))
+end
+
+local function stopAttack()
+    attackActive = false
+    
+    if attackLoop then
+        attackLoop:Disconnect()
+        attackLoop = nil
+    end
+    
+    startAttackBtn.Text = "开启攻击"
+    startAttackBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+    
+    updateStatus("攻击已停止", Color3.fromRGB(255, 255, 0))
+end
+
+
+startAttackBtn.MouseButton1Click:Connect(startBrutalAttack)
+stopAttackBtn.MouseButton1Click:Connect(stopAttack)
+upgradeBtn.MouseButton1Click:Connect(brutalUpgrade)
+
+
+CloseButton.MouseButton1Click:Connect(function()
+    stopAttack()
+    DragUI:Destroy()
+end)
+
+startAttackBtn.MouseEnter:Connect(function()
+    if startAttackBtn.Text ~= "攻击中..." then
+        startAttackBtn.BackgroundColor3 = Color3.fromRGB(220, 20, 20)
+    end
+end)
+
+startAttackBtn.MouseLeave:Connect(function()
+    if startAttackBtn.Text ~= "攻击中..." then
+        startAttackBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+    end
+end)
+
+stopAttackBtn.MouseEnter:Connect(function()
+    stopAttackBtn.BackgroundColor3 = Color3.fromRGB(120, 120, 120)
+end)
+
+stopAttackBtn.MouseLeave:Connect(function()
+    stopAttackBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+end)
+
+upgradeBtn.MouseEnter:Connect(function()
+    upgradeBtn.BackgroundColor3 = Color3.fromRGB(255, 185, 20)
+end)
+
+upgradeBtn.MouseLeave:Connect(function()
+    upgradeBtn.BackgroundColor3 = Color3.fromRGB(255, 165, 0)
+end)
+
+DragBar.MouseEnter:Connect(function()
+    DragBar.BackgroundColor3 = Color3.fromRGB(220, 20, 20)
+end)
+
+DragBar.MouseLeave:Connect(function()
+    DragBar.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+end)
+
+CloseButton.MouseEnter:Connect(function()
+    CloseButton.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+end)
+
+CloseButton.MouseLeave:Connect(function()
+    CloseButton.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+end)
+
+-- 性能监控循环
+spawn(function()
+    while DragUI.Parent do
+        local currentTime = tick()
+        if currentTime - lastCallTime >= 1 then
+            callsPerSecond = callCount
+            callCount = 0
+            lastCallTime = currentTime
+            StatusLabel.Text = "状态: " .. string.sub(StatusLabel.Text, 5, string.find(StatusLabel.Text, "|") - 2) .. " | 频率: "..callsPerSecond.."/秒"
+        end
+        wait(0.1)
+    end
+end)
+
+print("天下布武的我好帅")
