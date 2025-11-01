@@ -1,0 +1,150 @@
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "CoordinateDisplay"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+
+
+local textLabel = Instance.new("TextLabel")
+textLabel.Name = "CoordinateLabel"
+textLabel.Size = UDim2.new(0, 200, 0, 50)
+textLabel.Position = UDim2.new(1, -210, 0, 10)
+textLabel.Text = "Error"
+textLabel.TextColor3 = Color3.new(1, 1, 1)
+textLabel.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
+textLabel.BackgroundTransparency = 0.5
+textLabel.Font = Enum.Font.SourceSansBold
+textLabel.TextSize = 18
+textLabel.TextXAlignment = Enum.TextXAlignment.Left
+textLabel.RichText = true 
+textLabel.Parent = screenGui
+
+
+local humanoidRootPart
+local function updateCoordinates()
+    humanoidRootPart = game.Players.LocalPlayer.Character:WaitForChild("HumanoidRootPart")
+    game:GetService("RunService").Heartbeat:Connect(function()
+        if humanoidRootPart then
+            local pos = humanoidRootPart.Position
+            textLabel.Text = string.format(
+                '<font color="rgb(255,102,102)">X: %.2f</font>\n<font color="rgb(102,255,102)">Y: %.2f</font>\n<font color="rgb(173,216,230)">Z: %.2f</font>',
+                pos.X, pos.Y, pos.Z
+            )
+        end
+    end)
+end
+
+
+game.Players.LocalPlayer.CharacterAdded:Connect(function(character)
+    wait() 
+    updateCoordinates()
+end)
+
+
+updateCoordinates()
+
+local copyButton = Instance.new("TextButton")
+copyButton.Size = UDim2.new(0, 100, 0, 30)
+copyButton.Position = UDim2.new(1, -110, 0, 70)
+copyButton.Text = "复制坐标"
+copyButton.TextColor3 = Color3.new(0.75, 0.5, 0.85) 
+copyButton.BackgroundColor3 = Color3.new(0.1, 0.1, 0.1)
+copyButton.BackgroundTransparency = 0.5
+copyButton.Font = Enum.Font.SourceSansBold
+copyButton.TextSize = 16
+copyButton.Parent = screenGui
+copyButton.MouseButton1Click:Connect(function()
+    setclipboard(tostring(game.Players.LocalPlayer.Character.HumanoidRootPart.Position))
+end)
+
+
+local consoleButton = Instance.new("TextButton")
+consoleButton.Size = UDim2.new(0, 100, 0, 30)
+consoleButton.Position = UDim2.new(1, -110, 0, 110)
+consoleButton.Text = "控制台"
+consoleButton.TextColor3 = Color3.new(1, 1, 0.5) 
+consoleButton.BackgroundColor3 = Color3.new(0.1, 0.1, 0.1)
+consoleButton.BackgroundTransparency = 0.5
+consoleButton.Font = Enum.Font.SourceSansBold
+consoleButton.TextSize = 16
+consoleButton.Parent = screenGui
+consoleButton.MouseButton1Click:Connect(function()
+    game:GetService("VirtualInputManager"):SendKeyEvent(true, "F9", false, game)
+end)
+
+local closeButton = Instance.new("TextButton")
+closeButton.Size = UDim2.new(0, 100, 0, 30)
+closeButton.Position = UDim2.new(1, -110, 0, 150)
+closeButton.Text = "关闭UI"
+closeButton.TextColor3 = Color3.new(1, 0, 0) -- 红色
+closeButton.BackgroundColor3 = Color3.new(0.1, 0.1, 0.1)
+closeButton.BackgroundTransparency = 0.5
+closeButton.Font = Enum.Font.SourceSansBold
+closeButton.TextSize = 16
+closeButton.Parent = screenGui
+closeButton.MouseButton1Click:Connect(function()
+    screenGui:Destroy()
+end)
+
+local hideButton = Instance.new("TextButton")
+hideButton.Size = UDim2.new(0, 100, 0, 30)
+hideButton.Position = UDim2.new(1, -110, 0, 190)
+hideButton.Text = "隐藏UI"
+hideButton.TextColor3 = Color3.new(1, 0.5, 0) 
+hideButton.BackgroundColor3 = Color3.new(0.1, 0.1, 0.1)
+hideButton.BackgroundTransparency = 0.5
+hideButton.Font = Enum.Font.SourceSansBold
+hideButton.TextSize = 16
+hideButton.Parent = screenGui
+
+local isHidden = false
+hideButton.MouseButton1Click:Connect(function()
+    isHidden = not isHidden
+    if isHidden then
+        hideButton.Text = "显示UI"
+        textLabel.Visible = false
+        consoleButton.Visible = false
+        copyButton.Visible = false
+        closeButton.Visible = false
+    else
+        hideButton.Text = "隐藏UI"
+        textLabel.Visible = true
+        consoleButton.Visible = true
+        copyButton.Visible = true
+        closeButton.Visible = true
+    end
+end)
+
+local dragging = false
+local dragInput
+local dragStart = nil
+local startPos = nil
+
+local function updatePos(input)
+    local delta = input.Position - dragStart
+    hideButton.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+
+hideButton.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = hideButton.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+hideButton.InputChanged:Connect(function(input)
+    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+
+game:GetService("UserInputService").InputChanged:Connect(function(input)
+    if dragging and input == dragInput then
+        updatePos(input)
+    end
+end)
