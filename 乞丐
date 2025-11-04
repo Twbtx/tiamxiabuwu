@@ -1,0 +1,319 @@
+local Players = game:GetService("Players")
+local Player = Players.LocalPlayer
+local PlayerGui = Player:WaitForChild("PlayerGui")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+
+local args = {
+    [1] = true
+}
+
+
+local isRunning = false
+local connection = nil
+local isMinimized = false
+local totalCalls = 0
+local startTime = 0
+
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "StableFarmGUI"
+ScreenGui.Parent = PlayerGui
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 300, 0, 200)
+MainFrame.Position = UDim2.new(0.5, -150, 0.1, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+MainFrame.BorderSizePixel = 0
+MainFrame.Parent = ScreenGui
+
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 12)
+UICorner.Parent = MainFrame
+
+
+local TitleBar = Instance.new("Frame")
+TitleBar.Size = UDim2.new(1, 0, 0, 40)
+TitleBar.Position = UDim2.new(0, 0, 0, 0)
+TitleBar.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+TitleBar.BorderSizePixel = 0
+TitleBar.Parent = MainFrame
+
+local TitleBarCorner = Instance.new("UICorner")
+TitleBarCorner.CornerRadius = UDim.new(0, 12)
+TitleBarCorner.Parent = TitleBar
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, -80, 1, 0)
+Title.Position = UDim2.new(0, 10, 0, 0)
+Title.BackgroundTransparency = 1
+Title.Text = "💰刷金币"
+Title.TextColor3 = Color3.fromRGB(255, 215, 0)
+Title.TextSize = 16
+Title.Font = Enum.Font.GothamBold
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = TitleBar
+
+
+local CloseButton = Instance.new("TextButton")
+CloseButton.Size = UDim2.new(0, 30, 0, 30)
+CloseButton.Position = UDim2.new(1, -40, 0, 5)
+CloseButton.BackgroundColor3 = Color3.fromRGB(220, 60, 60)
+CloseButton.Text = "×"
+CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseButton.TextSize = 16
+CloseButton.Font = Enum.Font.GothamBold
+CloseButton.Parent = TitleBar
+
+local CloseCorner = Instance.new("UICorner")
+CloseCorner.CornerRadius = UDim.new(0, 6)
+CloseCorner.Parent = CloseButton
+
+
+local ContentFrame = Instance.new("Frame")
+ContentFrame.Size = UDim2.new(1, 0, 1, -40)
+ContentFrame.Position = UDim2.new(0, 0, 0, 40)
+ContentFrame.BackgroundTransparency = 1
+ContentFrame.Parent = MainFrame
+
+
+local StatusFrame = Instance.new("Frame")
+StatusFrame.Size = UDim2.new(1, -20, 0, 40)
+StatusFrame.Position = UDim2.new(0, 10, 0, 10)
+StatusFrame.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+StatusFrame.BorderSizePixel = 0
+StatusFrame.Parent = ContentFrame
+
+local StatusCorner = Instance.new("UICorner")
+StatusCorner.CornerRadius = UDim.new(0, 8)
+StatusCorner.Parent = StatusFrame
+
+local StatusLabel = Instance.new("TextLabel")
+StatusLabel.Size = UDim2.new(0.5, -5, 1, 0)
+StatusLabel.Position = UDim2.new(0, 10, 0, 0)
+StatusLabel.BackgroundTransparency = 1
+StatusLabel.Text = "状态: 关闭"
+StatusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+StatusLabel.TextSize = 14
+StatusLabel.Font = Enum.Font.GothamBold
+StatusLabel.TextXAlignment = Enum.TextXAlignment.Left
+StatusLabel.Parent = StatusFrame
+
+local SpeedLabel = Instance.new("TextLabel")
+SpeedLabel.Size = UDim2.new(0.5, -5, 1, 0)
+SpeedLabel.Position = UDim2.new(0.5, 5, 0, 0)
+SpeedLabel.BackgroundTransparency = 1
+SpeedLabel.Text = "速度: 1000/秒"
+SpeedLabel.TextColor3 = Color3.fromRGB(100, 255, 255)
+SpeedLabel.TextSize = 14
+SpeedLabel.Font = Enum.Font.GothamBold
+SpeedLabel.TextXAlignment = Enum.TextXAlignment.Right
+SpeedLabel.Parent = StatusFrame
+
+
+local StatsFrame = Instance.new("Frame")
+StatsFrame.Size = UDim2.new(1, -20, 0, 40)
+StatsFrame.Position = UDim2.new(0, 10, 0, 60)
+StatsFrame.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+StatsFrame.BorderSizePixel = 0
+StatsFrame.Parent = ContentFrame
+
+local StatsCorner = Instance.new("UICorner")
+StatsCorner.CornerRadius = UDim.new(0, 8)
+StatsCorner.Parent = StatsFrame
+
+local CallsLabel = Instance.new("TextLabel")
+CallsLabel.Size = UDim2.new(1, -10, 1, 0)
+CallsLabel.Position = UDim2.new(0, 10, 0, 0)
+CallsLabel.BackgroundTransparency = 1
+CallsLabel.Text = "已发送: 0 次"
+CallsLabel.TextColor3 = Color3.fromRGB(150, 255, 150)
+CallsLabel.TextSize = 14
+CallsLabel.Font = Enum.Font.Gotham
+CallsLabel.TextXAlignment = Enum.TextXAlignment.Left
+CallsLabel.Parent = StatsFrame
+
+
+local ToggleButton = Instance.new("TextButton")
+ToggleButton.Size = UDim2.new(1, -20, 0, 50)
+ToggleButton.Position = UDim2.new(0, 10, 0, 110)
+ToggleButton.BackgroundColor3 = Color3.fromRGB(220, 60, 60)
+ToggleButton.Text = "开始刷金币"
+ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleButton.TextSize = 16
+ToggleButton.Font = Enum.Font.GothamBold
+ToggleButton.Parent = ContentFrame
+
+local ToggleCorner = Instance.new("UICorner")
+ToggleCorner.CornerRadius = UDim.new(0, 8)
+ToggleCorner.Parent = ToggleButton
+
+
+local EmergencyButton = Instance.new("TextButton")
+EmergencyButton.Size = UDim2.new(1, -20, 0, 30)
+EmergencyButton.Position = UDim2.new(0, 10, 0, 170)
+EmergencyButton.BackgroundColor3 = Color3.fromRGB(180, 60, 60)
+EmergencyButton.Text = "停止"
+EmergencyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+EmergencyButton.TextSize = 14
+EmergencyButton.Font = Enum.Font.GothamBold
+EmergencyButton.Visible = false
+EmergencyButton.Parent = ContentFrame
+
+local EmergencyCorner = Instance.new("UICorner")
+EmergencyCorner.CornerRadius = UDim.new(0, 6)
+EmergencyCorner.Parent = EmergencyButton
+
+
+local dragging = false
+local dragStartPos
+local guiStartPos
+
+TitleBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStartPos = input.Position
+        guiStartPos = MainFrame.Position
+        
+        local dragConnection
+        dragConnection = UserInputService.InputChanged:Connect(function(inputChanged)
+            if dragging and (inputChanged.UserInputType == Enum.UserInputType.Touch or inputChanged.UserInputType == Enum.UserInputType.MouseMovement) then
+                local delta = inputChanged.Position - dragStartPos
+                MainFrame.Position = UDim2.new(
+                    guiStartPos.X.Scale, 
+                    guiStartPos.X.Offset + delta.X,
+                    guiStartPos.Y.Scale, 
+                    guiStartPos.Y.Offset + delta.Y
+                )
+            end
+        end)
+        
+        UserInputService.InputEnded:Connect(function(inputEnded)
+            if inputEnded.UserInputType == Enum.UserInputType.Touch or inputEnded.UserInputType == Enum.UserInputType.MouseButton1 then
+                dragging = false
+                if dragConnection then
+                    dragConnection:Disconnect()
+                end
+            end
+        end)
+    end
+end)
+
+
+local lastUpdate = os.time()
+local callsThisSecond = 0
+
+
+local function startFarming()
+    
+    if connection then
+        connection:Disconnect()
+        connection = nil
+    end
+    
+    
+    totalCalls = 0
+    callsThisSecond = 0
+    startTime = os.time()
+    lastUpdate = startTime
+    
+    
+    connection = RunService.Heartbeat:Connect(function()
+        if not isRunning then
+            connection:Disconnect()
+            connection = nil
+            return
+        end
+        
+        
+        for i = 1, 18 do
+            pcall(function()
+                game:GetService("ReplicatedStorage").Remotes.MinigameEvent:FireServer(unpack(args))
+                totalCalls = totalCalls + 1
+                callsThisSecond = callsThisSecond + 1
+            end)
+        end
+        
+        
+        local currentTime = os.time()
+        if currentTime ~= lastUpdate then
+            CallsLabel.Text = "已发送: " .. totalCalls .. " 次"
+            callsThisSecond = 0
+            lastUpdate = currentTime
+        end
+    end)
+end
+
+
+local function forceStop()
+    isRunning = false
+    if connection then
+        connection:Disconnect()
+        connection = nil
+    end
+    
+    StatusLabel.Text = "状态: 已停止"
+    StatusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+    ToggleButton.BackgroundColor3 = Color3.fromRGB(220, 60, 60)
+    ToggleButton.Text = " 开始刷金币"
+    EmergencyButton.Visible = false
+    
+    print("停止刷金币")
+end
+
+
+ToggleButton.MouseButton1Click:Connect(function()
+    isRunning = not isRunning
+    
+    if isRunning then
+        
+        StatusLabel.Text = "状态: 运行中"
+        StatusLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
+        ToggleButton.BackgroundColor3 = Color3.fromRGB(60, 180, 60)
+        ToggleButton.Text = "停止刷金币"
+        EmergencyButton.Visible = true
+        startFarming()
+        print("开始刷金币 - 每秒1000次")
+    else
+        
+        forceStop()
+        print("正常停止刷金币")
+    end
+end)
+
+
+EmergencyButton.MouseButton1Click:Connect(function()
+    forceStop()
+    print("停止按钮被点击")
+end)
+
+
+CloseButton.MouseButton1Click:Connect(function()
+    forceStop()
+    ScreenGui:Destroy()
+    print("UI已关闭")
+end)
+
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    
+    if input.KeyCode == Enum.KeyCode.F then
+        isRunning = not isRunning
+        
+        if isRunning then
+            StatusLabel.Text = "状态: 运行中"
+            StatusLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
+            ToggleButton.BackgroundColor3 = Color3.fromRGB(60, 180, 60)
+            ToggleButton.Text = "停止刷金币"
+            EmergencyButton.Visible = true
+            startFarming()
+        else
+            forceStop()
+        end
+    elseif input.KeyCode == Enum.KeyCode.Escape then
+        
+        forceStop()
+    end
+end)
