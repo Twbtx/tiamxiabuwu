@@ -1450,8 +1450,9 @@ DevSection:Button("Infinite Yield", function()
     showNotification("执行成功", "Infinite Yield 已加载")
 end)
 
-DevSection:Button("Dark Dex V3", function()
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/Babyhamsta/RBLX_Scripts/main/Universal/BypassedDarkDexV3.lua"))()
+DevSection:Button("汉化 Dex V3", function()
+       loadstring(game:HttpGet("https://raw.githubusercontent.com/Twbtx/tiamxiabuwu/main/han%20hua%20%20dex%20v3"))()
+
     showNotification("执行成功", "Dark Dex V3 已加载")
 end)
 
