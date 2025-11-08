@@ -407,7 +407,7 @@ end)
 
 
 Button(Tab1, "汉化Dex v3", function() 
-    
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/Twbtx/tiamxiabuwu/blob/main/han%20hua%20%20dex%20v3"))()
 end)
 
 
@@ -601,10 +601,6 @@ end)
 
 Button(Tab1, "爬墙", function() 
     loadstring(game:HttpGet("https://pastebin.com/raw/zXk4Rq2r"))()
-end)
-
-Button(Tab1, "iy指令", function() 
-    loadstring(game:HttpGet(('https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source'),true))()
 end)
 
 Button(Tab1, "工具挂", function() 
