@@ -1,5 +1,5 @@
 local Translations = {
-    ["workspace"] = "工作区"
+    ["workspace"] = "工作区",
     ["Backpack"] = "背包",
     ["StarterPack"] = "初始包",
     ["StarterPlayer"] = "初始玩家",
