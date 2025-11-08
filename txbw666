@@ -2,11 +2,12 @@ local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/rel
 local Window = WindUI:CreateWindow({
     Title = "混脚本--首页",
     Icon = "door-open",
-    Author = "司空,WB.TX 制作",
+    Author = "司空,WBTX 制作",
     Folder = "CloudHub",
     Size = UDim2.fromOffset(560, 360),
     Transparent = true,
     Theme = "Dark",
+    Background = "rbxassetid://129429398197953",
     User = {
         Enabled = true,
         Callback = function() 
@@ -47,7 +48,8 @@ function Dropdown(a, b, c, d, e)
     return a:Dropdown({Title = b, Values = c, Value = d, Callback = e})
 end
 
-local Tab1 = Tab("通用")
+
+local Tab1 = Tab("通用(包含开发工具)")
 local Tab2 = Tab("忍者传奇")
 local Tab3 = Tab("力量传奇")
 local Tab4 = Tab("驾驶帝国")
@@ -66,6 +68,11 @@ local Tab16 = Tab("刀刃球")
 local Tab17 = Tab("墨水游戏")
 local Tab18 = Tab("极速传奇")
 local Tab19 = Tab("最强战场")
+
+
+
+
+
 
 Button(Tab1, "提升fps", function() 
         loadstring(game:HttpGet("https://raw.githubusercontent.com/smalldesikon/hun/ee906e570c0f5b22e580a20decaba23757533569/fps"))()
