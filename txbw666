@@ -65,6 +65,7 @@ local Tab15 = Tab("死亡之死")
 local Tab16 = Tab("刀刃球")
 local Tab17 = Tab("墨水游戏")
 local Tab18 = Tab("极速传奇")
+local Tab19 = Tab("最强战场")
 
 Button(Tab1, "提升fps", function() 
         loadstring(game:HttpGet("https://raw.githubusercontent.com/smalldesikon/hun/ee906e570c0f5b22e580a20decaba23757533569/fps"))()
@@ -1094,4 +1095,8 @@ end)
 
 Button(Tab18, "自制🤫", function() 
         loadstring(game:HttpGet("https://raw.githubusercontent.com/Twbtx/tiamxiabuwu/main/hun%20%E6%9E%81%E9%80%9F%E4%BC%A0%E5%A5%87"))()
+end)
+
+Button(Tab19, "supa tech上勾拳触发全自动攻击", function() 
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/MerebennieOfficial/ExoticJn/refs/heads/main/Supa%20V3"))()
 end)
