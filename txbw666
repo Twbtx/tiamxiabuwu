@@ -388,6 +388,109 @@ Button(Tab1, "Dex抓包", function()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/XiaoFenHG/Dex-Explorer/refs/heads/main/Dex-Explorer.lua"))()
 end)
 
+Button(Tab1, "汉化spy", function() 
+    getgenv().Spy="汉化Spy" 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/xiaopi77/xiaopi77/refs/heads/main/spy%E6%B1%89%E5%8C%96%20(1).txt"))()
+end)
+
+Button(Tab1, "改版rspy", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/78n/SimpleSpy/main/SimpleSpySource.lua"))()
+end)
+
+Button(Tab1, "Infinite Yield", function() 
+    loadstring(game:HttpGet('https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source'))()
+end)
+
+Button(Tab1, "Dark Dex V3", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/Babyhamsta/RBLX_Scripts/main/Universal/BypassedDarkDexV3.lua"))()
+end)
+
+
+Button(Tab1, "汉化Dex v3", function() 
+    
+end)
+
+
+Button(Tab1, "CMD-X", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/CMD-X/CMD-X/master/Source", true))()
+end)
+
+Button(Tab1, "Hydroxide", function() 
+    loadstring(game:HttpGet('https://raw.githubusercontent.com/iK4oS/backdoor.exe/v8/src/main.lua'))()
+end)
+
+Button(Tab1, "SimpleAdmin", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/exxtremestuffs/SimpleAdmin/main/SimpleAdmin.lua"))()
+end)
+
+Button(Tab1, "Remote Spy", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/470n1/RemoteSpy/main/Main.lua"))()
+end)
+
+Button(Tab1, "Owl Hub", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/CriShoux/OwlHub/master/OwlHub.txt"))()
+end)
+
+Button(Tab1, "Fluxus", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/FluxusByte/Fluxus.Public/main/Fluxus"))()
+end)
+
+Button(Tab1, "Script Dumper", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/FilteringEnabled/ScriptDumper/main/ScriptDumper.lua"))()
+end)
+
+Button(Tab1, "Elysian", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/ElysianManager/Elysian/main/Loader.lua"))()
+end)
+
+Button(Tab1, "ProtoSmasher Compat", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/ProtoSmasher/Scripts/main/Loader"))()
+end)
+
+Button(Tab1, "Unnamed ESP", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/ic3w0lf22/Unnamed-ESP/master/UnnamedESP.lua"))()
+end)
+
+Button(Tab1, "Anti AFK", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/FilteringEnabled/FE-AntiAFK/main/src.lua"))()
+end)
+
+Button(Tab1, "内存编辑与实时修改", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/MuhammadXd/ModernHub/main/MemoryEditor.lua"))()
+end)
+
+Button(Tab1, "反检测和隐蔽执行", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/FilteringEnabled/FE-Script-Repository/main/AntiDetection.lua"))()
+end)
+
+Button(Tab1, "游戏资产和数据提取工具", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/ByteSizeBit/ByteHub/main/DataExtractor.lua"))()
+end)
+
+Button(Tab1, "内存查看和调用工具", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/Upbolt/Hydroxide/release/ui.lua"))()
+end)
+
+Button(Tab1, "网络连接质量测试工具", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/StellarWorkshop/StellarHub/main/NetworkTools.lua"))()
+end)
+
+Button(Tab1, "拦截和修改网络数据", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))()
+end)
+
+Button(Tab1, "修改游戏数据", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/ArceusX-Scripts/ArceusX/main/ValueModifier.lua"))()
+end)
+
+Button(Tab1, "修改游戏状态和数据", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/MuhammadXd/ModernHub/main/GameStateModifier.lua"))()
+end)
+
+Button(Tab1, "内存修改工具", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/FilteringEnabled/FE-Script-Repository/main/StealthMemoryEditor.lua"))()
+end)
+
 Button(Tab1, "位置仪", function() 
     local ScreenGui = Instance.new("ScreenGui")
     local Frame = Instance.new("Frame")
