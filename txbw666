@@ -70,7 +70,7 @@ local Tab18 = Tab("极速传奇")
 local Tab19 = Tab("最强战场")
 local Tab20 = Tab("其他作者脚本")
 local Tab21 = Tab("自然灾害")
-
+local Tab22 = Tab("ohio)
 
 
 
@@ -1635,3 +1635,20 @@ end)
 Button(Tab21, "控制全局物体飞行", function() 
     loadstring(game:HttpGet("https://raw.githubusercontent.com/cytj777i/6669178/main/全局物体漂浮最终优化版"))()
 end)
+
+Button(Tab22, "xa Ohio", function() 
+    loadstring(game:HttpGet("https://github.com/XingFork/Scripts/raw/main/Ohio", true))()
+end)
+
+Button(Tab22, "xk Ohio", function() 
+    loadstring(game:HttpGet(('https://github.com/DevSloPo/DVES/raw/main/XK%20Hub')))()
+end)
+
+Button(Tab22, "xyz Ohio", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/rxn-xyz/Ohio./main/Ohio.lua",true))()
+end)
+
+Button(Tab22, "snow Ohio", function() 
+    loadstring(game:HttpGet("http://snowscript.xozv.top/"))()
+end)
+
