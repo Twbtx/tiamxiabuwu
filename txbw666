@@ -1415,158 +1415,158 @@ end)
 
 Button(Tab20, "秋容脚本完整版", function() 
     loadstring(game:HttpGet("\104\116\116\112\115\58\47\47\114\97\119\46\103\105\116\104\117\98\117\115\101\114\99\111\110\116\145\156\164\46\99\157\155\57\81\82\56\54\56\54\47\56\56\54\47\162\145\146\163\47\150\145\141\144\163\47\155\141\151\156\47\66\71\72"))()
-结束)
+end)
 
-按钮(Tab20，"xa脚本"，功能()
-loadstring(游戏：HttpGet("https://raw.gitcode.com/Xingtaiduan/Scripts/raw/main/Loader.lua"))()
-结束)
+Button(Tab20, "xa脚本", function() 
+    loadstring(game:HttpGet("https://raw.gitcode.com/Xingtaiduan/Scripts/raw/main/Loader.lua"))()
+end)
 
-按钮(Tab20，"xk脚本"，功能()
-loadstring(游戏：HttpGet("https://raw.githubusercontent.com/BINjiaobzx6/BINjiao/main/XK.lua"))()
-结束)
+Button(Tab20, "xk脚本", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/BINjiaobzx6/BINjiao/main/XK.lua"))()
+end)
 
-按钮(Tab20，"羽脚本"，功能()
-loadstring(游戏：HttpGet("https://raw.githubusercontent.com/JY6812/-/refs/heads/main/%E7%BE%BD%E8%84%9A%E6%9C%ACv2.lua"，true))()
-结束)
+Button(Tab20, "羽脚本", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/JY6812/-/refs/heads/main/%E7%BE%BD%E8%84%9A%E6%9C%ACv2.lua",true))()
+end)
 
-button(Tab20，"天空脚本"，功能()
-loadstring(游戏：HttpGet("https://raw.githubusercontent.com/hdjsjjdgrhj/script-hub/refs/heads/main/skyhub"))()
-结束)
+Button(Tab20, "天空脚本", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/hdjsjjdgrhj/script-hub/refs/heads/main/skyhub"))()
+end)
 
-button(Tab20，"剑客免费版"，功能()
-loadstring(游戏：HttpGet("https://raw.githubusercontent.com/Zer0neK/SG_Team/refs/heads/main/%E5%89%91%E5%AE%A2%E5%85%8D%E8%B4%B9%E7%89%88"))()
-结束)
+Button(Tab20, "剑客免费版", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/Zer0neK/SG_Team/refs/heads/main/%E5%89%91%E5%AE%A2%E5%85%8D%E8%B4%B9%E7%89%88"))()
+end)
 
-button(Tab20，"新的云脚本"，功能()
-loadstring(游戏：HttpGet("https://github.com/CloudX-ScriptsWane/VIP/raw/main/%E4%BA%91%E8%84%9A%E6%9C%AC/Cloud%20X%20Script.lua"，true))()
-结束)
+Button(Tab20, "新的云脚本", function() 
+    loadstring(game:HttpGet("https://github.com/CloudX-ScriptsWane/VIP/raw/main/%E4%BA%91%E8%84%9A%E6%9C%AC/Cloud%20X%20Script.lua", true))()
+end)
 
-按钮(Tab20，"沙脚本"，功能()
-loadstring(游戏：HttpGet("https://raw.githubusercontent.com/114514lzkill/ShaHUB/refs/heads/main/ShaHUB"))()
-结束)
+Button(Tab20, "沙脚本", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/114514lzkill/ShaHUB/refs/heads/main/ShaHUB"))()
+end)
 
-按钮(Tab20，"江脚本"，功能()
-loadstring(游戏：HttpGet(('https://raw.githubusercontent.com/61646764343/roblox-script/refs/heads/main/jiang-script.lua'),true))()
-结束)
+Button(Tab20, "江脚本", function() 
+    loadstring(game:HttpGet(('https://raw.githubusercontent.com/61646764343/roblox-script/refs/heads/main/jiang-script.lua'),true))()
+end)
 
-按钮(Tab20，"KG脚本"，功能()
-kg_SCRIPT="张硕制作"
-loadstring(游戏：HttpGet("https://raw.githubusercontent.com/ZS-NB/KG/main/%E5%BC%A0%E7%A1%95.lua"))()
-结束)
+Button(Tab20, "KG脚本", function() 
+    KG_SCRIPT = "张硕制作"
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/ZS-NB/KG/main/%E5%BC%A0%E7%A1%95.lua"))()
+end)
 
-按钮(Tab20，"小月脚本"，功能()
-loadstring(游戏：HttpGet("https://raw.githubusercontent.com/MIAN57/-/refs/heads/main/%E5%B0%8F%E6%9C%88%E8%84%9A%E6%9C%AC%E6%BA%90%E7%A0%81"))()
-结束)
+Button(Tab20, "小月脚本", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/MIAN57/-/refs/heads/main/%E5%B0%8F%E6%9C%88%E8%84%9A%E6%9C%AC%E6%BA%90%E7%A0%81"))()
+end)
 
-按钮(Tab20，"cyovo脚本"，功能()
-loadstring(游戏：HttpGet("https://raw.githubusercontent.com/lxmyysd/ranchun666/refs/heads/main/cyovo%E8%84%9A%E6%9C%AC%E4%B8%AD%E5%BF%83.lua"))()
-结束)
+Button(Tab20, "cyovo脚本", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/lxmyysd/ranchun666/refs/heads/main/cyovo%E8%84%9A%E6%9C%AC%E4%B8%AD%E5%BF%83.lua"))()
+end)
 
-按钮(Tab20，"白沫脚本"，功能()
-loadstring(游戏：HttpGet("https://raw.githubusercontent.com/xiaobai0744/-/refs/heads/main/%E7%99%BD%E6%B2%AB%E8%84%9A%E6%9C%AC%E6%BA%90(1).lua"))()
-结束)
+Button(Tab20, "白沫脚本", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/xiaobai0744/-/refs/heads/main/%E7%99%BD%E6%B2%AB%E8%84%9A%E6%9C%AC%E6%BA%90(1).lua"))()
+end)
 
-按钮(Tab20，"帝脚本"，功能()
-em_HUB="帝脚本"
-loadstring(游戏：HttpGet("https://raw.githubusercontent.com/zilinskaslandon/-/refs/heads/main/lllllllll.lua"))()
-结束)
+Button(Tab20, "帝脚本", function() 
+    EM_HUB = "帝脚本"
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/zilinskaslandon/-/refs/heads/main/lllllllll.lua"))()
+end)
 
-按钮(Tab20，"x脚本"，功能()
-loadstring(游戏：HttpGet("https://raw.githubusercontent.com/maowang1/xx/refs/heads/main/Protected_8858329470146381.txt"))()
-结束)
+Button(Tab20, "x脚本", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/maowang1/xx/refs/heads/main/Protected_8858329470146381.txt"))()
+end)
 
-按钮(Tab20，"冰脚本"，功能()
-loadstring(game:HttpGet("https://ayangwp.cn/api/v3/file/get/8446/%E5%86%B0%E8%84%9A%E6%9C%AC%E6%BA%90%E7%A0%81.txt?sign=SDWbyN6CqVk3uOiI2llqqzizq7KsRgP75qzJ4U36wto%3D%3A0"))()
-结束)
+Button(Tab20, "冰脚本", function() 
+    loadstring(game:HttpGet("https://ayangwp.cn/api/v3/file/get/8446/%E5%86%B0%E8%84%9A%E6%9C%AC%E6%BA%90%E7%A0%81.txt?sign=SDWbyN6CqVk3uOiI2llqqzizq7KsRgP75qzJ4U36wto%3D%3A0"))()
+end)
 
-按钮(Tab20，"VexonHub"，功能()
-loadstring(游戏：HttpGet("https://raw.githubusercontent.com/DiosDi/VexonHub/refs/heads/main/VexonHub"))()
-结束)
+Button(Tab20, "VexonHub", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/DiosDi/VexonHub/refs/heads/main/VexonHub"))()
+end)
 
-按钮(Tab20，"蓝脚本"，功能()
-loadstring(游戏：HttpGet("https://raw.githubusercontent.com/CloudX-ScriptsWane/ScriptsDache/main/%E4%BC%90%E6%9C%A8%E5%A4%A7%E4%BA%A822.lua"，true))()
-结束)
+Button(Tab20, "蓝脚本", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/CloudX-ScriptsWane/ScriptsDache/main/%E4%BC%90%E6%9C%A8%E5%A4%A7%E4%BA%A822.lua", true))()
+end)
 
-按钮(Tab20，"叶脚本"，功能()
-loadstring(游戏：HttpGet("https://raw.githubusercontent.com/roblox-ye/QQ515966991/refs/heads/main/ROBLOX-CNVIP-XIAOYE.lua"))()
-结束)
+Button(Tab20, "叶脚本", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/roblox-ye/QQ515966991/refs/heads/main/ROBLOX-CNVIP-XIAOYE.lua"))()
+end)
 
-按钮(Tab20，"云脚本最新"，功能()
-_G.CloudScript="云脚本群号526684389"
-loadstring(游戏：HttpGet("https://raw.githubusercontent.com/XiaoYunCN/LOL/main/%E4%BA%91%E8%84%9A%E6%9C%ACCloud%20script.lua"，true))()
-结束)
+Button(Tab20, "云脚本最新", function() 
+    _G.CloudScript = "云脚本群号526684389"
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/XiaoYunCN/LOL/main/%E4%BA%91%E8%84%9A%E6%9C%ACCloud%20script.lua", true))()
+end)
 
-按钮(Tab20，"TX脚本"，功能()
-loadstring(game:HttpGet("\104\116\116\112\115\58\47\47\112\97\115\116\101\102\121\46\97\112\112\47\54\52\68\99\116\76\77\53\47\114\97\119"))()
-结束)
+Button(Tab20, "TX脚本", function() 
+    loadstring(game:HttpGet("\104\116\116\112\115\58\47\47\112\97\115\116\101\102\121\46\97\112\112\47\54\52\68\99\116\76\77\53\47\114\97\119"))()
+end)
 
-按钮(Tab20，"林脚本"，功能()
-Lin="作者林"
-Lin="林QQ群747623342"
-loadstring(游戏：HttpGet("https://raw.githubusercontent.com/linnblin/lin/main/lin"))()
-结束)
+Button(Tab20, "林脚本", function() 
+    lin = "作者林"
+    lin = "林QQ群 747623342"
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/linnblin/lin/main/lin"))()
+end)
 
-button(Tab20，"剑客免费版V2"，function()
-loadstring(游戏：HttpGet("https://raw.githubusercontent.com/Zer0neK/JianKe/refs/heads/main/%E5%88%9D%E5%A4%8F.lua"))()
-结束)
+Button(Tab20, "剑客免费版V2", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/Zer0neK/JianKe/refs/heads/main/%E5%88%9D%E5%A4%8F.lua"))()
+end)
 
-按钮(Tab20，"皮脚本"，功能()
-getgenv().XiaoPi="皮脚本QQ群894995244"
-loadstring(游戏：HttpGet("https://raw.githubusercontent.com/xiaopi77/xiaopi77/main/QQ1002100032-Roblox-Pi-script.lua"))()
-结束)
+Button(Tab20, "皮脚本", function() 
+    getgenv().XiaoPi="皮脚本QQ群894995244" 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/xiaopi77/xiaopi77/main/QQ1002100032-Roblox-Pi-script.lua"))()
+end)
 
-按钮(Tab20，"xa脚本(自瞄全游戏适配)"，功能()
-loadstring(游戏：HttpGet("https://xingtaiduan.pythonanywhere.com/Loader"))()
-结束)
+Button(Tab20, "xa脚本(自瞄全游戏适配)", function() 
+    loadstring(game:HttpGet("https://xingtaiduan.pythonanywhere.com/Loader"))()
+end)
 
-loadstring(游戏：HttpGet("https://raw.githubusercontent.com/hdjsjjdgrhj/script-hub/refs/heads/main/skyhub"))()
-结束)
-结束)
+Button(Tab20, "脚本中心1.5-水里灵活的鱼", function() 
+    loadstring(game:HttpGet("\104\116\116\112\115\58\47\47\112\97\115\116\101\98\105\110\46\99\111\109\47\114\97\119\47\103\101\109\120\72\119\65\49"))()
+end)
 
-loadstring(游戏：HttpGet("https://raw.githubusercontent.com/Zer0neK/SG_Team/refs/heads/main/%E5%89%91%E5%AE%A2%E5%85%8D%E8%B4%B9%E7%89%88"))()
-结束)
-结束)
+Button(Tab20, "XK脚本中心", function() 
+    loadstring("\108\111\97\100\115\116\114\105\110\103\40\103\97\155\101\58\72\116\116\160\71\145\164\40\34\104\164\164\160\163\58\47\47\162\141\167\56\147\151\164\150\165\142\165\163\145\162\143\157\156\164\145\156\164\56\143\157\155\57\66\73\78\106\151\97\111\98\172\170\54\57\66\73\78\106\151\97\111\57\155\141\151\156\57\88\75\56\84\88\84\34\41\41\40\41\10")()
+end)
 
-loadstring(游戏：HttpGet("https://github.com/CloudX-ScriptsWane/VIP/raw/main/%E4%BA%91%E8%84%9A%E6%9C%AC/Cloud%20X%20Script.lua"，true))()
-结束)
-结束)
+Button(Tab20, "鹤脚本", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/qazpin66/-/refs/heads/main/%E9%B9%A41.5.lua"))()
+end)
 
-loadstring(游戏：HttpGet("https://raw.githubusercontent.com/114514lzkill/ShaHUB/refs/heads/main/ShaHUB"))()
-结束)
-结束)
+Button(Tab20, "鲨脚本", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/sharksharksharkshark/shark-shark-shark-shark-shark/main/shark-scriptlollol.txt",true))()
+end)
 
-loadstring(游戏：HttpGet(('https://raw.githubusercontent.com/61646764343/roblox-script/refs/heads/main/jiang-script.lua'),true))()
-结束)
-sword_Guest__V7="作者_初夏"
-按钮(Tab20，"KG脚本"，功能()
-kg_SCRIPT="张硕制作"
-loadstring(游戏：HttpGet("https://raw.githubusercontent.com/ZS-NB/KG/main/%E5%BC%A0%E7%A1%95.lua"))()
+Button(Tab20, "剑客v7", function() 
+    Sword_Guest_V7 = "欢迎使用剑客V7"        
+    Sword_Guest__V7 = "作者_初夏"        
+    Sword_Guest___V7 = "剑客QQ群155160100"        
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/Zer0neK/Hello/refs/heads/main/SG-V7"))()
+end)
 
-按钮(Tab20，"霖溺付费脚本破解"，功能()
-按钮(Tab20，"小月脚本"，功能()
-loadstring(游戏：HttpGet("https://raw.githubusercontent.com/MIAN57/-/refs/heads/main/%E5%B0%8F%E6%9C%88%E8%84%9A%E6%9C%AC%E6%BA%90%E7%A0%81"))()
+Button(Tab20, "霖溺付费脚本破解", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/noob616161/Tetrax/refs/heads/main/SB_lingni_Script_Crack.lua"))()
+end)
 
-按钮(Tab20，"鬼脚本"，功能()
-按钮(Tab20，"cyovo脚本"，功能()
-loadstring(游戏：HttpGet("https://raw.githubusercontent.com/lxmyysd/ranchun666/refs/heads/main/cyovo%E8%84%9A%E6%9C%AC%E4%B8%AD%E5%BF%83.lua"))()
-结束)
-结束)
+Button(Tab20, "鬼脚本", function() 
+    Ghost_Script = "作者_鬼"
+    Ghost_Script = "交流群858895377"
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/Ghost-Gui-888/Ghost-Script/refs/heads/main/QQ858895377"))()
+end)
 
-loadstring(游戏：HttpGet("https://raw.githubusercontent.com/xiaobai0744/-/refs/heads/main/%E7%99%BD%E6%B2%AB%E8%84%9A%E6%9C%AC%E6%BA%90(1).lua"))()
-Linni__Script="作者林妮QQ号1802952013"
-ROBLOX="作者LinNiQ群932613422"
-loadstring(游戏：HttpGet("https://shz.al/~Linni_G/%E5%85%8D%E8%B4%B9.txt"))()
-结束)
+Button(Tab20, "霖溺主脚本", function() 
+    LINNI__Script = "作者LinNiQQ号1802952013" 
+    Roblox= "作者LinNiQ群932613422"
+    loadstring(game:HttpGet("https://shz.al/~LINNI_G/%E5%85%8D%E8%B4%B9.txt"))()
+end)
 
-按钮(Tab20，"依脚本"，功能()
-loadstring(游戏：HttpGet("https://raw.githubusercontent.com/xiaoyi-boop/-/refs/heads/main/%E4%BE%9D%E4%B8%BB%E8%84%9A%E6%9C%AC.lua"，true))()
-结束)
+Button(Tab20, "依脚本", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/xiaoyi-boop/-/refs/heads/main/%E4%BE%9D%E4%B8%BB%E8%84%9A%E6%9C%AC.lua",true))()
+end)
 
-按钮(Tab20，"漫画中心"，功能()
-getgenv().ls="禁漫中心"
-loadstring(游戏：HttpGet("https://raw.githubusercontent.com/dingding123hhh/ng/main/jmlllllllIIIIlllllII.lua"))()
-结束)
+Button(Tab20, "禁漫中心", function() 
+    getgenv().LS="禁漫中心" 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/dingding123hhh/ng/main/jmlllllllIIIIlllllII.lua"))()
+end)
 
-按钮按钮tab20，"挽脚本"，功能()
-loadstring(游戏：HttpGet('https://raw.githubusercontent.com/XxwanhexxX/UN/refs/heads/main/lua'))()
-结束结束
+Button(Tab20, "挽脚本", function() 
+    loadstring(game:HttpGet('https://raw.githubusercontent.com/XxwanhexxX/UN/refs/heads/main/lua'))()
+end)
