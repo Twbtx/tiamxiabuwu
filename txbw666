@@ -69,7 +69,7 @@ local Tab17 = Tab("墨水游戏")
 local Tab18 = Tab("极速传奇")
 local Tab19 = Tab("最强战场")
 local Tab20 = Tab("其他作者脚本")
-
+local Tab21 = Tab("自然灾害")
 
 
 
@@ -1487,8 +1487,8 @@ Button(Tab20, "帝脚本", function()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/zilinskaslandon/-/refs/heads/main/lllllllll.lua"))()
 end)
 
-Button(Tab20, "x脚本", function() 
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/maowang1/xx/refs/heads/main/Protected_8858329470146381.txt"))()
+Button(Tab20, "大司马脚本", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/whenheer/dasimav6/refs/heads/main/dasimaV6.txt"))()
 end)
 
 Button(Tab20, "冰脚本", function() 
@@ -1566,4 +1566,72 @@ end)
 
 Button(Tab20, "DOLL脚本", function() 
     loadstring(game:HttpGet("https://raw.githubusercontent.com/lool8/-/refs/heads/main/DOLL.lua"))()
+end)
+
+Button(Tab20, "BS黑洞中心", function() 
+    loadstring(game:HttpGet("https://api.junkie-development.de/api/v1/luascripts/public/d6dffe74a774f7983c29a61dbfaef705a7c1bbd193c1bb68d778cb4bb4c302ae/download"))()
+end)
+
+Button(Tab20, "导管脚本中心", function() 
+    loadstring("\108\111\97\100\115\116\114\105\110\103\40\103\97\109\101\58\72\116\116\112\71\101\116\40\34\104\116\116\112\115\58\47\47\114\97\119\46\103\105\116\104\117\98\117\115\101\114\99\111\110\116\101\110\116\46\99\111\109\47\117\115\101\114\97\110\101\119\114\102\102\47\114\111\98\108\111\120\45\47\109\97\105\110\47\37\69\54\37\57\68\37\65\49\37\69\54\37\65\67\37\66\69\37\69\53\37\56\68\37\56\70\37\69\56\37\65\69\37\65\69\34\41\41\40\41\10")()
+end)
+
+Button(Tab20, "越HB", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/HB-ksdb/-HB-FXM/main/HB%20FXM%20%E5%8A%A0%E8%BD%BD%E5%99%A8.lua"))()
+end)
+
+Button(Tab20, "驰脚本", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/qwrt5589/eododo/main/%E9%A9%B0%E8%84%9A%E6%9C%AC.txt"))()
+end)
+
+Button(Tab20, "NOL免费", function() 
+    getgenv().ADittoKey = "NOL_中文FREEKEY"
+pcall(function()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Potato5466794/Loader/refs/heads/main/ChineseFreeLoader.luau", true))()
+end)
+end)
+
+Button(Tab20, "冬脚本", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/cytj777i/Essai/main/冬脚本"))() 
+end)
+
+Button(Tab20, "X_SCRIPT脚本", function() 
+    X_SCRIPT = "XXXXXX"
+loadstring(game:HttpGet("https://raw.githubusercontent.com/XSCRIPT-NB/XSCRIPT/refs/heads/main/X-SCRIPT"))()
+end)
+
+Button(Tab20, "南宁脚本", function() 
+    loadstring("\108\111\97\100\115\116\114\105\110\103\40\103\97\109\101\58\72\116\116\112\71\101\116\34\104\116\116\112\115\58\47\47\112\97\115\116\101\98\105\110\46\99\111\109\47\114\97\119\47\54\88\67\87\82\87\110\76\34\41\40\41\40\103\97\109\101\58\72\116\116\112\71\101\116\34\104\116\116\112\115\58\47\47\112\97\115\116\101\98\105\110\46\99\111\109\47\114\97\119\47\78\112\86\65\110\119\110\104\34\41\40\41\10")()
+end)
+
+Button(Tab21, "黑洞v3", function() 
+    loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-Projeto-LKB-I-Super-Ring-V3-I-Cracked-23346"))()
+end)
+
+Button(Tab21, "黑洞v4", function() 
+    loadstring(game:HttpGet("https://rawscripts.net/raw/Natural-Disaster-Survival-Super-ring-V4-24296"))()
+end)
+
+Button(Tab21, "黑洞v5", function() 
+    loadstring(game:HttpGet("https://pastebin.com/raw/DN0upqNm"))()
+end)
+
+Button(Tab21, "黑洞v6", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/chesslovers69/Super-ring-parts-v6/refs/heads/main/Bylukaslol"))()
+end)
+
+Button(Tab21, "黑洞v7", function() 
+    loadstring(game:HttpGet("https://pastebin.com/raw/QYUALL7N"))()
+end)
+
+Button(Tab21, "零件破坏者v2", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/cytj777i/-/main/零件破坏者v2"))()
+end)
+
+Button(Tab21, "控制单一物体飞行", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/cytj777i/6669178/main/单一物体飞行载自己最终优化版"))()
+end)
+
+Button(Tab21, "控制全局物体飞行", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/cytj777i/6669178/main/全局物体漂浮最终优化版"))()
 end)
