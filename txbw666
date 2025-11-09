@@ -1652,3 +1652,9 @@ Button(Tab22, "snow Ohio", function()
     loadstring(game:HttpGet("http://snowscript.xozv.top/"))()
 end)
 
+Button(Tab22, "霖溺 Ohio", function() 
+    LnScript = "霖溺-免费版加载器"
+loadstring(game:HttpGet("https://raw.githubusercontent.com/ShenJiaoBen/ScriptLoader/refs/heads/main/Linni_FreeLoader.lua"))()
+
+end)
+
