@@ -1527,10 +1527,6 @@ Button(Tab20, "XK脚本中心", function()
     loadstring("\108\111\97\100\115\116\114\105\110\103\40\103\97\155\101\58\72\116\116\160\71\145\164\40\34\104\164\164\160\163\58\47\47\162\141\167\56\147\151\164\150\165\142\165\163\145\162\143\157\156\164\145\156\164\56\143\157\155\57\66\73\78\106\151\97\111\98\172\170\54\57\66\73\78\106\151\97\111\57\155\141\151\156\57\88\75\56\84\88\84\34\41\41\40\41\10")()
 end)
 
-Button(Tab20, "鹤脚本", function() 
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/qazpin66/-/refs/heads/main/%E9%B9%A41.5.lua"))()
-end)
-
 Button(Tab20, "鲨脚本", function() 
     loadstring(game:HttpGet("https://raw.githubusercontent.com/sharksharksharkshark/shark-shark-shark-shark-shark/main/shark-scriptlollol.txt",true))()
 end)
@@ -1540,10 +1536,6 @@ Button(Tab20, "剑客v7", function()
     Sword_Guest__V7 = "作者_初夏"        
     Sword_Guest___V7 = "剑客QQ群155160100"        
     loadstring(game:HttpGet("https://raw.githubusercontent.com/Zer0neK/Hello/refs/heads/main/SG-V7"))()
-end)
-
-Button(Tab20, "霖溺付费脚本破解", function() 
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/noob616161/Tetrax/refs/heads/main/SB_lingni_Script_Crack.lua"))()
 end)
 
 Button(Tab20, "鬼脚本", function() 
@@ -1569,4 +1561,8 @@ end)
 
 Button(Tab20, "挽脚本", function() 
     loadstring(game:HttpGet('https://raw.githubusercontent.com/XxwanhexxX/UN/refs/heads/main/lua'))()
+end)
+
+Button(Tab20, "DOLL脚本", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/lool8/-/refs/heads/main/DOLL.lua"))()
 end)
