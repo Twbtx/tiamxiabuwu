@@ -1404,6 +1404,26 @@ Button(Tab19, "supa tech上勾拳触发全自动攻击", function()
         loadstring(game:HttpGet("https://raw.githubusercontent.com/MerebennieOfficial/ExoticJn/refs/heads/main/Supa%20V3"))()
 end)
 
+Button(Tab19, "supa 另一个版本", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/MerebennieOfficial/ExoticJn/main/Kibav4", true))()
+    WindUI:Notify({Title = "执行成功", Content = "执行成功"})
+end)
+
+Button(Tab19, "aimbot v4(先把移动锁给解开再开启)", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/MerebennieOfficial/ExoticJn/main/Aimbotv4", true))()
+    WindUI:Notify({Title = "执行成功", Content = "执行成功"})
+end)
+
+Button(Tab19, "更流畅的画质(可能会卡顿三四秒)(不推荐(使用通用里面的FPS提升))", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/MerebennieOfficial/ExoticJn/main/Fpsboosterv2", true))()
+    WindUI:Notify({Title = "执行成功", Content = "执行成功"})
+end)
+
+Button(Tab19, "天下布武汉化老外最强战场脚本(不好用容易出bug)", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/Twbtx/tiamxiabuwu/main/%E6%B1%89%E5%8C%96%E8%80%81%E5%A4%96%E6%9C%80%E5%BC%BA%E6%88%98%E5%9C%BA%E8%84%9A%E6%9C%AC"))()
+    WindUI:Notify({Title = "执行成功", Content = "天下布武汉化脚本已加载"})
+end)
+
 Button(Tab20, "WU主脚本", function() 
     loadstring(game:HttpGet("https://raw.githubusercontent.com/WUSCRIPT/WU-Script/d32b223a23ad84ef7c295656bff860e134eb8a90/77-obfuscated.lua"))()
 end)
