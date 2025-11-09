@@ -1457,10 +1457,6 @@ Button(Tab20, "剑客免费版", function()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/Zer0neK/SG_Team/refs/heads/main/%E5%89%91%E5%AE%A2%E5%85%8D%E8%B4%B9%E7%89%88"))()
 end)
 
-Button(Tab20, "新的云脚本", function() 
-    loadstring(game:HttpGet("https://github.com/CloudX-ScriptsWane/VIP/raw/main/%E4%BA%91%E8%84%9A%E6%9C%AC/Cloud%20X%20Script.lua", true))()
-end)
-
 Button(Tab20, "沙脚本", function() 
     loadstring(game:HttpGet("https://raw.githubusercontent.com/114514lzkill/ShaHUB/refs/heads/main/ShaHUB"))()
 end)
@@ -1511,15 +1507,6 @@ Button(Tab20, "叶脚本", function()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/roblox-ye/QQ515966991/refs/heads/main/ROBLOX-CNVIP-XIAOYE.lua"))()
 end)
 
-Button(Tab20, "云脚本最新", function() 
-    _G.CloudScript = "云脚本群号526684389"
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/XiaoYunCN/LOL/main/%E4%BA%91%E8%84%9A%E6%9C%ACCloud%20script.lua", true))()
-end)
-
-Button(Tab20, "TX脚本", function() 
-    loadstring(game:HttpGet("\104\116\116\112\115\58\47\47\112\97\115\116\101\102\121\46\97\112\112\47\54\52\68\99\116\76\77\53\47\114\97\119"))()
-end)
-
 Button(Tab20, "林脚本", function() 
     lin = "作者林"
     lin = "林QQ群 747623342"
@@ -1562,12 +1549,6 @@ Button(Tab20, "鬼脚本", function()
     Ghost_Script = "作者_鬼"
     Ghost_Script = "交流群858895377"
     loadstring(game:HttpGet("https://raw.githubusercontent.com/Ghost-Gui-888/Ghost-Script/refs/heads/main/QQ858895377"))()
-end)
-
-Button(Tab20, "霖溺主脚本", function() 
-    LINNI__Script = "作者LinNiQQ号1802952013" 
-    Roblox= "作者LinNiQ群932613422"
-    loadstring(game:HttpGet("https://shz.al/~LINNI_G/%E5%85%8D%E8%B4%B9.txt"))()
 end)
 
 Button(Tab20, "依脚本", function() 
