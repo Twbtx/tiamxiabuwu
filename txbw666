@@ -272,6 +272,9 @@ local Tab22 = Tab("ohio")
 Button(Tab1, "提升fps", function() 
         loadstring(game:HttpGet("https://raw.githubusercontent.com/smalldesikon/hun/ee906e570c0f5b22e580a20decaba23757533569/fps"))()
 end)
+Button(Tab1, "无限跳", function() 
+    loadstring(game:HttpGet("https://pastebin.com/raw/V5PQy3y0", true))()
+end)
 
 Button(Tab1, "飞行(by天下布武)", function() 
         loadstring(game:HttpGet("https://raw.githubusercontent.com/Twbtx/tiamxiabuwu/main/t%20x%20b%20w%20fly"))()
@@ -305,8 +308,16 @@ Slider(Tab1, "跳跃高度", 1, 600, game.Players.LocalPlayer.Character.Humanoid
         game.Players.LocalPlayer.Character.Humanoid.JumpPower = a
 end)
 
-Slider(Tab1, "重力设置", 0, 500, workspace.Gravity, function(a) 
+Slider(Tab1, "重力设置", 1, 500, workspace.Gravity, function(a) 
         workspace.Gravity = a
+end)
+
+Button(Tab1, "玩家进入游戏，退出游戏通知", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/boyscp/scriscriptsc/main/bbn.lua"))()
+end)
+
+Button(Tab1, "汉化穿墙",function()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/TtmScripter/OtherScript/main/Noclip"))()
 end)
 
 Button(Tab1, "打飞机r6", function() 
@@ -357,70 +368,8 @@ Button(Tab1, "汉化穿墙", function()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/TtmScripter/OtherScript/main/Noclip"))()
 end)
 
-Button(Tab1, "透视", function() 
-    _G.FriendColor = Color3.fromRGB(0, 0, 255)
-    local function ApplyESP(v)
-        if v.Character and v.Character:FindFirstChildOfClass'Humanoid' then
-            v.Character.Humanoid.NameDisplayDistance = 9e9
-            v.Character.Humanoid.NameOcclusion = "NoOcclusion"
-            v.Character.Humanoid.HealthDisplayDistance = 9e9
-            v.Character.Humanoid.HealthDisplayType = "AlwaysOn"
-            v.Character.Humanoid.Health = v.Character.Humanoid.Health
-        end
-    end
-    for i,v in pairs(game.Players:GetPlayers()) do
-        ApplyESP(v)
-        v.CharacterAdded:Connect(function()
-            task.wait(0.33)
-            ApplyESP(v)
-        end)
-    end
-    game.Players.PlayerAdded:Connect(function(v)
-        ApplyESP(v)
-        v.CharacterAdded:Connect(function()
-            task.wait(0.33)
-            ApplyESP(v)
-        end)
-    end)
-    local Players = game:GetService("Players"):GetChildren()
-    local RunService = game:GetService("RunService")
-    local highlight = Instance.new("Highlight")
-    highlight.Name = "Highlight"
-    for i, v in pairs(Players) do
-        repeat wait() until v.Character
-        if not v.Character:FindFirstChild("HumanoidRootPart"):FindFirstChild("Highlight") then
-            local highlightClone = highlight:Clone()
-            highlightClone.Adornee = v.Character
-            highlightClone.Parent = v.Character:FindFirstChild("HumanoidRootPart")
-            highlightClone.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-            highlightClone.Name = "Highlight"
-        end
-    end
-    game.Players.PlayerAdded:Connect(function(player)
-        repeat wait() until player.Character
-        if not player.Character:FindFirstChild("HumanoidRootPart"):FindFirstChild("Highlight") then
-            local highlightClone = highlight:Clone()
-            highlightClone.Adornee = player.Character
-            highlightClone.Parent = player.Character:FindFirstChild("HumanoidRootPart")
-            highlightClone.Name = "Highlight"
-        end
-    end)
-    game.Players.PlayerRemoving:Connect(function(playerRemoved)
-        playerRemoved.Character:FindFirstChild("HumanoidRootPart").Highlight:Destroy()
-    end)
-    RunService.Heartbeat:Connect(function()
-        for i, v in pairs(Players) do
-            repeat wait() until v.Character
-            if not v.Character:FindFirstChild("HumanoidRootPart"):FindFirstChild("Highlight") then
-                local highlightClone = highlight:Clone()
-                highlightClone.Adornee = v.Character
-                highlightClone.Parent = v.Character:FindFirstChild("HumanoidRootPart")
-                highlightClone.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-                highlightClone.Name = "Highlight"
-                task.wait()
-            end
-        end
-    end)
+Button(Tab1, "爬墙跳脚本(装逼用)", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/ScpGuest666/Random-Roblox-script/refs/heads/main/Roblox%20WallHop%20V4%20script"))()
 end)
 
 Button(Tab1, "透视1", function() 
@@ -472,9 +421,14 @@ Button(Tab1, "反挂机", function()
     loadstring(game:HttpGet("https://pastebin.com/raw/9fFu43FF"))()
 end)
 
-Button(Tab1, "无限跳", function() 
-    loadstring(game:HttpGet("https://pastebin.com/raw/V5PQy3y0", true))()
-end)
+Toggle(Tab1, "无限跳","Toggle",false,function(Value)
+        Jump = Value
+        game.UserInputService.JumpRequest:Connect(function()
+            if Jump then
+                game.Players.LocalPlayer.Character.Humanoid:ChangeState("Jumping")
+            end
+        end)
+    end)
 
 Button(Tab1, "转圈", function() 
     loadstring(game:HttpGet('https://pastebin.com/raw/r97d7dS0', true))()
@@ -584,10 +538,6 @@ Button(Tab1, "汉化spy", function()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/xiaopi77/xiaopi77/refs/heads/main/spy%E6%B1%89%E5%8C%96%20(1).txt"))()
 end)
 
-Button(Tab1, "改版rspy", function() 
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/78n/SimpleSpy/main/SimpleSpySource.lua"))()
-end)
-
 Button(Tab1, "Infinite Yield", function() 
     loadstring(game:HttpGet('https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source'))()
 end)
@@ -636,12 +586,12 @@ Button(Tab1, "ProtoSmasher Compat", function()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/ProtoSmasher/Scripts/main/Loader"))()
 end)
 
-Button(Tab1, "Unnamed ESP", function() 
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/ic3w0lf22/Unnamed-ESP/master/UnnamedESP.lua"))()
-end)
-
 Button(Tab1, "Anti AFK", function() 
     loadstring(game:HttpGet("https://raw.githubusercontent.com/FilteringEnabled/FE-AntiAFK/main/src.lua"))()
+end)
+
+Button(Tab1, "↓↓↓以下的开发脚本可能无用↓↓↓", function() 
+    
 end)
 
 Button(Tab1, "内存编辑与实时修改", function() 
@@ -976,6 +926,133 @@ Button(Tab1, "坐标提取器", function()
         end
     end)
 end)
+
+Button(Tab1, "复制坐标脚本(无法关闭)", function() 
+    local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local player = Players.LocalPlayer
+
+local coordSystem = {
+    isEnabled = true,
+    gui = nil,
+    updateConn = nil,
+    currentPos = Vector3.new(0, 0, 0)
+}
+
+local function createCoordUI()
+    local gui = Instance.new("ScreenGui")
+    gui.Name = "Coord"
+    gui.Parent = player.PlayerGui
+
+    local container = Instance.new("Frame")
+    container.Size = UDim2.new(0, 240, 0, 60)
+    container.Position = UDim2.new(1, -250, 0, 10)
+    container.BackgroundTransparency = 1
+    container.Parent = gui
+
+    local coordFrame = Instance.new("Frame")
+    coordFrame.Size = UDim2.new(0, 200, 1, 0)
+    coordFrame.BackgroundColor3 = Color3.new(0, 0, 0)
+    coordFrame.BackgroundTransparency = 0.7
+    coordFrame.BorderSizePixel = 1
+    coordFrame.Parent = container
+
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Size = UDim2.new(1, 0, 1, 0)
+    textLabel.BackgroundTransparency = 1
+    textLabel.TextColor3 = Color3.new(1, 1, 1)
+    textLabel.Font = Enum.Font.SourceSansBold
+    textLabel.TextSize = 14
+    textLabel.Text = "坐标加载别乱动(警告)"
+    textLabel.Parent = coordFrame
+
+    local copyBtn = Instance.new("TextButton")
+    copyBtn.Size = UDim2.new(0, 35, 1, 0)
+    copyBtn.Position = UDim2.new(0, 205, 0, 0)
+    copyBtn.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
+    copyBtn.BackgroundTransparency = 0.5
+    copyBtn.Text = "复制坐标"
+    copyBtn.TextColor3 = Color3.new(1, 1, 1)
+    copyBtn.TextSize = 14
+    copyBtn.BorderSizePixel = 1
+    copyBtn.Parent = container
+
+    copyBtn.MouseButton1Click:Connect(function()
+        if setclipboard and coordSystem.currentPos then
+            local coordStr = string.format("X: %.2f, Y: %.2f, Z: %.2f",
+                coordSystem.currentPos.X,
+                coordSystem.currentPos.Y,
+                coordSystem.currentPos.Z
+            )
+            setclipboard(coordStr)
+        end
+    end)
+
+    local isDragging = false
+    local dragStartPos = nil
+    local containerStartPos = nil
+
+    container.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch then
+            isDragging = true
+            dragStartPos = input.Position
+            containerStartPos = container.Position
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if isDragging and input.UserInputType == Enum.UserInputType.Touch then
+            local delta = input.Position - dragStartPos
+            container.Position = UDim2.new(
+                containerStartPos.X.Scale,
+                containerStartPos.X.Offset + delta.X,
+                containerStartPos.Y.Scale,
+                containerStartPos.Y.Offset + delta.Y
+            )
+        end
+    end)
+
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch and isDragging then
+            isDragging = false
+        end
+    end)
+
+    return { gui = gui, container = container, text = textLabel }
+end
+
+coordSystem.gui = createCoordUI()
+
+local function formatCoord(pos)
+    return string.format("X: %.2f\nY: %.2f\nZ: %.2f", pos.X, pos.Y, pos.Z)
+end
+
+local function updateCoord()
+    local char = player.Character
+    local root = char and char:FindFirstChild("HumanoidRootPart")
+    if root then
+        coordSystem.currentPos = root.Position
+        coordSystem.gui.text.Text = formatCoord(root.Position)
+    else
+        coordSystem.gui.text.Text = "混nb"
+        coordSystem.currentPos = nil
+    end
+end
+
+coordSystem.updateConn = RunService.Heartbeat:Connect(updateCoord)
+updateCoord()
+
+game:GetService("Players").LocalPlayer.PlayerGui.ChildRemoved:Connect(function(child)
+    if child == coordSystem.gui then
+        if coordSystem.updateConn then
+            coordSystem.updateConn:Disconnect()
+        end
+    end
+end)
+
+end)
+
 
 Button(Tab1, "甩人", function() 
     loadstring(game:HttpGet("https://pastebin.com/raw/zqyDSUWX"))()
@@ -1376,10 +1453,6 @@ Button(Tab10, "俄州子追", function()
     loadstring(game:HttpGet("https://gist.githubusercontent.com/ClasiniZukov/e7547e7b48fa90d10eb7f85bd3569147/raw/f95cd3561a3bb3ac6172a14eb74233625b52e757/gistfile1.txt"))()
 end)
 
-Button(Tab11, "翻译器(by天下布武)", function() 
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/Twbtx/tiamxiabuwu/main/han%20hua%20jiao%20ben"))()
-end)
-
 Button(Tab11, "API翻译(by皮空)", function() 
         loadstring(game:HttpGet("https://raw.githubusercontent.com/smalldesikon/eyidfki/ecca7e04b83299b86c5ce8af98762071cc5f346f/api%E7%BF%BB%E8%AF%91"))()
 end)
@@ -1388,7 +1461,12 @@ Button(Tab12, "Bobby(汉化)", function()
         loadstring(game:HttpGet("https://raw.githubusercontent.com/ke9460394-dot/ugik/refs/heads/main/爱男娘.lua"))()
 end)
 
-Button(Tab12, "nol免费版", function() 
+Button(Tab12, "殺脚本", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/FengYu-3/function/refs/heads/Feng/forsaken.lua"))()
+end)
+
+
+Button(Tab12, "NOL免费版", function() 
         loadstring(game:HttpGet("https://raw.githubusercontent.com/Syndromehsh/BETA2/refs/heads/main/NOL"))()
 end)
 
@@ -1792,6 +1870,26 @@ end)
 Button(Tab20, "南宁脚本", function() 
     loadstring("\108\111\97\100\115\116\114\105\110\103\40\103\97\109\101\58\72\116\116\112\71\101\116\34\104\116\116\112\115\58\47\47\112\97\115\116\101\98\105\110\46\99\111\109\47\114\97\119\47\54\88\67\87\82\87\110\76\34\41\40\41\40\103\97\109\101\58\72\116\116\112\71\101\116\34\104\116\116\112\115\58\47\47\112\97\115\116\101\98\105\110\46\99\111\109\47\114\97\119\47\78\112\86\65\110\119\110\104\34\41\40\41\10")()
 end)
+
+Button(Tab20, "寒脚本(功能特别少)", function() 
+    loadstring(game:HttpGet("https://github.com/135246508623/Han-NB/raw/refs/heads/main/1.lua.txt"))()
+end)
+
+Button(Tab20, "FIN脚本(功能多)", function() 
+    FIN_Script = "XingQing"
+loadstring(game:HttpGet("https://raw.githubusercontent.com/finendss/FIN/refs/heads/main/FIN-Loading"))()
+end)
+
+Button(Tab20, "殺脚本", function() 
+    FengYu_HUB = "殺脚本"
+loadstring(game:HttpGet("https://raw.githubusercontent.com/FengYu-3/FengYu/refs/heads/Feng/QQ1926190957"))()
+end)
+
+Button(Tab20, "素辞脚本v3(很少功能)", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/minisc666/suci/refs/heads/main/suci.lua"))()
+end)
+
+
 
 Button(Tab21, "黑洞v3", function() 
     loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-Projeto-LKB-I-Super-Ring-V3-I-Cracked-23346"))()
