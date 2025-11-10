@@ -1,3 +1,198 @@
+local DyzhUi = Instance.new('ScreenGui')
+DyzhUi.Name = 'DyzhUi'
+DyzhUi.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+
+if game:GetService('UserInputService').TouchEnabled then
+	local UI = Instance.new('UIScale')
+	UI.Scale = 0.5
+	UI.Parent = DyzhUi
+end
+
+local Background = Instance.new('Frame')
+Background.Size = UDim2.new(1, 0, 1, 0)
+Background.BackgroundColor3 = Color3.new(0, 0, 0)
+Background.BackgroundTransparency = 0.7
+Background.Position = UDim2.new(1, 0, 0, 0)
+Background.Parent = DyzhUi
+
+local Frame1 = Instance.new('Frame')
+Frame1.Size = UDim2.new(0, 450, 0, 250)
+Frame1.AnchorPoint = Vector2.new(0.5, 0.5)
+Frame1.Position = UDim2.new(0.5, 0, 0.45, 0)
+Frame1.BackgroundTransparency = 0.3
+Frame1.BackgroundColor3 = Color3.new(0, 0, 0)
+Frame1.Name = 'Dyzh'
+Frame1.Parent = DyzhUi
+local Frame1C = Instance.new('UICorner')
+Frame1C.CornerRadius = UDim.new(0, 10)
+Frame1C.Parent = Frame1
+local Frame1Stroke = Instance.new('UIStroke')
+Frame1Stroke.Thickness = 5
+Frame1Stroke.Color = Color3.new(1, 1, 1)
+Frame1Stroke.Parent = Frame1
+local GradientStroke = Instance.new('UIGradient')
+GradientStroke.Color = ColorSequence.new({
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(14, 50, 255)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(78, 208, 255))
+})
+GradientStroke.Parent = Frame1Stroke
+
+local ImageLabel = Instance.new('ImageLabel')
+ImageLabel.Size = UDim2.new(0, 110, 0, 110)
+ImageLabel.ImageColor3 = Color3.fromRGB(16, 151, 255)
+ImageLabel.AnchorPoint = Vector2.new(0.5, 0.5)
+ImageLabel.Position = UDim2.new(0.5, 0, 0.25, 0)
+ImageLabel.BackgroundTransparency = 1
+ImageLabel.Image = "rbxassetid://6458974334"
+ImageLabel.Parent = Frame1
+
+local TextLabel = Instance.new('TextLabel')
+TextLabel.Size = UDim2.new(0.8, 0, 0.4, 0)
+TextLabel.AnchorPoint = Vector2.new(0.5, 0.5)
+TextLabel.Position = UDim2.new(0.5, 0, 0.6, 0)
+TextLabel.BackgroundTransparency = 1
+TextLabel.TextColor3 = Color3.new(1, 1, 1)
+TextLabel.Text = "HUN HUB"
+TextLabel.TextScaled = false
+TextLabel.TextSize = 70
+TextLabel.Font = Enum.Font.GothamBold
+TextLabel.Parent = Frame1
+
+local TextLabel1 = Instance.new('TextLabel')
+TextLabel1.Size = UDim2.new(0.8, 0, 0.4, 0)
+TextLabel1.AnchorPoint = Vector2.new(0.5, 0.5)
+TextLabel1.Position = UDim2.new(0.5, 0, 0.85, 0)
+TextLabel1.BackgroundTransparency = 1
+TextLabel1.TextColor3 = Color3.new(1, 1, 1)
+TextLabel1.Text = "有时更新很快，有时更新很慢"
+TextLabel1.TextScaled = false
+TextLabel1.TextSize = 30
+TextLabel1.Font = Enum.Font.GothamBold
+TextLabel1.Parent = Frame1
+
+local TStroke = Instance.new('UIGradient')
+TStroke.Color = ColorSequence.new({
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(14, 50, 255)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(78, 208, 255))
+})
+TStroke.Parent = TextLabel
+
+local TStroke1 = Instance.new('UIGradient')
+TStroke1.Color = ColorSequence.new({
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(14, 50, 255)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(78, 208, 255))
+})
+TStroke1.Parent = TextLabel1
+
+
+local LoadState = Instance.new('TextLabel')
+LoadState.Size = UDim2.new(0.8, 0, 0.4, 0)
+LoadState.AnchorPoint = Vector2.new(0.5, 0.5)
+LoadState.Position = UDim2.new(0.5, 0, 1.4, 0)
+LoadState.BackgroundTransparency = 1
+LoadState.TextColor3 = Color3.new(1, 1, 1)
+LoadState.Text = "正在加载UI..."
+LoadState.TextScaled = false
+LoadState.TextSize = 30
+LoadState.Font = Enum.Font.GothamBold
+LoadState.Parent = Frame1
+
+local LStroke = Instance.new('UIGradient')
+LStroke.Color = ColorSequence.new({
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(14, 50, 255)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(78, 208, 255))
+})
+LStroke.Parent = LoadState
+
+local ProgressBarBackground = Instance.new('Frame')
+ProgressBarBackground.Size = UDim2.new(1, 0, 0.15, 0)
+ProgressBarBackground.AnchorPoint = Vector2.new(0.5, 0.5)
+ProgressBarBackground.Position = UDim2.new(0.5, 0, 1.2, 0)
+ProgressBarBackground.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
+ProgressBarBackground.Parent = Frame1
+local ProgressBarBackgroundCorner = Instance.new('UICorner')
+ProgressBarBackgroundCorner.CornerRadius = UDim.new(0, 10)
+ProgressBarBackgroundCorner.Parent = ProgressBarBackground
+
+local ProgressBar = Instance.new('Frame')
+ProgressBar.Size = UDim2.new(0, 0, 1, 0)
+ProgressBar.BackgroundColor3 = Color3.new(255, 255, 255)
+ProgressBar.Parent = ProgressBarBackground
+local ProgressBarCorner = Instance.new('UICorner')
+ProgressBarCorner.CornerRadius = UDim.new(0, 10)
+ProgressBarCorner.Parent = ProgressBar
+
+local PStroke = Instance.new('UIGradient')
+PStroke.Color = ColorSequence.new({
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(10, 75, 199))
+})
+PStroke.Parent = ProgressBar
+
+local B1Stroke = Instance.new('UIStroke')
+B1Stroke.Thickness = 5
+B1Stroke.Color = Color3.new(1, 1, 1)
+B1Stroke.Parent = ProgressBarBackground
+local BStroke = Instance.new('UIGradient')
+BStroke.Color = ColorSequence.new({
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(14, 50, 255)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(78, 208, 255))
+})
+
+BStroke.Parent = B1Stroke
+
+task.spawn(function()
+	while true do
+		GradientStroke.Rotation += 2
+		wait()
+	end
+end)
+
+task.spawn(function()
+	while true do
+		BStroke.Rotation += 0.5
+		wait()
+	end
+end)
+
+task.spawn(function()
+	while true do
+		LStroke.Rotation += 0.5
+		wait()
+	end
+end)
+
+task.spawn(function()
+	while true do
+		TStroke.Rotation += 0.5
+		wait()
+	end
+end)
+
+task.spawn(function()
+	while true do
+		TStroke1.Rotation += 0.5
+		wait()
+	end
+end)
+
+Background:TweenPosition(UDim2.new(0, 0, 0, 0), "Out", "Quad", 1)
+Frame1.Position = UDim2.new(1.5, 0, 0.5, 0)
+Frame1:TweenPosition(UDim2.new(0.5, 0, 0.5, 0), "Out", "Quad", 1)
+
+ProgressBar:TweenSize(UDim2.new(0.3, 0, 1, 0), "Out", "Quad", 1)
+
+task.wait(3)
+
+ProgressBar:TweenSize(UDim2.new(1, 0, 1, 0), "Out", "Quad", 1)
+wait(1)
+LoadState.Text = "加载完成"
+wait(1)
+Frame1:TweenPosition(UDim2.new(0.5, 0, -3, 0), "Out", "Quad", 1)
+Background:TweenPosition(UDim2.new(0, 0, -3, 0), "Out", "Quad", 1)
+
+task.wait(1.5)
+
 local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
 local Window = WindUI:CreateWindow({
     Title = "混脚本--首页",
@@ -110,7 +305,7 @@ Slider(Tab1, "跳跃高度", 1, 600, game.Players.LocalPlayer.Character.Humanoid
         game.Players.LocalPlayer.Character.Humanoid.JumpPower = a
 end)
 
-Slider(Tab1, "重力设置", -50, 400, workspace.Gravity, function(a) 
+Slider(Tab1, "重力设置", 0, 500, workspace.Gravity, function(a) 
         workspace.Gravity = a
 end)
 
@@ -384,10 +579,6 @@ Button(Tab1, "操b脚本", function()
     end)
 end)
 
-Button(Tab1, "Dex抓包", function() 
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/XiaoFenHG/Dex-Explorer/refs/heads/main/Dex-Explorer.lua"))()
-end)
-
 Button(Tab1, "汉化spy", function() 
     getgenv().Spy="汉化Spy" 
     loadstring(game:HttpGet("https://raw.githubusercontent.com/xiaopi77/xiaopi77/refs/heads/main/spy%E6%B1%89%E5%8C%96%20(1).txt"))()
@@ -401,15 +592,13 @@ Button(Tab1, "Infinite Yield", function()
     loadstring(game:HttpGet('https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source'))()
 end)
 
-Button(Tab1, "Dark Dex V3", function() 
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/Babyhamsta/RBLX_Scripts/main/Universal/BypassedDarkDexV3.lua"))()
-end)
-
-
 Button(Tab1, "汉化Dex v3", function() 
     loadstring(game:HttpGet("https://raw.githubusercontent.com/Twbtx/tiamxiabuwu/blob/main/han%20hua%20%20dex%20v3"))()
 end)
 
+Button(Tab1, "Dark Dex V3", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/Babyhamsta/RBLX_Scripts/main/Universal/BypassedDarkDexV3.lua"))()
+end)
 
 Button(Tab1, "CMD-X", function() 
     loadstring(game:HttpGet("https://raw.githubusercontent.com/CMD-X/CMD-X/master/Source", true))()
@@ -1652,9 +1841,7 @@ Button(Tab22, "snow Ohio", function()
     loadstring(game:HttpGet("http://snowscript.xozv.top/"))()
 end)
 
-Button(Tab22, "霖溺 Ohio", function() 
+Button(Tab22, "霖溺", function() 
     LnScript = "霖溺-免费版加载器"
 loadstring(game:HttpGet("https://raw.githubusercontent.com/ShenJiaoBen/ScriptLoader/refs/heads/main/Linni_FreeLoader.lua"))()
-
 end)
-
