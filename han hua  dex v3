@@ -1,5 +1,5 @@
 local Translations = {
-    ["workspace"] = "工作区",
+    ["Workspace"] = "工作区",
     ["Backpack"] = "背包",
     ["StarterPack"] = "初始包",
     ["StarterPlayer"] = "初始玩家",
@@ -1162,7 +1162,6 @@ local Translations = {
     ["Parent"] = "父级",
     ["Archivable"] = "可归档",
     ["AllowThirdPartySales"] = "允许第三方销售",
-    ["ClientAnimatorThrottle"] = "客户端动画器限制",
     ["Default"] = "默认",
     ["FallenPartsDestroyHeight"] = "掉落零件销毁高度",
     ["Behavior"] = "行为",
@@ -2841,7 +2840,7 @@ task.wait(2)
 setupTranslationEngine()
 
 local success, err = pcall(function()
-    
+    -- 这下面填加载外部脚本
     loadstring(game:HttpGet("https://raw.githubusercontent.com/Xingyan777/roblox/refs/heads/main/bex.lua"))()
 end)
 
