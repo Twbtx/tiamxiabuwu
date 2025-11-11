@@ -195,7 +195,7 @@ task.wait(1.5)
 
 local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
 local Window = WindUI:CreateWindow({
-    Title = "混脚本--首页",
+    Title = "混脚本--首页 QQ群：1043213309",
     Icon = "door-open",
     Author = "司空,WBTX 制作",
     Folder = "CloudHub",
@@ -243,6 +243,15 @@ function Dropdown(a, b, c, d, e)
     return a:Dropdown({Title = b, Values = c, Value = d, Callback = e})
 end
 
+function Input(a, b, c, d, e, f)
+    return a:Input({
+        Title = b,
+        Desc = c or "",
+        Value = d or "",
+        Placeholder = e or "",
+        Callback = f
+    })
+end
 
 local Tab1 = Tab("通用(包含开发工具)")
 local Tab2 = Tab("忍者传奇")
@@ -267,7 +276,9 @@ local Tab20 = Tab("其他作者脚本")
 local Tab21 = Tab("自然灾害")
 local Tab22 = Tab("ohio")
 
-
+Button(Tab1, "复制QQ群1043213309", function()
+    setclipboard("1043213309")
+end)
 
 Button(Tab1, "提升fps", function() 
         loadstring(game:HttpGet("https://raw.githubusercontent.com/smalldesikon/hun/ee906e570c0f5b22e580a20decaba23757533569/fps"))()
@@ -421,15 +432,6 @@ Button(Tab1, "反挂机", function()
     loadstring(game:HttpGet("https://pastebin.com/raw/9fFu43FF"))()
 end)
 
-Toggle(Tab1, "无限跳","Toggle",false,function(Value)
-        Jump = Value
-        game.UserInputService.JumpRequest:Connect(function()
-            if Jump then
-                game.Players.LocalPlayer.Character.Humanoid:ChangeState("Jumping")
-            end
-        end)
-    end)
-
 Button(Tab1, "转圈", function() 
     loadstring(game:HttpGet('https://pastebin.com/raw/r97d7dS0', true))()
 end)
@@ -543,7 +545,7 @@ Button(Tab1, "Infinite Yield", function()
 end)
 
 Button(Tab1, "汉化Dex v3", function() 
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/Twbtx/tiamxiabuwu/blob/main/han%20hua%20%20dex%20v3"))()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/Twbtx/tiamxiabuwu/main/txbw%20dex.v3.lua"))()
 end)
 
 Button(Tab1, "Dark Dex V3", function() 
@@ -1074,53 +1076,8 @@ Button(Tab1, "铁拳", function()
     loadstring(game:HttpGet('https://raw.githubusercontent.com/0Ben1/fe/main/obf_rf6iQURzu1fqrytcnLBAvW34C9N55kS9g9G3CKz086rC47M6632sEd4ZZYB0AYgV.lua.txt'))()
 end)
 
-Toggle(Tab2, "自动吸环", false, function(state)
-    NinjaLegends.AutoFarm = state
-    if state then
-        spawn(function()
-            while NinjaLegends.AutoFarm do
-                wait()
-                for i, v in ipairs(workspace.Hoops:GetChildren()) do
-                    if v.Name == "Hoop" then
-                        v.CFrame = game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame
-                    end
-                end
-            end
-        end)
-    end
-end)
-
-Toggle(Tab2, "自动收集元素", false, function(state)
-    NinjaLegends.ElementFarm = state
-    if state then
-        spawn(function()
-            while NinjaLegends.ElementFarm do
-                wait(1)
-                if game:GetService("ReplicatedStorage") and game:GetService("ReplicatedStorage").Elements then
-                    for i, v in pairs(game:GetService("ReplicatedStorage").Elements:GetChildren()) do
-                        local allelement = v.Name
-                        game.ReplicatedStorage.rEvents.elementMasteryEvent:FireServer(allelement)
-                    end
-                end
-            end
-        end)
-    end
-end)
-
-Button(Tab2, "忍者传奇传送脚本", function()
-    loadstring(game:HttpGet("https://pastebin.com/raw/UzaUDSPK"))()
-end)
-
-Button(Tab2, "忍者传奇脚本1", false, function(state)
-    if state then
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/zerpqe/script/main/NinjaLegends.lua"))()
-    end
-end)
-
-Button(Tab2, "忍者传奇汉化版", false, function(state)
-    if state then
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/odhdshhe/renzhechuanqihanhua/refs/heads/main/%E5%BF%8D%E8%80%85%E4%BC%A0%E5%A5%87%E6%B1%89%E5%8C%96%E8%84%9A%E6%9C%AC%20(1).txt"))()
-    end
+Button(Tab2, "我自己做的脚本(功能特多)", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/Twbtx/tiamxiabuwu/blob/main/%E6%B7%B7%E5%BF%8D%E8%80%85%E4%BC%A0%E5%A5%87"))()
 end)
 
 Toggle(Tab3, "自动比赛", false, function(state)
@@ -1156,7 +1113,7 @@ Toggle(Tab3, "自动举哑铃", false, function(state)
                 game:GetService("Players").LocalPlayer.muscleEvent:FireServer("rep")
             end
 
-            -- 清理
+            
             if part then part:Destroy() end
         end)
     end
@@ -1224,7 +1181,7 @@ Button(Tab4, "驾驶帝国NEO", function()
     loadstring(game:HttpGet(('https://raw.githubusercontent.com/cool83birdcarfly02six/Lightux/main/README.md'),true))()
 end)
 
--- 监狱人生脚本
+
 Button(Tab5, "无敌模式", function()
     loadstring(game:HttpGet("https://pastebin.com/raw/LdTVujTA"))()
 end)
@@ -1261,7 +1218,7 @@ Button(Tab5, "监狱人生汉化", function()
     loadstring(game:HttpGetAsync("https://pastebin.com/raw/fYMnAEeJ"))()
 end)
 
--- 传送按钮
+
 Button(Tab5, "警卫室传送", function()
     game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(847.7261352539062, 98.95999908447266, 2267.387451171875)
 end)
@@ -1278,7 +1235,7 @@ Button(Tab5, "变成囚犯", function()
     workspace.Remote.TeamEvent:FireServer("Bright orange")
 end)
 
--- 战争大亨脚本
+
 Button(Tab6, "一枪秒人", function()
     loadstring(game:HttpGet('https://pastebin.com/raw/6b4XEjQF'))()
 end)
@@ -1299,7 +1256,7 @@ Button(Tab6, "战争大亨4", function()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/nici002018/GNHub/master/GNHub.lua", true))()
 end)
 
--- 可开关功能
+
 local autoShield = false
 Toggle(Tab6, "玩家护盾电箱", false, function(state)
     autoShield = state
@@ -1595,14 +1552,6 @@ Button(Tab15, "nol.Apex死亡之死", function()
         getgenv().ADittoKey = "Apex_FREETESTKEY"pcall(function()    loadstring(game:HttpGet("https://raw.githubusercontent.com/Potato5466794/project/refs/heads/main/Apex/Apex.luau", true))()end)
 end)
 
-Button(Tab16, "自称无敌的脚本", function() 
-        _G.UI_Size = 200 -- config ui sizeloadstring(game:HttpGet("https://raw.githubusercontent.com/3345-c-a-t-s-u-s/-beta-/main/AutoParry.lua"))()
-end)
-
-Button(Tab16, "不知名1", function() 
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/3345-c-a-t-s-u-s/SourceLua/main/Blade_Ball.lua"))()
-end)
-
 Button(Tab16, "100%格挡", function() 
         loadstring(game:HttpGet("https://raw.githubusercontent.com/1f0yt/community/main/autoparrybest"))()
 end)
@@ -1611,7 +1560,7 @@ Button(Tab16, "美化", function()
         loadstring(game:HttpGet("https://raw.githubusercontent.com/yk0r/BBSC/refs/heads/main/menu"))()
 end)
 
-Button(Tab16, "也是自称最强", function() 
+Button(Tab16, "自称最强", function() 
         loadstring(game:HttpGet("https://raw.githubusercontent.com/mzkv/LUNAR/refs/heads/main/BladeBall", true))()
 end)
 
@@ -1835,7 +1784,7 @@ Button(Tab20, "DOLL脚本", function()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/lool8/-/refs/heads/main/DOLL.lua"))()
 end)
 
-Button(Tab20, "BS黑洞中心", function() 
+Button(Tab20, "BS黑洞中心(要卡密)", function() 
     loadstring(game:HttpGet("https://api.junkie-development.de/api/v1/luascripts/public/d6dffe74a774f7983c29a61dbfaef705a7c1bbd193c1bb68d778cb4bb4c302ae/download"))()
 end)
 
@@ -1887,6 +1836,10 @@ end)
 
 Button(Tab20, "素辞脚本v3(很少功能)", function() 
     loadstring(game:HttpGet("https://raw.githubusercontent.com/minisc666/suci/refs/heads/main/suci.lua"))()
+end)
+
+Button(Tab20, "BP脚本", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/oisaaa6/BLUE/refs/heads/main/PAINT"))()
 end)
 
 
@@ -1942,4 +1895,8 @@ end)
 Button(Tab22, "霖溺", function() 
     LnScript = "霖溺-免费版加载器"
 loadstring(game:HttpGet("https://raw.githubusercontent.com/ShenJiaoBen/ScriptLoader/refs/heads/main/Linni_FreeLoader.lua"))()
+end)
+
+Button(Tab22, "超级强俄亥俄州脚本", function() 
+    loadstring(game:HttpGet("https://api.luarmor.net/files/v3/loaders/1139e311eaabc1aced70509c7caf1982.lua"))()
 end)
