@@ -1,0 +1,390 @@
+Section7891 = Window:MakeTab({
+  IsMobile = true,
+  Name = "HUN 自动翻译",
+  Icon = "rbxassetid://4483345998"
+})
+local HttpService = game:GetService("HttpService")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+local CoreGui = game:GetService("CoreGui")
+
+local TARGET_LANGUAGE = "zh-CN"
+local SCAN_INTERVAL = 2
+local MAX_TEXT_LENGTH = 50000000
+
+local translatedCache = {}
+local translatedObjects = {}
+local isTranslationEnabled = false
+local connection = nil
+
+local DANGEROUS_COMMANDS = {
+    "neon", "shine", "ghost", "gold", "spin", 
+    "bighead", "smallhead", "giantdwarf", "squash"
+}
+
+local SUPPORTED_UI_TYPES = {
+    "TextLabel", "TextButton", "TextBox", "TextLabel", 
+    "Frame", "ScrollingFrame", "ImageButton", "ImageLabel"
+}
+
+local LANGUAGE_PATTERNS = {
+    ["zh-CN"] = {
+        pattern = "[\199-\244][\128-\191]*[\128-\191]",
+        exclude = "[\227][\128-\191][\128-\191]"
+    },
+    ["zh-TW"] = {
+        pattern = "[\227][\128-\191][\128-\191]"
+    },
+    ["ja"] = {
+        pattern = "[\123-\125]|[\199-\244][\128-\191]*[\128-\191]",
+        exclude = "[\199-\244][\128-\191]*[\128-\191]"
+    },
+    ["ko"] = {
+        pattern = "[\234-\235][\128-\191][\128-\191]|[\236-\237][\128-\191][\128-\191]"
+    },
+    ["ar"] = {
+        pattern = "[\216-\219][\128-\191]"
+    },
+    ["ru"] = {
+        pattern = "[\208-\209][\128-\191]"
+    },
+    ["th"] = {
+        pattern = "[\224-\231][\128-\191]"
+    },
+    ["en"] = {
+        pattern = "[A-Za-z]",
+        exclude = "[\199-\244][\128-\191]*[\128-\191]"
+    }
+}
+
+local translationMode = "智能翻译"
+local translationSpeed = 2
+local translateNumbers = false
+local translateSymbols = false
+local translateNames = false
+local translateUI = true
+local translateChat = true
+
+local function isDangerousText(text)
+    if not text or type(text) ~= "string" then return false end
+    local lowerText = text:lower()
+    for _, cmd in ipairs(DANGEROUS_COMMANDS) do
+        if lowerText:find(cmd) then
+            return true
+        end
+    end
+    return false
+end
+
+local function shouldSkipTranslation(text)
+    if not text or text == "" or translatedCache[text] then
+        return true
+    end
+    
+    if text:match("^%s*$") then
+        translatedCache[text] = text
+        return true
+    end
+    
+    if not translateNumbers and text:match("^[0-9%.%s,:/]+$") then
+        translatedCache[text] = text
+        return true
+    end
+    
+    if not translateSymbols and text:match("^[^%w%s]+$") then
+        translatedCache[text] = text
+        return true
+    end
+    
+    if #text > MAX_TEXT_LENGTH or isDangerousText(text) then
+        translatedCache[text] = text
+        return true
+    end
+    
+    return false
+end
+
+local function detectLanguage(text)
+    if not text or type(text) ~= "string" or text == "" then
+        return "en"
+    end
+    
+    if text:match(LANGUAGE_PATTERNS["zh-CN"].pattern) and 
+       (not LANGUAGE_PATTERNS["zh-CN"].exclude or not text:match(LANGUAGE_PATTERNS["zh-CN"].exclude)) then
+        return "zh-CN"
+    end
+    
+    if text:match(LANGUAGE_PATTERNS["zh-TW"].pattern) then
+        return "zh-TW"
+    end
+    
+    if text:match(LANGUAGE_PATTERNS["ja"].pattern) and 
+       (not LANGUAGE_PATTERNS["ja"].exclude or not text:match(LANGUAGE_PATTERNS["ja"].exclude)) then
+        return "ja"
+    end
+    
+    if text:match(LANGUAGE_PATTERNS["ko"].pattern) then
+        return "ko"
+    end
+    
+    if text:match(LANGUAGE_PATTERNS["ar"].pattern) then
+        return "ar"
+    end
+    
+    if text:match(LANGUAGE_PATTERNS["ru"].pattern) then
+        return "ru"
+    end
+    
+    if text:match(LANGUAGE_PATTERNS["th"].pattern) then
+        return "th"
+    end
+    
+    return "en"
+end
+
+local function translate(text)
+    if shouldSkipTranslation(text) then
+        return translatedCache[text] or text
+    end
+
+    local sourceLang = detectLanguage(text)
+    
+    if sourceLang == "zh-CN" or sourceLang == "zh-TW" then
+        translatedCache[text] = text
+        return text
+    end
+
+    local function tryAlternativeAPI()
+        local success, response = pcall(function()
+            return game:HttpGet(
+                ("https://api.mymemory.translated.net/get?q=%s&langpair=%s|%s")
+                :format(HttpService:UrlEncode(text), sourceLang, TARGET_LANGUAGE)
+            )
+        end)
+        
+        if success and response then
+            local ok, data = pcall(HttpService.JSONDecode, HttpService, response)
+            if ok and data and data.responseData and data.responseData.translatedText then
+                return data.responseData.translatedText
+            end
+        end
+        return nil
+    end
+
+    local success, response = pcall(function()
+        return game:HttpGet(
+            ("https://translate.googleapis.com/translate_a/single?client=gtx&sl=%s&tl=%s&dt=t&q=%s")
+            :format(sourceLang, TARGET_LANGUAGE, HttpService:UrlEncode(text))
+        )
+    end)
+
+    if success and response then
+        local ok, data = pcall(HttpService.JSONDecode, HttpService, response)
+        if ok and data and data[1] then
+            local translatedText = ""
+            for _, segment in ipairs(data[1]) do
+                if segment[1] then
+                    translatedText = translatedText .. segment[1]
+                end
+            end
+            
+            if translatedText ~= "" and translatedText ~= text then
+                translatedCache[text] = translatedText
+                return translatedText
+            end
+        end
+    end
+
+    local altTranslation = tryAlternativeAPI()
+    if altTranslation then
+        translatedCache[text] = altTranslation
+        return altTranslation
+    end
+
+    translatedCache[text] = text
+    return text
+end
+
+local function hasTextContent(gui)
+    if gui:IsA("TextLabel") or gui:IsA("TextButton") or gui:IsA("TextBox") then
+        return gui.Text and gui.Text ~= ""
+    elseif gui:IsA("ImageButton") or gui:IsA("ImageLabel") then
+        return gui:GetAttribute("Text") or gui.Name ~= ""
+    end
+    return false
+end
+
+local function getTextContent(gui)
+    if gui:IsA("TextLabel") or gui:IsA("TextButton") or gui:IsA("TextBox") then
+        return gui.Text
+    elseif gui:IsA("ImageButton") or gui:IsA("ImageLabel") then
+        return gui:GetAttribute("Text") or gui.Name
+    end
+    return nil
+end
+
+local function setTextContent(gui, text)
+    if gui:IsA("TextLabel") or gui:IsA("TextButton") or gui:IsA("TextBox") then
+        gui.Text = text
+    elseif gui:IsA("ImageButton") or gui:IsA("ImageLabel") then
+        gui:SetAttribute("OriginalText", getTextContent(gui))
+        gui:SetAttribute("Text", text)
+    end
+end
+
+local function scanAndTranslate()
+    local count = 0
+    
+    if translateUI then
+        for _, gui in ipairs(playerGui:GetDescendants()) do
+            if not translatedObjects[gui] and hasTextContent(gui) then
+                local text = getTextContent(gui)
+                if text and text ~= "" then
+                    translatedObjects[gui] = true
+                    local translatedText = translate(text)
+                    if getTextContent(gui) == text then
+                        setTextContent(gui, translatedText)
+                        count = count + 1
+                    end
+                end
+            end
+        end
+        
+        for _, gui in ipairs(CoreGui:GetDescendants()) do
+            if not translatedObjects[gui] and hasTextContent(gui) then
+                local text = getTextContent(gui)
+                if text and text ~= "" then
+                    translatedObjects[gui] = true
+                    local translatedText = translate(text)
+                    if getTextContent(gui) == text then
+                        setTextContent(gui, translatedText)
+                        count = count + 1
+                    end
+                end
+            end
+        end
+    end
+    
+    if translateChat then
+        for _, message in ipairs(game:GetService("Chat"):GetChildren()) do
+            if message:IsA("TextLabel") and not translatedObjects[message] then
+                local text = message.Text
+                if text and text ~= "" then
+                    translatedObjects[message] = true
+                    local translatedText = translate(text)
+                    if message.Text == text then
+                        message.Text = translatedText
+                        count = count + 1
+                    end
+                end
+            end
+        end
+    end
+    
+    return count
+end
+
+Section7891:AddToggle({
+    Name = "自动翻译",
+    Default = false,
+    Callback = function(State)
+        isTranslationEnabled = State
+        if State then
+            if connection then
+                connection:Disconnect()
+                connection = nil
+            end
+            
+            local count = scanAndTranslate()
+            
+            connection = RunService.Heartbeat:Connect(function()
+                if isTranslationEnabled then
+                    local count = scanAndTranslate()
+                    task.wait(SCAN_INTERVAL / translationSpeed)
+                end
+            end)
+        else
+            if connection then
+                connection:Disconnect()
+                connection = nil
+            end
+        end
+    end
+})
+
+Section7891:AddDropdown({
+    Name = "翻译模式",
+    Options = {"智能翻译", "快速翻译", "精确翻译", "仅翻译英文", "仅翻译日文", "仅翻译韩文"},
+    Default = "智能翻译",
+    Callback = function(State)
+        translationMode = State
+    end
+})
+
+Section7891:AddSlider({
+    Name = "翻译速度",
+    Default = 2,
+    Min = 1,
+    Max = 10,
+    Callback = function(State)
+        translationSpeed = State
+        SCAN_INTERVAL = 2 / State
+    end
+})
+
+Section7891:AddToggle({
+    Name = "翻译数字",
+    Default = false,
+    Callback = function(State)
+        translateNumbers = State
+    end
+})
+
+Section7891:AddToggle({
+    Name = "翻译符号",
+    Default = false,
+    Callback = function(State)
+        translateSymbols = State
+    end
+})
+
+Section7891:AddToggle({
+    Name = "翻译名称",
+    Default = false,
+    Callback = function(State)
+        translateNames = State
+    end
+})
+
+Section7891:AddToggle({
+    Name = "翻译界面",
+    Default = true,
+    Callback = function(State)
+        translateUI = State
+    end
+})
+
+Section7891:AddToggle({
+    Name = "翻译聊天",
+    Default = true,
+    Callback = function(State)
+        translateChat = State
+    end
+})
+
+Section7891:AddButton({
+    Name = "立即翻译",
+    Callback = function()
+        local count = scanAndTranslate()
+    end
+})
+
+Section7891:AddButton({
+    Name = "清空缓存",
+    Callback = function()
+        translatedCache = {}
+        translatedObjects = {}
+    end
+})
