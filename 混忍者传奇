@@ -1,0 +1,509 @@
+local library = loadstring(game:HttpGet(('https://github.com/DevSloPo/Auto/raw/main/Ware-obfuscated.lua')))()
+
+local window = library:new("混脚本")
+local HUNHub = window:Tab("关于", "7733774602")
+local HUN = HUNHub:section("混脚本 - 忍者传奇", true)
+
+HUN:Label("作者: 混脚本")
+HUN:Label("QQ群: 1043213309")
+HUN:Label("版本: v2.1.6")
+HUN:Label("使用的是wara ui")
+
+HUN:Button(
+    "复制QQ群",
+    function()
+        setclipboard("1043213309")
+    end)
+
+
+local AutoTab = window:Tab("自动功能", "78892482588180")
+local AutoSection = AutoTab:section("自动功能", true)
+
+
+local AutoSettings = {
+    AutoSwing = false,
+    AutoSell = false,
+    AutoRank = false,
+    AutoBelts = false,
+    AutoSwords = false,
+    AutoHoop = false,
+    AutoChi = false,
+    AutoElements = false,
+    AutoBoss = false,
+    AutoEternalBoss = false,
+    AutoMagmaBoss = false
+}
+
+AutoSection:Toggle("自动挥刀", "", false, function(state)
+    AutoSettings.AutoSwing = state
+    if state then
+        spawn(function()
+            while AutoSettings.AutoSwing do
+                local args = {[1] = "swingKatana"}
+                game.Players.LocalPlayer:WaitForChild("ninjaEvent"):FireServer(unpack(args))    
+                wait()
+            end
+        end)
+    end
+end)
+
+AutoSection:Toggle("自动售卖", "", false, function(state)
+    AutoSettings.AutoSell = state
+    if state then
+        spawn(function()
+            while AutoSettings.AutoSell do
+                local playerHead = game.Players.LocalPlayer.Character.Head
+                for _, v in pairs(game:GetService("Workspace").sellAreaCircles.sellAreaCircle16.circleInner:GetDescendants()) do
+                    if v.Name == "TouchInterest" and v.Parent then
+                        firetouchinterest(playerHead, v.Parent, 0)
+                        wait(0.1)
+                        firetouchinterest(playerHead, v.Parent, 1)
+                        break
+                    end
+                end
+            end
+        end)
+    end
+end)
+
+AutoSection:Toggle("自动重生职位", "", false, function(state)
+    AutoSettings.AutoRank = state
+    if state then
+        spawn(function()
+            while AutoSettings.AutoRank do
+                local ranks = {
+                    "Grasshopper", "Apprentice", "Samurai", "Assassin", "Shadow",
+                    "Ninja", "Master Ninja", "Sensei", "Master Sensei", "Ninja Legend",
+                    "Master Of Shadows", "Immortal Assassin", "Eternity Hunter", "Shadow Legend", "Dragon Warrior",
+                    "Dragon Master", "Chaos Sensei", "Chaos Legend", "Master Of Elements", "Elemental Legend"
+                }
+                
+                for i = 1, #ranks, 5 do
+                    for j = i, math.min(i+4, #ranks) do
+                        local args = {[1] = "buyRank", [2] = ranks[j]}
+                        game.Players.LocalPlayer:WaitForChild("ninjaEvent"):FireServer(unpack(args))
+                    end
+                    wait()
+                end
+            end
+        end)
+    end
+end)
+
+AutoSection:Toggle("自动购买称号", "", false, function(state)
+    AutoSettings.AutoBelts = state
+    if state then
+        spawn(function()
+            while AutoSettings.AutoBelts do
+                local args = {[1] = "buyAllBelts", [2] = "Blazing Vortex Island"}
+                game.Players.LocalPlayer:WaitForChild("ninjaEvent"):FireServer(unpack(args))        
+                wait(0.5)
+            end
+        end)
+    end
+end)
+
+AutoSection:Toggle("自动购买刀", "", false, function(state)
+    AutoSettings.AutoSwords = state
+    if state then
+        spawn(function()
+            while AutoSettings.AutoSwords do
+                local args = {[1] = "buyAllSwords", [2] = "Blazing Vortex Island"}
+                game.Players.LocalPlayer:WaitForChild("ninjaEvent"):FireServer(unpack(args))        
+                wait(0.5)
+            end
+        end)
+    end
+end)
+
+AutoSection:Toggle("自动吸圈", "", false, function(state)
+    AutoSettings.AutoHoop = state
+    if state then
+        spawn(function()
+            while AutoSettings.AutoHoop do
+                local playerCFrame = game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame
+                local children = workspace.Hoops:GetChildren()
+                for i, child in ipairs(children) do
+                    if child.Name == "Hoop" then
+                        child.CFrame = playerCFrame
+                    end
+                end
+                wait()
+            end
+        end)
+    end
+end)
+
+AutoSection:Toggle("自动吸气", "", false, function(state)
+    AutoSettings.AutoChi = state
+    if state then
+        spawn(function()
+            while AutoSettings.AutoChi do
+                local coinLocations = {
+                    game:GetService("Workspace").spawnedCoins.Valley["Pink Chi Crate"].CFrame,
+                    game:GetService("Workspace").spawnedCoins.Valley["Blue Chi Crate"].CFrame,
+                    game:GetService("Workspace").spawnedCoins.Valley["Chi Crate"].CFrame
+                }
+                
+                for _, location in ipairs(coinLocations) do
+                    local plyr = game.Players.LocalPlayer
+                    if plyr.Character then
+                        plyr.Character.HumanoidRootPart.CFrame = location
+                    end
+                    wait(0.1)
+                end
+                wait()
+            end
+        end)
+    end
+end)
+
+AutoSection:Toggle("自动收集元素", "", false, function(state)
+    AutoSettings.AutoElements = state
+    if state then
+        spawn(function()
+            while AutoSettings.AutoElements do
+                local elements = {
+                    "Inferno", "Frost", "Lightning", "Electral Chaos",
+                    "Shadow Charge", "Masterful Wrath", "Shadowfire",
+                    "Eternity Storm", "Blazing Entity"
+                }
+                
+                for _, element in ipairs(elements) do
+                    local args = {[1] = element}
+                    game:GetService("ReplicatedStorage"):WaitForChild("rEvents"):WaitForChild("elementMasteryEvent"):FireServer(unpack(args))
+                    wait()
+                end
+            end
+        end)
+    end
+end)
+
+
+local BossSection = AutoTab:section("Boss自动战斗", true)
+
+BossSection:Toggle("普通Boss", "", false, function(state)
+    AutoSettings.AutoBoss = state
+    if state then
+        spawn(function()
+            while AutoSettings.AutoBoss do
+                local plyr = game.Players.LocalPlayer
+                if plyr.Character then
+                    plyr.Character.HumanoidRootPart.CFrame = game:GetService("Workspace").bossFolder.RobotBoss.UpperTorso.CFrame
+                end
+                local args = {[1] = "swingKatana"}
+                game.Players.LocalPlayer:WaitForChild("ninjaEvent"):FireServer(unpack(args))
+                wait()
+            end
+        end)
+    end
+end)
+
+BossSection:Toggle("永恒Boss", "", false, function(state)
+    AutoSettings.AutoEternalBoss = state
+    if state then
+        spawn(function()
+            while AutoSettings.AutoEternalBoss do
+                local plyr = game.Players.LocalPlayer
+                if plyr.Character then
+                    plyr.Character.HumanoidRootPart.CFrame = game:GetService("Workspace").bossFolder.EternalBoss.UpperTorso.CFrame
+                end
+                local args = {[1] = "swingKatana"}
+                game.Players.LocalPlayer:WaitForChild("ninjaEvent"):FireServer(unpack(args))
+                wait()
+            end
+        end)
+    end
+end)
+
+BossSection:Toggle("岩浆Boss", "", false, function(state)
+    AutoSettings.AutoMagmaBoss = state
+    if state then
+        spawn(function()
+            while AutoSettings.AutoMagmaBoss do
+                local plyr = game.Players.LocalPlayer
+                if plyr.Character then
+                    plyr.Character.HumanoidRootPart.CFrame = game:GetService("Workspace").bossFolder.AncientMagmaBoss.UpperTorso.CFrame
+                end
+                local args = {[1] = "swingKatana"}
+                game.Players.LocalPlayer:WaitForChild("ninjaEvent"):FireServer(unpack(args))
+                wait()
+            end
+        end)
+    end
+end)
+
+
+local PetTab = window:Tab("宠物系统", "78892482588181")
+local PetSection = PetTab:section("宠物复制(可能无用)", true)
+
+local petNameInput = ""
+local copyCount = 1
+
+
+PetSection:Textbox("宠物英文名字", "", "输入宠物英文名", function(input)
+    petNameInput = input
+end)
+
+
+PetSection:Textbox("复制次数", "", "例如: 5", function(input)
+    copyCount = tonumber(input) or 1
+end)
+
+
+PetSection:Button(
+    "复制宠物",
+    function()
+        if petNameInput and petNameInput ~= "" then
+            local Players = game:GetService("Players")
+            local player = Players.LocalPlayer
+            local petsFolder = player.petsFolder
+            local rarePets = petsFolder.Rare
+            
+            local targetPet = rarePets[petNameInput]
+            if targetPet then
+                for i = 1, copyCount do
+                    local petClone = targetPet:Clone()
+                    petClone.Parent = rarePets
+                    petClone.Name = petNameInput .. " (Copy " .. i .. ")"
+                    task.wait(0.1)
+                end
+                print("成功复制宠物: " .. petNameInput .. " x" .. copyCount)
+            else
+                print("未找到宠物: " .. petNameInput .. "，请检查英文名字是否正确")
+            end
+        else
+            print("请输入宠物英文名字")
+        end
+    end)
+
+
+local DexSection = PetTab:section("Dex Explorer教程", true)
+
+DexSection:Button(
+    "加载dex",
+    function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/Twbtx/tiamxiabuwu/main/txbw%20dex.v3.lua"))()
+    end)
+
+DexSection:Label("使用Dex查看宠物名称步骤:")
+DexSection:Label("1. 点击上方加载Dex Explorer")
+DexSection:Label("2. 在Dex窗口中点击'Explorer'标签")
+DexSection:Label("3. 依次展开: Players → LocalPlayer → petsFolder")
+DexSection:Label("4. 查看Rare文件夹下的所有宠物名称")
+DexSection:Label("5. 记下宠物英文名称，在上面输入框中输入")
+
+
+local AutoPetSection = PetTab:section("自动获取宠物", true)
+
+AutoPetSection:Button(
+    "获取所有宠物名称并复制到剪贴板",
+    function()
+        local Players = game:GetService("Players")
+        local player = Players.LocalPlayer
+        
+        -- 检查petsFolder是否存在
+        if not player:FindFirstChild("petsFolder") then
+            print("错误: 找不到petsFolder")
+            return
+        end
+        
+        local petsFolder = player.petsFolder
+        local allPets = {}
+        
+        
+        for _, category in pairs(petsFolder:GetChildren()) do
+            if category:IsA("Folder") then
+                for _, pet in pairs(category:GetChildren()) do
+                    table.insert(allPets, pet.Name)
+                end
+            end
+        end
+        
+        
+        local uniquePets = {}
+        for _, petName in ipairs(allPets) do
+            uniquePets[petName] = true
+        end
+        
+        local sortedPets = {}
+        for petName, _ in pairs(uniquePets) do
+            table.insert(sortedPets, petName)
+        end
+        table.sort(sortedPets)
+        
+        
+        local petListText = table.concat(sortedPets, "\n")
+        
+        if setclipboard then
+            setclipboard(petListText)
+            print("已复制 " .. #sortedPets .. " 种宠物名称到剪贴板")
+            print("宠物列表:")
+            for i, petName in ipairs(sortedPets) do
+                print(i .. ". " .. petName)
+            end
+        else
+            print("无法复制到剪贴板，宠物列表:")
+            for i, petName in ipairs(sortedPets) do
+                print(i .. ". " .. petName)
+            end
+        end
+    end)
+
+
+
+local PassTab = window:Tab("通行证解锁", "78892482588182")
+local PassSection = PassTab:section("解锁通行证", true)
+
+
+local PassList = {
+    {Name = "解锁+2宠物栏位", ID = "+2 Pet Slots"},
+    {Name = "解锁+3宠物栏位", ID = "+3 Pet Slots"},
+    {Name = "解锁+4宠物栏位", ID = "+4 Pet Slots"},
+    {Name = "解锁+100容量", ID = "+100 Capacity"},
+    {Name = "解锁+200容量", ID = "+200 Capacity"},
+    {Name = "解锁+20容量", ID = "+20 Capacity"},
+    {Name = "解锁+60容量", ID = "+60 Capacity"},
+    {Name = "解锁无限弹药", ID = "Infinite Ammo"},
+    {Name = "解锁无限忍术", ID = "Infinite Ninjitsu"},
+    {Name = "解锁永久岛屿", ID = "Permanent Islands Unlock"},
+    {Name = "解锁双倍金币", ID = "x2 Coins"},
+    {Name = "解锁双倍伤害", ID = "x2 Damage"},
+    {Name = "解锁双倍生命值", ID = "x2 Health"},
+    {Name = "解锁双倍忍术", ID = "x2 Ninjitsu"},
+    {Name = "解锁双倍速度", ID = "x2 Speed"},
+    {Name = "解锁更快剑速", ID = "Faster Sword"},
+    {Name = "解锁3个宠物克隆", ID = "x3 Pet Clones"}
+}
+
+
+for _, pass in ipairs(PassList) do
+    PassSection:Button(
+        pass.Name,
+        function()
+            game:GetService("ReplicatedStorage").gamepassIds[pass.ID].Parent = game.Players.LocalPlayer.ownedGamepasses
+        end)
+end
+
+local CoinTab = window:Tab("金币系统(危险功能)", "78892482588183")
+local CoinSection = CoinTab:section("宝石和金币", true)
+
+CoinSection:Button(
+    "初始化第一步(变成负9999...后面至少100个9)",
+    function()
+        game:GetService("ReplicatedStorage"):WaitForChild("rEvents"):WaitForChild("zenMasterEvent"):FireServer("convertGems", -9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999)
+    end)
+
+CoinSection:Button(
+    "初始化第二步(一定要按)",
+    function()
+        game:GetService("ReplicatedStorage"):WaitForChild("rEvents"):WaitForChild("elementMasteryEvent"):FireServer("Shadow Charge")
+    end)
+
+local uploadValue = 0
+CoinSection:Textbox("输入数字获得金币(不能太多比如(999...后面100个9))", "", "请输入数字", function(input)
+    local num = tonumber(input)
+    if num and num > 0 then
+        uploadValue = num
+        game:GetService("ReplicatedStorage"):WaitForChild("rEvents"):WaitForChild("zenMasterEvent"):FireServer("convertGems", num)
+    end
+end)
+
+CoinSection:Toggle("循环上传", "", false, function(state)
+    if state then
+        spawn(function()
+            while state and uploadValue > 0 do
+                game:GetService("ReplicatedStorage"):WaitForChild("rEvents"):WaitForChild("zenMasterEvent"):FireServer("convertGems", uploadValue)
+                wait(0.5)
+            end
+        end)
+    end
+end)
+
+CoinSection:Button(
+    "恢复金币(金币变成nan彻底无救)",
+    function()
+        game:GetService("ReplicatedStorage"):WaitForChild("rEvents"):WaitForChild("zenMasterEvent"):FireServer("convertGems", 1)
+    end)
+
+
+local OtherTab = window:Tab("其他功能", "78892482588184")
+local OtherSection = OtherTab:section("其他功能", true)
+
+OtherSection:Textbox("修改连跳上限", "", "输入连跳次数", function(input)
+    local value = tonumber(input)
+    if value then
+        game.Players.LocalPlayer.multiJumpCount.Value = value
+    end
+end)
+
+OtherSection:Button(
+    "解锁所有岛屿",
+    function()
+        local positions = {
+            CFrame.new(26, 766, -114),
+            CFrame.new(247, 2013, 347),
+            CFrame.new(162, 4047, 13),
+            CFrame.new(200, 5656, 13),
+            CFrame.new(200, 9284, 13),
+            CFrame.new(200, 13679, 13),
+            CFrame.new(200, 17686, 13),
+            CFrame.new(200, 24069, 13),
+            CFrame.new(197, 28256, 7),
+            CFrame.new(197, 33206, 7),
+            CFrame.new(197, 39317, 7),
+            CFrame.new(197, 46010, 7),
+            CFrame.new(197, 52607, 7),
+            CFrame.new(197, 59594, 7),
+            CFrame.new(197, 66668, 7),
+            CFrame.new(197, 70270, 7),
+            CFrame.new(197, 74442, 7),
+            CFrame.new(197, 79746, 7),
+            CFrame.new(197, 83198, 7),
+            CFrame.new(197, 91245, 7)
+        }
+        
+        for _, pos in ipairs(positions) do
+            game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = pos
+            wait(0.1)
+        end
+    end)
+
+OtherSection:Button(
+    "获取所有元素[永久]",
+    function()
+        for i, v in pairs(game:GetService("ReplicatedStorage").Elements:GetChildren()) do
+            local allelement = v.Name
+            game.ReplicatedStorage.rEvents.elementMasteryEvent:FireServer(allelement)
+        end
+    end)
+
+local LotteryTab = window:Tab("抽奖系统", "78892482588185")
+local LotterySection = LotteryTab:section("抽奖机", true)
+
+local lotteryEggs = {}
+for i, v in pairs(game.Workspace.mapCrystalsFolder:GetChildren()) do
+    table.insert(lotteryEggs, v.Name)
+end
+
+local selectedEgg = ""
+LotterySection:Dropdown("选择抽奖机", "", lotteryEggs, function(selected)
+    selectedEgg = selected
+end)
+
+LotterySection:Toggle("自动购买", "", false, function(state)
+    if state then
+        spawn(function()
+            while state do
+                local A_1 = "openCrystal"
+                local A_2 = selectedEgg
+                local Event = game:GetService("ReplicatedStorage").rEvents.openCrystalRemote
+                Event:InvokeServer(A_1, A_2)
+                wait()
+            end
+        end)
+    end
+end)
+
+print("混脚本 - 忍者传奇已加载！")
+print("QQ群：1043213309")
