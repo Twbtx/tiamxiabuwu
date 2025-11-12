@@ -323,12 +323,12 @@ Slider(Tab1, "重力设置", 1, 500, workspace.Gravity, function(a)
         workspace.Gravity = a
 end)
 
-Button(Tab1, "玩家进入游戏，退出游戏通知", function() 
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/boyscp/scriscriptsc/main/bbn.lua"))()
+Button(Tab1, "汉化穿墙", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/TtmScripter/OtherScript/main/Noclip"))()
 end)
 
-Button(Tab1, "汉化穿墙",function()
-loadstring(game:HttpGet("https://raw.githubusercontent.com/TtmScripter/OtherScript/main/Noclip"))()
+Button(Tab1, "玩家进入游戏，退出游戏通知", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/boyscp/scriscriptsc/main/bbn.lua"))()
 end)
 
 Button(Tab1, "打飞机r6", function() 
@@ -341,6 +341,10 @@ end)
 
 Button(Tab1, "无敌少侠", function() 
         loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-Invinicible-Flight-R15-45414"))()
+end)
+
+Button(Tab1, "电脑键盘脚本", function() 
+    loadstring(game:HttpGet(('https://raw.githubusercontent.com/manimcool21/Keyboard-FE/main/Protected%20(3).lua'),true))()
 end)
 
 Button(Tab1, "摔落无伤害(可创飞人)", function() 
@@ -373,10 +377,6 @@ end)
 
 Button(Tab1, "死亡笔记", function() 
     loadstring(game:HttpGet("https://raw.githubusercontent.com/dingding123hhh/tt/main/%E6%AD%BB%E4%BA%A1%E7%AC%94%E8%AE%B0%20(1).txt"))()
-end)
-
-Button(Tab1, "汉化穿墙", function() 
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/TtmScripter/OtherScript/main/Noclip"))()
 end)
 
 Button(Tab1, "爬墙跳脚本(装逼用)", function() 
@@ -1080,6 +1080,7 @@ Button(Tab2, "我自己做的脚本(功能特多)", function()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/Twbtx/tiamxiabuwu/blob/main/%E6%B7%B7%E5%BF%8D%E8%80%85%E4%BC%A0%E5%A5%87"))()
 end)
 
+
 Toggle(Tab3, "自动比赛", false, function(state)
     MuscleLegends.AutoBrawl = state
     if state then
@@ -1350,6 +1351,10 @@ Button(Tab8, "终极范围", function()
     loadstring(game:HttpGet("https://pastebin.com/raw/CAQ9x4A7"))()
 end)
 
+Button(Tab9, "HB 子追", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/HB-ksdb/-4/main/%E5%AD%90%E8%BF%BD%E8%84%9A%E6%9C%AC%E7%A9%BF%E5%A2%99.lua"))()
+end)
+
 Button(Tab9, "陌自瞄（死亡消失）", function() 
     loadstring(game:HttpGet("https://pastefy.app/ZYMlyhhz/raw",true))()
 end)
@@ -1383,7 +1388,7 @@ Button(Tab9, "自瞄250", function()
 end)
 
 Button(Tab9, "自瞄300", function() 
-    loadstring(game:HttpGet("https://pastefy.app/nIyVhrvV/raw",true))()
+    loadstring(game:HttpGet("https://pastefy.app/niyVhrvV/raw",true))()
 end)
 
 Button(Tab9, "自瞄350", function() 
@@ -1400,6 +1405,12 @@ end)
 
 Button(Tab9, "自瞄全屏", function() 
     loadstring(game:HttpGet("https://pastefy.app/n5LhGGgf/raw",true))()
+end)
+
+Button(Tab1, "神青高级自瞄", function() 
+    shin_qine="作者神青" 
+shin__qine="高级自瞄" 
+loadstring(game:HttpGet("https://raw.githubusercontent.com/gycgchgyfytdttr/QQ-9-2-8-9-50173/refs/heads/main/cure.lua"))()
 end)
 
 Button(Tab10, "阿尔子追", function() 
@@ -1900,3 +1911,5 @@ end)
 Button(Tab22, "超级强俄亥俄州脚本", function() 
     loadstring(game:HttpGet("https://api.luarmor.net/files/v3/loaders/1139e311eaabc1aced70509c7caf1982.lua"))()
 end)
+
+
