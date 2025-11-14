@@ -1,3 +1,8 @@
+local sound = Instance.new("Sound") 
+     sound.SoundId = "rbxassetid://4203251375" 
+     sound.Parent = game.Workspace 
+     sound:Play()
+
 local DyzhUi = Instance.new('ScreenGui')
 DyzhUi.Name = 'DyzhUi'
 DyzhUi.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
@@ -192,6 +197,11 @@ Frame1:TweenPosition(UDim2.new(0.5, 0, -3, 0), "Out", "Quad", 1)
 Background:TweenPosition(UDim2.new(0, 0, -3, 0), "Out", "Quad", 1)
 
 task.wait(1.5)
+
+local sound = Instance.new("Sound") 
+     sound.SoundId = "rbxassetid://4203251375" 
+     sound.Parent = game.Workspace 
+     sound:Play()
 
 local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
 local Window = WindUI:CreateWindow({
@@ -439,6 +449,27 @@ Button(Tab1, "忘了叫啥名(应该好听)", function()
      sound.Parent = game.Workspace 
      sound:Play()
 end)
+
+Button(Tab1, "播放Tuber93说话声音", function() 
+    local sound = Instance.new("Sound", workspace)
+sound.SoundId = "rbxassetid://7153945201"
+sound:Play()
+end)
+
+Button(Tab1, "钢管落地(全损音效)", function() 
+    local sound = Instance.new("Sound") 
+     sound.SoundId = "rbxassetid://6729922069" 
+     sound.Parent = game.Workspace 
+     sound:Play()
+end)
+
+Button(Tab1, "窜稀(全损音效)", function() 
+    local sound = Instance.new("Sound") 
+     sound.SoundId = "rbxassetid://6445594239" 
+     sound.Parent = game.Workspace 
+     sound:Play() 
+end)
+
 
 Button(Tab1, "汉化穿墙", function() 
     loadstring(game:HttpGet("https://raw.githubusercontent.com/TtmScripter/OtherScript/main/Noclip"))()
