@@ -308,7 +308,7 @@ Button(Tab1, "无头加短腿美化", function()
 end)
 
 Button(Tab1, "动态模糊", function() 
-    local camera = workspace.CurrentCamera
+     	local camera = workspace.CurrentCamera
 local blurAmount = 10
 local blurAmplifier = 5
 local lastVector = camera.CFrame.LookVector
@@ -338,8 +338,6 @@ runService.Heartbeat:Connect(function()
  motionBlur.Size = math.abs(magnitude)*blurAmount*blurAmplifier/2
  lastVector = camera.CFrame.LookVector
 end)
-  	end
-})
 end)
 
 Toggle(Tab1, "夜视", false, function(a)
