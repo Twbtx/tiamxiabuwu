@@ -291,6 +291,10 @@ Button(Tab1, "飞行(by天下布武)", function()
         loadstring(game:HttpGet("https://raw.githubusercontent.com/Twbtx/tiamxiabuwu/main/t%20x%20b%20w%20fly"))()
 end)
 
+Button(Tab1, "阿尔宙斯飞行", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/your-repo/your-script/main/script.lua"))()
+end)
+
 Button(Tab1, "司空同款飞行", function() 
         loadstring(game:HttpGet("https://raw.githubusercontent.com/XNEOFF/FlyGuiV3/main/FlyGuiV3.txt"))()
 end)
@@ -303,12 +307,69 @@ Button(Tab1, "无头加短腿美化", function()
         loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-Permanent-Headless-And-korblox-Script-4140"))()
 end)
 
+Button(Tab1, "动态模糊", function() 
+    local camera = workspace.CurrentCamera
+local blurAmount = 10
+local blurAmplifier = 5
+local lastVector = camera.CFrame.LookVector
+
+local motionBlur = Instance.new("BlurEffect", camera)
+
+local runService = game:GetService("RunService")
+
+workspace.Changed:Connect(function(property)
+ if property == "CurrentCamera" then
+  print("Changed")
+  local camera = workspace.CurrentCamera
+  if motionBlur and motionBlur.Parent then
+   motionBlur.Parent = camera
+  else
+   motionBlur = Instance.new("BlurEffect", camera)
+  end
+ end
+end)
+
+runService.Heartbeat:Connect(function()
+ if not motionBlur or motionBlur.Parent == nil then
+  motionBlur = Instance.new("BlurEffect", camera)
+ end
+ 
+ local magnitude = (camera.CFrame.LookVector - lastVector).magnitude
+ motionBlur.Size = math.abs(magnitude)*blurAmount*blurAmplifier/2
+ lastVector = camera.CFrame.LookVector
+end)
+  	end
+})
+end)
+
 Toggle(Tab1, "夜视", false, function(a)
         if a then
             game.Lighting.Ambient = Color3.new(1, 1, 1)
         else
             game.Lighting.Ambient = Color3.new(0, 0, 0)
         end
+end)
+Button(Tab1, "秒互动(无法关闭)", function() 
+    game.ProximityPromptService.PromptButtonHoldBegan:Connect(function(v)
+    v.HoldDuration = 0
+end)
+end)
+
+Button(Tab1, "一键偷别人的东西", function() 
+    for i,v in pairs (game.Players:GetChildren()) do
+wait()
+for i,b in pairs (v.Backpack:GetChildren()) do
+b.Parent = game.Players.LocalPlayer.Backpack
+end
+end
+end)
+
+Button(Tab1, "最大视野缩放", function() 
+    game:GetService("Players").LocalPlayer.CameraMaxZoomDistance = 200000
+end)
+
+Button(Tab1, "视野缩放128", function() 
+    game:GetService("Players").LocalPlayer.CameraMaxZoomDistance = 128
 end)
 
 Slider(Tab1, "移动速度", 1, 600, game.Players.LocalPlayer.Character.Humanoid.WalkSpeed, function(a) 
@@ -321,6 +382,64 @@ end)
 
 Slider(Tab1, "重力设置", 1, 500, workspace.Gravity, function(a) 
         workspace.Gravity = a
+end)
+
+Button(Tab1, "重置人物", function() 
+    game.Players.LocalPlayer.Character.Humanoid.Health = 0
+end)
+
+Button(Tab1, "重进服务器", function() 
+    game:GetService("TeleportService"):TeleportToPlaceInstance(
+            game.PlaceId,
+            game.JobId,
+            game:GetService("Players").LocalPlayer
+        )
+end)
+
+Button(Tab1, "离开服务器", function() 
+    game:Shutdown()
+end)
+
+Button(Tab1, "广角", function() 
+    Workspace.CurrentCamera.FieldOfView = 120
+end)
+
+Button(Tab1, "恢复视野", function() 
+    Workspace.CurrentCamera.FieldOfView = 70
+end)
+
+Button(Tab1, "点击传送工具", function() 
+    mouse = game.Players.LocalPlayer:GetMouse()
+                tool = Instance.new("Tool")
+                tool.RequiresHandle = false
+                tool.Name = "Click Teleport"
+                tool.Activated:connect(function()
+                local pos = mouse.Hit+Vector3.new(0,2.5,0)
+                pos = CFrame.new(pos.X,pos.Y,pos.Z)
+                game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = pos
+                end)
+                tool.Parent = game.Players.LocalPlayer.Backpack
+end)
+
+Button(Tab1, "播放义勇军进行曲", function() 
+    local sound = Instance.new("Sound")
+    sound.SoundId = "rbxassetid://1845918434"
+    sound.Parent = game.Workspace
+    sound:Play()
+end)
+
+Button(Tab1, "播放植物大战僵尸歌曲", function() 
+    local sound = Instance.new("Sound") 
+     sound.SoundId = "rbxassetid://158260415" 
+     sound.Parent = game.Workspace 
+     sound:Play()
+end)
+
+Button(Tab1, "忘了叫啥名(应该好听)", function() 
+    local sound = Instance.new("Sound") 
+     sound.SoundId = "rbxassetid://1844125168" 
+     sound.Parent = game.Workspace 
+     sound:Play()
 end)
 
 Button(Tab1, "汉化穿墙", function() 
@@ -399,6 +518,35 @@ Button(Tab1, "隐身（E）", function()
     loadstring(game:HttpGet('https://pastebin.com/raw/nwGEvkez'))()
 end)
 
+Button(Tab1, "fenny甩飞gui", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/ke9460394-dot/ugik/refs/heads/main/fe-flinger-gui-works-anywhere_1756291955889_SwfaGHMWsT.txt"))()
+end)
+
+Button(Tab1, "防甩飞", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/ChinaQY/Scripts/Main/AntiFling.lua"))()
+end)
+
+Button(Tab1, "可选人甩飞", function() 
+    loadstring(game:HttpGet("https://pastefy.app/A8Kfs9KV/raw", true))()
+end)
+
+Button(Tab1, "触摸甩飞", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/LiarRise/FLN-X/refs/heads/main/README.md"))()
+end)
+
+Button(Tab1, "kenny甩飞", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/ke9460394-dot/ugik/refs/heads/main/DHJB%E7%94%A9%E9%A3%9E.txt"))()
+end)
+
+Button(Tab1, "一键甩飞所有人", function() 
+    loadstring(game:HttpGet("https://pastebin.com/raw/zqyDSUWX"))()
+end)
+
+Button(Tab1, "甩飞中心", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/3LD4D0/OP-FLING-GUI/c1fd15bf3114e6c9e4b76951b7d516c123836efe/OP%20FLING%20GUI%20R6%20AND%20R15"))()
+end)
+
+
 Button(Tab1, "电脑键盘", function() 
     loadstring(game:HttpGet("https://raw.githubusercontent.com/advxzivhsjjdhxhsidifvsh/mobkeyboard/main/main.txt", true))()
 end)
@@ -407,8 +555,59 @@ Button(Tab1, "改fps", function()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/gclich/FPS-X-GUI/main/FPS_X.lua"))()
 end)
 
+Button(Tab1, "fpsBooster(很猛的提升fps)", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/JoshzzAlteregooo/JoshzzFpsBoosterVersion3/refs/heads/main/JoshzzNewFpsBooster"))()
+end)
+
 Button(Tab1, "fps显示", function() 
     loadstring(game:HttpGet("https://pastefy.app/d9j82YJr/raw",true))()
+end)
+
+Button(Tab1, "自动弹钢琴", function() 
+    loadstring(game:HttpGet("https://rawscripts.net/raw/Tac's-Piano-Stuff-Talentless-script-made-by-hellohellohell012321-44088"))()
+end)
+
+Button(Tab1, "显示北京时间", function() 
+    local LBLG = Instance.new("ScreenGui", getParent)
+local LBL = Instance.new("TextLabel", getParent)
+local player = game.Players.LocalPlayer
+
+LBLG.Name = "LBLG"
+LBLG.Parent = game.CoreGui
+LBLG.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+LBLG.Enabled = true
+LBL.Name = "LBL"
+LBL.Parent = LBLG
+LBL.BackgroundColor3 = Color3.new(0, 3, 1)
+LBL.BackgroundTransparency = 1
+LBL.BorderColor3 = Color3.new(0, 3, 1)
+LBL.Position = UDim2.new(0.75,0,0.010,0)
+LBL.Size = UDim2.new(0, 133, 0, 30)
+LBL.Font = Enum.Font.GothamSemibold
+LBL.Text = "TextLabel"
+LBL.TextColor3 = Color3.new(0, 3, 3)
+LBL.TextScaled = true
+LBL.TextSize = 14
+LBL.TextWrapped = true
+LBL.Visible = true
+
+local FpsLabel = LBL
+local Heartbeat = game:GetService("RunService").Heartbeat
+local LastIteration, Start
+local FrameUpdateTable = { }
+
+local function HeartbeatUpdate()
+  LastIteration = tick()
+  for Index = #FrameUpdateTable, 1, -1 do
+    FrameUpdateTable[Index + 1] = (FrameUpdateTable[Index] >= LastIteration - 1) and FrameUpdateTable[Index] or nil
+  end
+  FrameUpdateTable[1] = LastIteration
+  local CurrentFPS = (tick() - Start >= 1 and #FrameUpdateTable) or (#FrameUpdateTable / (tick() - Start))
+  CurrentFPS = CurrentFPS - CurrentFPS % 1
+  FpsLabel.Text = ("当前时间:"..os.date("%H").."时"..os.date("%M").."分"..os.date("%S"))
+end
+Start = tick()
+Heartbeat:Connect(HeartbeatUpdate)
 end)
 
 Button(Tab1, "解帧", function() 
@@ -556,6 +755,94 @@ Button(Tab1, "CMD-X", function()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/CMD-X/CMD-X/master/Source", true))()
 end)
 
+Button(Tab1, "动画spy", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/ke9460394-dot/ugik/refs/heads/main/%E5%8A%A8%E7%94%BBSpy.lua.txt"))()
+end)
+
+Button(Tab1, "音频spy", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/ke9460394-dot/ugik/refs/heads/main/Alrthisfordetection.txt"))()
+end)
+
+Button(Tab1, "spy合集", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/ke9460394-dot/ugik/refs/heads/main/Simple_Spy_Utility.txt"))()
+end)
+
+Button(Tab1, "简洁spy", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/fuckg1thub/RizzSpy/refs/heads/main/alright"))()
+end)
+
+Button(Tab1, "小spy", function() 
+    loadstring(game:HttpGet("https://pastebin.com/raw/EHvjE2sT"))()
+end)
+
+Button(Tab1, "贴花spy", function() 
+    loadstring(game:HttpGet('https://pastefy.app/gkqzwu88/raw'))()
+end)
+
+Button(Tab1, "西格玛spy", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/depthso/Sigma-Spy/refs/heads/main/Main.lua"))()
+end)
+
+Button(Tab1, "dex++", function() 
+    loadstring(game:HttpGet("https://github.com/AZYsGithub/DexPlusPlus/releases/latest/download/out.lua"))()
+end)
+
+Button(Tab1, "氯胺酮spy", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/InfernusScripts/Ketamine/refs/heads/main/Ketamine.lua"))()
+end)
+
+Button(Tab1, "绕过spy和dex检测", function() 
+    loadstring(game:HttpGet("https://gist.githubusercontent.com/Tesker-103/23ea97f58891617afd8f797f0a7446e6/raw/011b70e99abb44aa6fc970c587c3eb686b40594e/Securedexbytesker103"))()
+end)
+
+Button(Tab1, "http嗅探器", function() 
+    loadstring(game:HttpGet("https://ripskids.lol/official/HttpSpy/loader.lua"))()
+end)
+
+Button(Tab1, "乌托邦spy", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/Klinac/scripts/main/utopia_spy.lua", true))()
+end)
+
+Button(Tab1, "Cobaltspy", function() 
+    loadstring(game:HttpGet("https://github.com/notpoiu/cobalt/releases/latest/download/Cobalt.luau"))()
+end)
+
+Button(Tab1, "夜spyv3", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/Angelo17123/NightSpyV3/refs/heads/main/NightSpy%20V4"))()
+end)
+
+Button(Tab1, "httpsSPY", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/Hm5011/hussain/refs/heads/main/Links%20Spy"))()
+end)
+
+Button(Tab1, "Webhook拦截器webhookspy", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/offperms/emplicswebhookspy/main/release"))()
+end)
+
+Button(Tab1, "RedCodespy", function() 
+    loadstring(game:HttpGet(('https://raw.githubusercontent.com/RedCodeCheat/Roblox/refs/heads/main/RedCode_Remote_Spy.lua')))() 
+end)
+
+Button(Tab1, "HTTPspy", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/293jOse0ejd8du/HttpSpy/refs/heads/main/main.lua"))() 
+end)
+
+Button(Tab1, "库尔斯克斯RSPY", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/nizartitwaniii/Register-Roblox-/refs/heads/main/Protected_2944435597543940.txt"))() 
+end)
+
+Button(Tab1, "SpyOS", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/RENBex6969/SpyOS/refs/heads/main/SpyOS_a2.lua"))() 
+end)
+
+Button(Tab1, "杰森SPY", function() 
+    loadstring(game:HttpGet("https://pastebin.com/raw/wjF5j5YD"))() 
+end)
+
+Button(Tab1, "速度spy", function() 
+    loadstring(game:HttpGet('https://gist.githubusercontent.com/24rr/ec08ee90929e07f3b4d2dd22f15146dc/raw/b337951012d6ed330067058f196ee0c414b42df3/spy-velocity'))()
+end)
+
 Button(Tab1, "Hydroxide", function() 
     loadstring(game:HttpGet('https://raw.githubusercontent.com/iK4oS/backdoor.exe/v8/src/main.lua'))()
 end)
@@ -590,46 +877,6 @@ end)
 
 Button(Tab1, "Anti AFK", function() 
     loadstring(game:HttpGet("https://raw.githubusercontent.com/FilteringEnabled/FE-AntiAFK/main/src.lua"))()
-end)
-
-Button(Tab1, "↓↓↓以下的开发脚本可能无用↓↓↓", function() 
-    
-end)
-
-Button(Tab1, "内存编辑与实时修改", function() 
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/MuhammadXd/ModernHub/main/MemoryEditor.lua"))()
-end)
-
-Button(Tab1, "反检测和隐蔽执行", function() 
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/FilteringEnabled/FE-Script-Repository/main/AntiDetection.lua"))()
-end)
-
-Button(Tab1, "游戏资产和数据提取工具", function() 
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/ByteSizeBit/ByteHub/main/DataExtractor.lua"))()
-end)
-
-Button(Tab1, "内存查看和调用工具", function() 
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/Upbolt/Hydroxide/release/ui.lua"))()
-end)
-
-Button(Tab1, "网络连接质量测试工具", function() 
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/StellarWorkshop/StellarHub/main/NetworkTools.lua"))()
-end)
-
-Button(Tab1, "拦截和修改网络数据", function() 
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))()
-end)
-
-Button(Tab1, "修改游戏数据", function() 
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/ArceusX-Scripts/ArceusX/main/ValueModifier.lua"))()
-end)
-
-Button(Tab1, "修改游戏状态和数据", function() 
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/MuhammadXd/ModernHub/main/GameStateModifier.lua"))()
-end)
-
-Button(Tab1, "内存修改工具", function() 
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/FilteringEnabled/FE-Script-Repository/main/StealthMemoryEditor.lua"))()
 end)
 
 Button(Tab1, "坐标提取器", function() 
@@ -1351,10 +1598,6 @@ Button(Tab8, "终极范围", function()
     loadstring(game:HttpGet("https://pastebin.com/raw/CAQ9x4A7"))()
 end)
 
-Button(Tab9, "HB 子追", function() 
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/HB-ksdb/-4/main/%E5%AD%90%E8%BF%BD%E8%84%9A%E6%9C%AC%E7%A9%BF%E5%A2%99.lua"))()
-end)
-
 Button(Tab9, "陌自瞄（死亡消失）", function() 
     loadstring(game:HttpGet("https://pastefy.app/ZYMlyhhz/raw",true))()
 end)
@@ -1407,10 +1650,212 @@ Button(Tab9, "自瞄全屏", function()
     loadstring(game:HttpGet("https://pastefy.app/n5LhGGgf/raw",true))()
 end)
 
-Button(Tab1, "神青高级自瞄", function() 
+Button(Tab9, "神青高级自瞄", function() 
     shin_qine="作者神青" 
 shin__qine="高级自瞄" 
 loadstring(game:HttpGet("https://raw.githubusercontent.com/gycgchgyfytdttr/QQ-9-2-8-9-50173/refs/heads/main/cure.lua"))()
+end)
+
+Button(Tab10, "HB 子追", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/HB-ksdb/-4/main/%E5%AD%90%E8%BF%BD%E8%84%9A%E6%9C%AC%E7%A9%BF%E5%A2%99.lua"))()
+end)
+
+Button(Tab10, "混子追", function() 
+    local Workspace = game:GetService("Workspace")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local Camera = Workspace.CurrentCamera
+local old
+local main = {
+    enable = false,
+    teamcheck = false,
+    friendcheck = false,
+    enablenpc = false
+}
+
+local function getClosestHead()
+    local closestHead
+    local closestDistance = math.huge
+    
+    if not LocalPlayer.Character then return end
+    if not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
+    
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character then
+            local skip = false
+            
+            if main.teamcheck and player.Team == LocalPlayer.Team then
+                skip = true
+            end
+            
+            if not skip and main.friendcheck and LocalPlayer:IsFriendsWith(player.UserId) then
+                skip = true
+            end
+            
+            if not skip then
+                local character = player.Character
+                local root = character:FindFirstChild("HumanoidRootPart")
+                local head = character:FindFirstChild("Head")
+                local humanoid = character:FindFirstChildOfClass("Humanoid")
+                
+                if root and head and humanoid and humanoid.Health > 0 then
+                    local distance = (root.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
+                    if distance < closestDistance then
+                        closestHead = head
+                        closestDistance = distance
+                    end
+                end
+            end
+        end
+    end
+    return closestHead
+end
+
+local function getClosestNpcHead()
+    local closestHead
+    local closestDistance = math.huge
+    
+    if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
+    local localHrp = LocalPlayer.Character.HumanoidRootPart
+    
+    for _, object in ipairs(Workspace:GetDescendants()) do
+        if object:IsA("Model") then
+            local humanoid = object:FindFirstChildOfClass("Humanoid")
+            local hrp = object:FindFirstChild("HumanoidRootPart") or object.PrimaryPart
+            local head = object:FindFirstChild("Head")
+            
+            if humanoid and hrp and humanoid.Health > 0 then
+                local isPlayer = false
+                for _, pl in ipairs(Players:GetPlayers()) do
+                    if pl.Character == object then
+                        isPlayer = true
+                        break
+                    end
+                end
+                
+                if not isPlayer and head then
+                    local distance = (hrp.Position - localHrp.Position).Magnitude
+                    if distance < closestDistance then
+                        closestHead = head
+                        closestDistance = distance
+                    end
+                end
+            end
+        end
+    end
+    return closestHead
+end
+
+old = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
+    local method = getnamecallmethod()
+    local args = {...}
+    
+    if method == "Raycast" and not checkcaller() then
+        local origin = args[1] or Camera.CFrame.Position
+        
+        if main.enable then
+            local closestHead = getClosestHead()
+            if closestHead then
+                return {
+                    Instance = closestHead,
+                    Position = closestHead.Position,
+                    Normal = (origin - closestHead.Position).Unit,
+                    Material = Enum.Material.Plastic,
+                    Distance = (closestHead.Position - origin).Magnitude
+                }
+            end
+        end
+        
+        if main.enablenpc then
+            local closestNpcHead = getClosestNpcHead()
+            if closestNpcHead then
+                return {
+                    Instance = closestNpcHead,
+                    Position = closestNpcHead.Position,
+                    Normal = (origin - closestNpcHead.Position).Unit,
+                    Material = Enum.Material.Plastic,
+                    Distance = (closestNpcHead.Position - origin).Magnitude
+                }
+            end
+        end
+    end
+    return old(self, ...)
+end))
+
+local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
+
+local Window = WindUI:CreateWindow({
+    Title = "混 通用子弹追踪",
+    Icon = "rbxassetid://129260712070622",
+    IconThemed = true,
+    Author = "idk",
+    Folder = "CloudHub",
+    Size = UDim2.fromOffset(300, 270),
+    Transparent = true,
+    Theme = "Dark",
+    User = {
+        Enabled = true,
+        Callback = function() print("clicked") end,
+        Anonymous = false
+    },
+    SideBarWidth = 200,
+    ScrollBarEnabled = true,
+})
+
+Window:EditOpenButton({
+    Title = "打开UI",
+    Icon = "monitor",
+    CornerRadius = UDim.new(0,16),
+    StrokeThickness = 2,
+    Color = ColorSequence.new(
+        Color3.fromHex("FF0F7B"), 
+        Color3.fromHex("F89B29")
+    ),
+    Draggable = true,
+})
+
+MainSection = Window:Section({
+    Title = "子追",
+    Opened = true,
+})
+
+Main = MainSection:Tab({ Title = "设置", Icon = "Sword" })
+
+Main:Toggle({
+    Title = "开启子弹追踪",
+    Image = "bird",
+    Value = false,
+    Callback = function(state)
+        main.enable = state
+    end
+})
+
+Main:Toggle({
+    Title = "开启队伍验证",
+    Image = "bird",
+    Value = false,
+    Callback = function(state)
+        main.teamcheck = state
+    end
+})
+
+Main:Toggle({
+    Title = "开启好友验证",
+    Image = "bird",
+    Value = false,
+    Callback = function(state)
+        main.friendcheck = state
+    end
+})
+
+Main:Toggle({
+    Title = "开启NPC子弹追踪",
+    Image = "bird",
+    Value = false,
+    Callback = function(state)
+        main.enablenpc = state
+    end
+})
 end)
 
 Button(Tab10, "阿尔子追", function() 
@@ -1424,6 +1869,12 @@ end)
 Button(Tab11, "API翻译(by皮空)", function() 
         loadstring(game:HttpGet("https://raw.githubusercontent.com/smalldesikon/eyidfki/ecca7e04b83299b86c5ce8af98762071cc5f346f/api%E7%BF%BB%E8%AF%91"))()
 end)
+
+Button(Tab11, "bs汉化", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/BS58dL/BS/refs/heads/main/双APl翻译.txt"))()
+end)
+
+
 
 Button(Tab12, "Bobby(汉化)", function() 
         loadstring(game:HttpGet("https://raw.githubusercontent.com/ke9460394-dot/ugik/refs/heads/main/爱男娘.lua"))()
@@ -1508,7 +1959,7 @@ Button(Tab13, "刷钻石v2.0[自动复制卡密]", function()
 end)
 
 Button(Tab13, "xa的99夜", function() 
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/Xingtaiduan/Script/refs/heads/main/Games/森林中的99夜.lua"))()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/Xingtaiduan/Script/refs/heads/main/Games/森林中的99.lua"))()
 end)
 
 Button(Tab13, "h4x", function() 
@@ -1627,6 +2078,10 @@ Button(Tab18, "自制🤫", function()
         loadstring(game:HttpGet("https://raw.githubusercontent.com/Twbtx/tiamxiabuwu/main/hun%20%E6%9E%81%E9%80%9F%E4%BC%A0%E5%A5%87"))()
 end)
 
+Button(Tab19, "VexonHub汉化(小几率触发验证卡密)", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/ke9460394-dot/ugik/refs/heads/main/VexonHub%E6%B1%89%E5%8C%96.txt"))()
+end)
+
 Button(Tab19, "supa tech上勾拳触发全自动攻击", function() 
         loadstring(game:HttpGet("https://raw.githubusercontent.com/MerebennieOfficial/ExoticJn/refs/heads/main/Supa%20V3"))()
 end)
@@ -1649,6 +2104,10 @@ end)
 Button(Tab19, "天下布武汉化老外最强战场脚本(不好用容易出bug)", function() 
     loadstring(game:HttpGet("https://raw.githubusercontent.com/Twbtx/tiamxiabuwu/main/%E6%B1%89%E5%8C%96%E8%80%81%E5%A4%96%E6%9C%80%E5%BC%BA%E6%88%98%E5%9C%BA%E8%84%9A%E6%9C%AC"))()
     WindUI:Notify({Title = "执行成功", Content = "天下布武汉化脚本已加载"})
+end)
+
+Button(Tab19, "(变身)Sung-Suho(要使用饿狼)", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/sparksnaps/Sung-Suho/refs/heads/main/Lua"))()
 end)
 
 Button(Tab20, "WU主脚本", function() 
