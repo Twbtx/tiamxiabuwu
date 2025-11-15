@@ -839,69 +839,6 @@ Button(Tab1, "冷飞行", function()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/odhdshhe/-V3.0/refs/heads/main/%E9%A3%9E%E8%A1%8C%E8%84%9A%E6%9C%ACV3(%E5%85%A8%E6%B8%B8%E6%88%8F%E9%80%9A%E7%94%A8)%20(1).txt"))()
 end)
 
-Button(Tab1, "删除所有特效", function()
-    for _, obj in pairs(game:GetDescendants()) do
-        if obj:IsA("ParticleEmitter") or 
-           obj:IsA("Fire") or 
-           obj:IsA("Smoke") or 
-           obj:IsA("Sparkles") or 
-           obj:IsA("Beam") or 
-           obj:IsA("Trail") or 
-           obj:IsA("Explosion") or 
-           obj:IsA("Light") or 
-           obj:IsA("SpotLight") or 
-           obj:IsA("SurfaceLight") or 
-           obj:IsA("PointLight") or
-           obj:IsA("BlurEffect") or
-           obj:IsA("BloomEffect") or
-           obj:IsA("ColorCorrectionEffect") or
-           obj:IsA("SunRaysEffect") or
-           obj:ClassName:find("Effect") or 
-           obj:ClassName:find("Particle") then
-            pcall(function() obj:Destroy() end)
-        end
-    end
-end)
-
-Button(Tab1, "删除所有雾气", function()
-    local lighting = game:GetService("Lighting")
-    lighting.FogEnd = 1000000
-    lighting.FogStart = 100000
-    
-    for _, obj in pairs(game:GetDescendants()) do
-        if obj:IsA("Atmosphere") or obj:ClassName:find("Fog") or obj:ClassName:find("Atmos") then
-            pcall(function() obj:Destroy() end)
-        end
-    end
-end)
-
-Button(Tab1, "删除所有颗粒特效", function()
-    for _, obj in pairs(game:GetDescendants()) do
-        if obj:IsA("ParticleEmitter") or obj:IsA("Fire") or obj:IsA("Smoke") or 
-           obj:IsA("Sparkles") or obj:IsA("Beam") or obj:IsA("Trail") or
-           obj:IsA("Explosion") or obj:ClassName:find("Effect") or obj:ClassName:find("Particle") then
-            pcall(function() obj:Destroy() end)
-        end
-    end
-end)
-
-Button(Tab1, "删除所有无用物品", function()
-    for _, obj in pairs(game:GetDescendants()) do
-        if obj:IsA("Part") or obj:IsA("MeshPart") or obj:IsA("UnionOperation") or 
-           obj:IsA("Model") or obj:IsA("Folder") or obj:IsA("Script") or
-           obj:IsA("LocalScript") or obj:IsA("ModuleScript") then
-            
-            local name = string.lower(obj.Name)
-            if name:find("垃圾") or name:find("trash") or name:find("garbage") or 
-               name:find("无用") or name:find("useless") or name:find("ad") or
-               name:find("广告") or name:find("promo") or name:find("宣传") or
-               name:find("debris") or name:find("waste") or name:find("scrap") then
-                pcall(function() obj:Destroy() end)
-            end
-        end
-    end
-end)
-
 Button(Tab1, "反挂机v2", function() 
     loadstring(game:HttpGet("https://pastebin.com/raw/9fFu43FF"))()
 end)
