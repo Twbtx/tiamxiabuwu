@@ -312,6 +312,9 @@ local Tab20 = Tab("其他作者脚本")
 local Tab21 = Tab("自然灾害")
 local Tab22 = Tab("ohio")
 local Tab23 = Tab("一些音效[并不FE]")
+local Tab24 = Tab("终极战场")
+local Tab25 = Tab("偷走脑红")
+local Tab26 = Tab("死铁轨")
 
 Button(Tab1, "复制QQ群1043213309", function()
     setclipboard("1043213309")
@@ -805,6 +808,10 @@ end)
 
 Button(Tab1, "玩家进入游戏，退出游戏通知", function() 
     loadstring(game:HttpGet("https://raw.githubusercontent.com/boyscp/scriscriptsc/main/bbn.lua"))()
+end)
+
+Button(Tab1, "egro假延迟", function() 
+    loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-roblox-egor-script-53041"))()
 end)
 
 Button(Tab1, "打飞机r6", function() 
@@ -2375,6 +2382,11 @@ Button(Tab13, "99夜[自制🤓]", function()
         loadstring(game:HttpGet("https://raw.githubusercontent.com/smalldesikon/uhf/main/99%5B%E6%B7%B7%5D"))()
 end)
 
+Button(Tab13, "NOL死铁轨", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/Syndromehsh/BETA2/refs/heads/main/NOL"))()
+end)
+
+
 Button(Tab13, "缝合", function() 
         loadstring(game:HttpGet("https://raw.githubusercontent.com/smalldesikon/uhf/main/%E4%B8%A4%E4%B8%AA99"))()
 end)
@@ -2385,6 +2397,10 @@ end)
 
 Button(Tab13, "刷钻石[出现提示不要点等待传送]", function() 
         loadstring(game:HttpGet("https://raw.githubusercontent.com/r4mpage4/LuaCom/refs/heads/main/saint.noob"))()
+end)
+
+Button(Tab13, "cps natural汉化(好用但是卡)", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/ke9460394-dot/ugik/refs/heads/main/99Cps%20natural.lua"))()
 end)
 
 Button(Tab13, "虚空汉化", function() 
@@ -2455,6 +2471,12 @@ end)
 Button(Tab14, "GB，LC，被遗弃通用", function() 
         loadstring(utf8.char((function() return table.unpack({108,111,97,100,115,116,114,105,110,103,40,103,97,109,101,58,72,116,116,112,71,101,116,40,34,104,116,116,112,115,58,47,47,114,97,119,46,103,105,116,104,117,98,117,115,101,114,99,111,110,116,101,110,116,46,99,111,109,47,67,104,105,110,97,81,89,47,45,47,109,97,105,110,47,37,69,54,37,56,51,37,56,53,37,69,52,37,66,65,37,57,49,34,41,41,40,41})end)()))()
 end)
+
+Button(Tab14, "皮gb脚本", function() 
+    getgenv().XiaoPi="皮脚本-内脏与黑火药" loadstring(game:HttpGet("\104\116\116\112\115\58\47\47\114\97\119\46\103\105\116\104\117\98\117\115\101\114\99\111\110\116\101\110\116\46\99\111\109\47\120\105\97\111\112\105\55\55\47\120\105\97\111\112\105\55\55\47\114\101\102\115\47\104\101\97\100\115\47\109\97\105\110\47\82\111\98\108\111\120\45\80\105\45\71\66\45\83\99\114\105\112\116\46\108\117\97"))()
+end)
+
+
 
 Button(Tab15, "英文脚本", function() 
         loadstring(game:HttpGet("https://raw.githubusercontent.com/thuker-evader/Die-of-death/refs/heads/main/Red%20hub"))()
@@ -2556,6 +2578,10 @@ Button(Tab19, "隐身v5(另一种隐身)", function()
     loadstring(game:HttpGet("https://rawscripts.net/raw/The-Strongest-Battlegrounds-NSExpression-v2-a3-TSBG-20252"))()
 end)
 
+Button(Tab19, "饿狼自动1+2", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/Cyborg883/KyotoTechRework/refs/heads/main/Protected_9378660372508532.lua"))()
+end)
+
 Button(Tab19, "supa tech上勾拳触发全自动攻击", function() 
         loadstring(game:HttpGet("https://raw.githubusercontent.com/MerebennieOfficial/ExoticJn/refs/heads/main/Supa%20V3"))()
 end)
@@ -2590,6 +2616,10 @@ end)
 
 Button(Tab20, "kanl(官方免费版)", function() 
     loadstring(game:HttpGet("https://raw.githubusercontent.com/dream77239/kanl/refs/heads/main/Kanl%E8%84%9A%E6%9C%AC"))()
+end)
+
+Button(Tab1, "RB脚本 V 1.2.4", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/Yungengxin/roblox/main/RbHub-v_1.2.4"))()
 end)
 
 Button(Tab20, "走马观花脚本中心", function() 
@@ -2672,10 +2702,6 @@ Button(Tab20, "林脚本", function()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/linnblin/lin/main/lin"))()
 end)
 
-Button(Tab20, "剑客免费版V2", function() 
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/Zer0neK/JianKe/refs/heads/main/%E5%88%9D%E5%A4%8F.lua"))()
-end)
-
 Button(Tab20, "皮脚本", function() 
     getgenv().XiaoPi="皮脚本QQ群894995244" 
     loadstring(game:HttpGet("https://raw.githubusercontent.com/xiaopi77/xiaopi77/main/QQ1002100032-Roblox-Pi-script.lua"))()
@@ -2683,6 +2709,10 @@ end)
 
 Button(Tab20, "xa脚本(自瞄全游戏适配)", function() 
     loadstring(game:HttpGet("https://xingtaiduan.pythonanywhere.com/Loader"))()
+end)
+
+Button(Tab20, "KG张硕(枪战类服务器使用)", function() 
+    KG_SCRIPT = "张硕制作"loadstring(game:HttpGet("https://github.com/ZS-NB/KG/raw/main/Zhang-Shuo.lua"))()
 end)
 
 Button(Tab20, "脚本中心1.5-水里灵活的鱼", function() 
@@ -2695,6 +2725,14 @@ end)
 
 Button(Tab20, "鲨脚本", function() 
     loadstring(game:HttpGet("https://raw.githubusercontent.com/sharksharksharkshark/shark-shark-shark-shark-shark/main/shark-scriptlollol.txt",true))()
+end)
+
+Button(Tab20, "大司马v6", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/whenheer/dasimav6/refs/heads/main/dasimaV6.txt"))()
+end)
+
+Button(Tab20, "暗红脚本", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/wdwvwfw/wos/refs/heads/main/%E6%B5%8B%E8%AF%95%E5%8D%B7.lua"))()
 end)
 
 Button(Tab20, "剑客v7", function() 
@@ -2750,6 +2788,10 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/Potato5466794/Loader/
 end)
 end)
 
+Button(Tab20, "安脚本", function() 
+    loadstring(game:HttpGet(('https://raw.githubusercontent.com/wucan114514/gegeyxjb/main/oww')))()
+end)
+
 Button(Tab20, "冬脚本(功能少)", function() 
     loadstring(game:HttpGet("https://raw.githubusercontent.com/cytj777i/Essai/main/冬脚本"))() 
 end)
@@ -2767,7 +2809,7 @@ Button(Tab20, "寒脚本(功能特别少)", function()
     loadstring(game:HttpGet("https://github.com/135246508623/Han-NB/raw/refs/heads/main/1.lua.txt"))()
 end)
 
-Button(Tab20, "FIN脚本(功能多)", function() 
+Button(Tab20, "FIN脚本(功能多(要卡密))", function() 
     FIN_Script = "XingQing"
 loadstring(game:HttpGet("https://raw.githubusercontent.com/finendss/FIN/refs/heads/main/FIN-Loading"))()
 end)
@@ -2889,3 +2931,61 @@ Button(Tab23, "窜稀(全损音效)", function()
      sound.Parent = game.Workspace 
      sound:Play() 
 end)
+
+Button(Tab24, "xipro免费终极战场(不要骂我，纯分享)", function() 
+    loadstring(game:HttpGet("http://raw.githubusercontent.com/123fa98/Xi_Pro/refs/heads/main/免费/终极战场.lua"))()
+end)
+
+Button(Tab24, "林脚本(卡密：林nb)", function() 
+    lin = "作者林"lin ="林QQ群 747623342"loadstring(game:HttpGet("https://raw.githubusercontent.com/linnblin/lin/main/lin"))()
+end)
+
+Button(Tab24, "复制卡密↑", function() 
+    setclipboard("林nb")
+end)
+
+Button(Tab25, "偷脑红的时候用这个跑", function() 
+    loadstring(game:HttpGet("https://pastefy.app/PkYWvKhM/raw"))() 
+end)
+
+Button(Tab26, "焊接脚本(要卡密)", function() 
+    loadstring(game:HttpGet('https://raw.githubusercontent.com/hbjrev/airweld.github.io/refs/heads/main/RINGTA.lua'))()
+end)
+
+Button(Tab26, "复制卡密↑", function() 
+    setclipboard("ringta")
+end)
+
+Button(Tab26, "sans传送脚本(功能少)", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/iopjklbnmsss/SansHubScript/refs/heads/main/SansHub"))()
+end)
+
+Button(Tab26, "死铁轨最强传送脚本", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/gumanba/Scripts/main/DeadRails"))()
+end)
+
+Button(Tab26, "攻速1(v4)", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/HeadHarse/DeadRails/refs/heads/main/V4SWING"))()
+end)
+
+Button(Tab26, "攻速2(同一个作者v5)", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/HeadHarse/DeadRails/refs/heads/main/V5OPSWING"))()
+end)
+
+Button(Tab26, "刷倦(较慢(提供者：讽刺))", function() 
+    getgenv().BondFarmSetting = {
+	Fast_Auto_Execute = true, -- Use queue_on_teleport to execute faster than your executor itself 
+	Number_Of_Bonds_Targeted = 9e9, -- When your bonds reached the number you wanted, the will script automatically be stopped
+	Tween_Duration = 23, -- The smaller number, the faster it goes, best is 24 for low-end device
+	Webhook_Url = "none", -- Notify total bonds you have
+	Main_Auto_SHOP_Delay = 70, -- auto server hop after time ended in main game
+	Lobby_Auto_SHOP_Delay = 25, -- auto server hop after time ended in lobby
+	Goto_Party_By_Walking_Only = false, -- if you set to false, it instantly teleport you to party creator, else it make you walk to party creator 
+	Blackscreen_Save_Battery = true,
+	Show_Bonds_Collected_On_Blackscreen = true
+}
+SaveNewSettings = true 
+script_key = "DonjoSx_Was_Not_Here" -- Script key, don't remove this
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Umbrella-Scripter/Deadrails-Script/refs/heads/main/average-bond-farm.lua"))()
+end)
+
