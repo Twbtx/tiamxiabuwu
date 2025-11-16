@@ -272,7 +272,7 @@ function Toggle(a, b, c, d)
 end
 
 function Slider(a, b, c, d, e, f)
-    return a:Slider({Title = b, Step = 1, Value = {Min = c, Max = d, Default = e}, Callback = f})
+    return a:Slider({Title = b, Step =, Value = {Min = c, Max = d, Default = e}, Callback = f})
 end
 
 function Dropdown(a, b, c, d, e)
@@ -289,7 +289,7 @@ function Input(a, b, c, d, e, f)
     })
 end
 
-local Tab1 = Tab("通用(包含开发工具)")
+localTab1 = Tab("通用(包含开发工具)")
 local Tab2 = Tab("忍者传奇")
 local Tab3 = Tab("力量传奇")
 local Tab4 = Tab("驾驶帝国")
@@ -315,6 +315,7 @@ local Tab23 = Tab("一些音效[并不FE]")
 local Tab24 = Tab("终极战场")
 local Tab25 = Tab("偷走脑红")
 local Tab26 = Tab("死铁轨")
+local Tab27 = Tab("河北唐县")
 
 Button(Tab1, "复制QQ群1043213309", function()
     setclipboard("1043213309")
@@ -2331,7 +2332,11 @@ Button(Tab11, "bs汉化", function()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/BS58dL/BS/refs/heads/main/双APl翻译.txt"))()
 end)
 
-
+Button(Tab11, "TX全自动翻译", function() 
+    TX = "TX Script"
+Script = "全自动翻译"
+loadstring(game:HttpGet("https://raw.githubusercontent.com/JsYb666/Item/refs/heads/main/Auto-language"))()
+end)
 
 Button(Tab12, "Bobby(汉化)", function() 
         loadstring(game:HttpGet("https://raw.githubusercontent.com/ke9460394-dot/ugik/refs/heads/main/爱男娘.lua"))()
@@ -2991,5 +2996,24 @@ Button(Tab26, "刷倦(较慢(提供者：讽刺))", function()
 SaveNewSettings = true 
 script_key = "DonjoSx_Was_Not_Here" -- Script key, don't remove this
 loadstring(game:HttpGet("https://raw.githubusercontent.com/Umbrella-Scripter/Deadrails-Script/refs/heads/main/average-bond-farm.lua"))()
+end)
+
+Button(Tab27, "皮脚本", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/xiaopi77/xiaopi77/main/Pi-script-Hebeitangxian.lua"))()
+end)
+
+Button(Tab27, "卡车刷钱限时免费版(可能无用)", function() 
+    TANGXIAN = "卡车刷钱限时免费版"
+loadstring(game:HttpGet("https://raw.githubusercontent.com/xiaoyi-boop/-/refs/heads/main/tangxianxianmian.lua",true))()
+end)
+
+Button(Tab27, "号称卡车最强刷钱", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/Marco8642/science/ok/T%20ang%20County"))()
+end)
+
+Button(Tab27, "泷(可能要卡密又可能无效)", function() 
+    fuckyou = "泷"
+create = "moon star"
+loadstring(game:HttpGet("https://raw.githubusercontent.com/xiaoyi-boop/tangxian/refs/heads/main/%E6%B2%B3%E5%8C%97%E5%94%90%E5%8E%BF%E5%8D%A1%E8%BD%A6%E5%88%B7%E9%92%B1%E8%84%9A%E6%9C%AC.lua",true))()
 end)
 
