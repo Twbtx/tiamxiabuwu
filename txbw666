@@ -2614,11 +2614,15 @@ Button(Tab20, "WU主脚本", function()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/WUSCRIPT/WU-Script/d32b223a23ad84ef7c295656bff860e134eb8a90/77-obfuscated.lua"))()
 end)
 
+Button(Tab20, "ZARA(卡密ZARA(要大写))", function() 
+    loadstring(game:HttpGet("https://pastefy.app/zCQhGR8d/raw"))()
+end)
+
 Button(Tab20, "kanl(官方免费版)", function() 
     loadstring(game:HttpGet("https://raw.githubusercontent.com/dream77239/kanl/refs/heads/main/Kanl%E8%84%9A%E6%9C%AC"))()
 end)
 
-Button(Tab1, "RB脚本 V 1.2.4", function() 
+Button(Tab20, "RB脚本 V 1.2.4", function() 
     loadstring(game:HttpGet("https://raw.githubusercontent.com/Yungengxin/roblox/main/RbHub-v_1.2.4"))()
 end)
 
