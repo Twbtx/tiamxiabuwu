@@ -2943,6 +2943,208 @@ Button(Tab23, "窜稀(全损音效)", function()
      sound:Play() 
 end)
 
+Button(Tab23, "mc受击声音", function() 
+    local sound = Instance.new("Sound") 
+    sound.SoundId = "rbxassetid://6361963422" 
+    sound.Parent = game.Workspace 
+    sound:Play() 
+end)
+
+Button(Tab23, "mc吃东西", function() 
+    local sound = Instance.new("Sound") 
+    sound.SoundId = "rbxassetid://6748255118" 
+    sound.Parent = game.Workspace 
+    sound:Play() 
+end)
+
+Button(Tab23, "mc切换UI声", function() 
+    local sound = Instance.new("Sound") 
+    sound.SoundId = "rbxassetid://535716488" 
+    sound.Parent = game.Workspace 
+    sound:Play() 
+end)
+
+Button(Tab23, "among us", function() 
+    local sound = Instance.new("Sound") 
+    sound.SoundId = "rbxassetid://5677820357" 
+    sound.Parent = game.Workspace 
+    sound:Play() 
+end)
+
+Button(Tab23, "班迪老师的尺子", function() 
+    local sound = Instance.new("Sound") 
+    sound.SoundId = "rbxassetid://3129346583" 
+    sound.Parent = game.Workspace 
+    sound:Play() 
+end)
+
+Button(Tab23, "mc门关上", function() 
+    local sound = Instance.new("Sound") 
+    sound.SoundId = "rbxassetid://180090455" 
+    sound.Parent = game.Workspace 
+    sound:Play() 
+end)
+
+Button(Tab23, "悲伤的小曲", function() 
+    local sound = Instance.new("Sound") 
+    sound.SoundId = "rbxassetid://135308045" 
+    sound.Parent = game.Workspace 
+    sound:Play() 
+end)
+
+Button(Tab23, "投弹兵", function() 
+    local sound = Instance.new("Sound") 
+    sound.SoundId = "rbxassetid://1840172845" 
+    sound.Parent = game.Workspace 
+    sound:Play() 
+end)
+
+Button(Tab23, "九尾狐", function() 
+    local sound = Instance.new("Sound") 
+    sound.SoundId = "rbxassetid://856598599" 
+    sound.Parent = game.Workspace 
+    sound:Play() 
+end)
+Button(Tab23, "阿尔法核弹爆炸", function() 
+    local sound = Instance.new("Sound") 
+    sound.SoundId = "rbxassetid://2752357471" 
+    sound.Parent = game.Workspace 
+    sound:Play() 
+end)
+
+Button(Tab23, "核弹爆炸倒计时", function() 
+    local sound = Instance.new("Sound") 
+    sound.SoundId = "rbxassetid://6456981311" 
+    sound.Parent = game.Workspace 
+    sound:Play() 
+end)
+
+Button(Tab23, "警报", function() 
+    local sound = Instance.new("Sound") 
+    sound.SoundId = "rbxassetid://675587093" 
+    sound.Parent = game.Workspace 
+    sound:Play() 
+end)
+
+Button(Tab23, "史蒂夫趋势", function() 
+    local sound = Instance.new("Sound") 
+    sound.SoundId = "rbxassetid://2607544190" 
+    sound.Parent = game.Workspace 
+    sound:Play() 
+end)
+
+Button(Tab23, "小孩乱叫", function() 
+    local sound = Instance.new("Sound") 
+    sound.SoundId = "rbxassetid://2618158728" 
+    sound.Parent = game.Workspace 
+    sound:Play() 
+end)
+
+Button(Tab23, "音乐", function() 
+    local sound = Instance.new("Sound") 
+    sound.SoundId = "rbxassetid://1843497734" 
+    sound.Parent = game.Workspace 
+    sound:Play() 
+end)
+
+Button(Tab23, "生蛋歌", function() 
+    local sound = Instance.new("Sound") 
+    sound.SoundId = "rbxassetid://1839945715" 
+    sound.Parent = game.Workspace 
+    sound:Play() 
+end)
+
+Button(Tab23, "鹦语歌", function() 
+    local sound = Instance.new("Sound") 
+    sound.SoundId = "rbxassetid://5410082097" 
+    sound.Parent = game.Workspace 
+    sound:Play() 
+end)
+
+Button(Tab23, "全损音质", function() 
+    local sound = Instance.new("Sound") 
+    sound.SoundId = "rbxassetid://6797864253" 
+    sound.Parent = game.Workspace 
+    sound:Play() 
+end)
+
+Button(Tab23, "社区送温暖", function() 
+    local sound = Instance.new("Sound") 
+    sound.SoundId = "rbxassetid://5216610038" 
+    sound.Parent = game.Workspace 
+    sound:Play() 
+end)
+
+Button(Tab23, "ouch", function() 
+    local sound = Instance.new("Sound") 
+    sound.SoundId = "rbxassetid://12222058" 
+    sound.Parent = game.Workspace 
+    sound:Play() 
+end)
+
+Button(Tab23, "Lo-fi Chill A", function() 
+    local sound = Instance.new("Sound") 
+    sound.SoundId = "rbxassetid://9043887091" 
+    sound.Parent = game.Workspace 
+    sound:Play() 
+end)
+
+Button(Tab23, "omg", function() 
+    local sound = Instance.new("Sound") 
+    sound.SoundId = "rbxassetid://7632147717" 
+    sound.Parent = game.Workspace 
+    sound:Play() 
+end)
+
+Button(Tab23, "Robotic Dance C", function() 
+    local sound = Instance.new("Sound") 
+    sound.SoundId = "rbxassetid://1847853099" 
+    sound.Parent = game.Workspace 
+    sound:Play() 
+end)
+
+Button(Tab23, "Dion Timmer - Shiawase", function() 
+    local sound = Instance.new("Sound") 
+    sound.SoundId = "rbxassetid://5409360995" 
+    sound.Parent = game.Workspace 
+    sound:Play() 
+end)
+
+Button(Tab23, "FBI 混乱版", function() 
+    local sound = Instance.new("Sound") 
+    sound.SoundId = "rbxassetid://6757388286" 
+    sound.Parent = game.Workspace 
+    sound:Play() 
+end)
+
+Button(Tab23, "彩虹喵", function() 
+    local sound = Instance.new("Sound") 
+    sound.SoundId = "rbxassetid://9067256917" 
+    sound.Parent = game.Workspace 
+    sound:Play() 
+end)
+
+Button(Tab23, "鬼畜猫", function() 
+    local sound = Instance.new("Sound") 
+    sound.SoundId = "rbxassetid://5531491636" 
+    sound.Parent = game.Workspace 
+    sound:Play() 
+end)
+
+Button(Tab23, "傻逼狗", function() 
+    local sound = Instance.new("Sound") 
+    sound.SoundId = "rbxassetid://8449305114" 
+    sound.Parent = game.Workspace 
+    sound:Play() 
+end)
+
+Button(Tab23, "what the dog doin [LOUD] ", function() 
+    local sound = Instance.new("Sound") 
+     sound.SoundId = "rbxassetid://7111183238" 
+     sound.Parent = game.Workspace 
+     sound:Play()
+end)
+
 Button(Tab24, "xipro免费终极战场(不要骂我，纯分享)", function() 
     loadstring(game:HttpGet("http://raw.githubusercontent.com/123fa98/Xi_Pro/refs/heads/main/免费/终极战场.lua"))()
 end)
