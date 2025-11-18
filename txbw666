@@ -1,5 +1,5 @@
 local sound = Instance.new("Sound") 
-     sound.SoundId = "rbxassetid://4203251375" 
+     sound.SoundId = "rbxassetid://9108472930" 
      sound.Parent = game.Workspace 
      sound:Play()
 
@@ -24,7 +24,7 @@ local Frame1 = Instance.new('Frame')
 Frame1.Size = UDim2.new(0, 450, 0, 250)
 Frame1.AnchorPoint = Vector2.new(0.5, 0.5)
 Frame1.Position = UDim2.new(0.5, 0, 0.45, 0)
-Frame1.BackgroundTransparency = 0.3
+Frame1.BackgroundTransparency = 0.35
 Frame1.BackgroundColor3 = Color3.new(0, 0, 0)
 Frame1.Name = 'Dyzh'
 Frame1.Parent = DyzhUi
@@ -196,12 +196,8 @@ wait(1)
 Frame1:TweenPosition(UDim2.new(0.5, 0, -3, 0), "Out", "Quad", 1)
 Background:TweenPosition(UDim2.new(0, 0, -3, 0), "Out", "Quad", 1)
 
-task.wait(1.5)
+task.wait(1.25)
 
-local sound = Instance.new("Sound") 
-     sound.SoundId = "rbxassetid://4203251375" 
-     sound.Parent = game.Workspace 
-     sound:Play()
 
 print("Anti Afk On")
 		local vu = game:GetService("VirtualUser")
@@ -223,11 +219,6 @@ CoreGui:SetCore("SendNotification", {
     Text = "您好"..game.Players.LocalPlayer.Name.."，欢迎使用混脚本",
     Duration = 5,
 })
-
-local sound = Instance.new("Sound") 
-     sound.SoundId = "rbxassetid://9108472930" 
-     sound.Parent = game.Workspace 
-     sound:Play()
 
 local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
 local Window = WindUI:CreateWindow({
@@ -367,6 +358,163 @@ end)
 
 Button(Tab1, "视野缩放128", function() 
     game:GetService("Players").LocalPlayer.CameraMaxZoomDistance = 128
+end)
+
+local PhysicsSpeedValue = nil
+local PhysicsEnabled = false
+local PhysicsBV = nil
+
+Input(Tab1, "Physics Speed", "输入物理速度 (最低0，最高无上限)", "", "例如: 150", function(value)
+    local numValue = tonumber(value)
+    if numValue and numValue >= 0 then
+        PhysicsSpeedValue = numValue
+        WindUI:Notify({Title = "速度设置", Content = "Physics速度已设置为: " .. numValue})
+    else
+        WindUI:Notify({Title = "错误", Content = "请输入有效的数字 (≥ 0)"})
+    end
+end)
+
+Button(Tab1, "启用Physics Speed", function()
+    if PhysicsSpeedValue == nil then
+        WindUI:Notify({Title = "错误", Content = "请先输入Physics速度值"})
+        return
+    end
+    
+    if PhysicsEnabled then
+        WindUI:Notify({Title = "提示", Content = "Physics速度已在运行"})
+        return
+    end
+    
+    local player = game.Players.LocalPlayer
+    local character = player.Character or player.CharacterAdded:Wait()
+    local root = character:WaitForChild("HumanoidRootPart")
+    
+    PhysicsBV = Instance.new("BodyVelocity")
+    PhysicsBV.Velocity = Vector3.new(0, 0, 0)
+    PhysicsBV.MaxForce = Vector3.new(math.huge, 0, math.huge)
+    PhysicsBV.Parent = root
+    
+    PhysicsEnabled = true
+    
+    game:GetService("RunService").Heartbeat:Connect(function()
+        if not PhysicsEnabled then return end
+        if character:FindFirstChild("Humanoid") then
+            local moveDirection = character.Humanoid.MoveDirection
+            PhysicsBV.Velocity = moveDirection * PhysicsSpeedValue
+        end
+    end)
+    
+    WindUI:Notify({Title = "Physics Speed", Content = "已启用, 速度: " .. PhysicsSpeedValue})
+end)
+
+Button(Tab1, "禁用Physics Speed", function()
+    if PhysicsBV then
+        PhysicsBV:Destroy()
+        PhysicsBV = nil
+    end
+    PhysicsEnabled = false
+    WindUI:Notify({Title = "Physics Speed", Content = "已禁用"})
+end)
+
+local TeleportSpeedValue = nil
+local TeleportEnabled = false
+
+Input(Tab1, "Teleport Speed", "输入传送距离 (最低0，最高无上限)", "", "例如: 5", function(value)
+    local numValue = tonumber(value)
+    if numValue and numValue >= 0 then
+        TeleportSpeedValue = numValue
+        WindUI:Notify({Title = "距离设置", Content = "Teleport距离已设置为: " .. numValue})
+    else
+        WindUI:Notify({Title = "错误", Content = "请输入有效的数字 (≥ 0)"})
+    end
+end)
+
+Button(Tab1, "启用Teleport Speed", function()
+    if TeleportSpeedValue == nil then
+        WindUI:Notify({Title = "错误", Content = "请先输入Teleport距离值"})
+        return
+    end
+    
+    if TeleportEnabled then
+        WindUI:Notify({Title = "提示", Content = "Teleport速度已在运行"})
+        return
+    end
+    
+    local player = game.Players.LocalPlayer
+    local character = player.Character or player.CharacterAdded:Wait()
+    local root = character:WaitForChild("HumanoidRootPart")
+    
+    TeleportEnabled = true
+    
+    game:GetService("RunService").Heartbeat:Connect(function()
+        if not TeleportEnabled then return end
+        if character:FindFirstChild("Humanoid") then
+            local moveDirection = character.Humanoid.MoveDirection
+            if moveDirection.Magnitude > 0 then
+                root.CFrame = root.CFrame + (moveDirection * TeleportSpeedValue)
+            end
+        end
+    end)
+    
+    WindUI:Notify({Title = "Teleport Speed", Content = "已启用, 距离: " .. TeleportSpeedValue})
+end)
+
+Button(Tab1, "禁用Teleport Speed", function()
+    TeleportEnabled = false
+    WindUI:Notify({Title = "Teleport Speed", Content = "已禁用"})
+end)
+
+local JumpPowerValue = nil
+local JumpEnabled = false
+
+Input(Tab1, "Jump Power", "输入跳跃高度 (最低0，最高无上限)", "", "例如: 150", function(value)
+    local numValue = tonumber(value)
+    if numValue and numValue >= 0 then
+        JumpPowerValue = numValue
+        WindUI:Notify({Title = "高度设置", Content = "跳跃高度已设置为: " .. numValue})
+    else
+        WindUI:Notify({Title = "错误", Content = "请输入有效的数字 (≥ 0)"})
+    end
+end)
+
+Button(Tab1, "启用Jump Power", function()
+    if JumpPowerValue == nil then
+        WindUI:Notify({Title = "错误", Content = "请先输入跳跃高度"})
+        return
+    end
+    
+    if JumpEnabled then
+        WindUI:Notify({Title = "提示", Content = "跳跃高度已在运行"})
+        return
+    end
+    
+    local player = game.Players.LocalPlayer
+    local character = player.Character or player.CharacterAdded:Wait()
+    local humanoid = character:WaitForChild("Humanoid")
+    
+    humanoid.JumpPower = JumpPowerValue
+    
+    JumpEnabled = true
+    
+    game:GetService("RunService").Heartbeat:Connect(function()
+        if not JumpEnabled then return end
+        if humanoid.JumpPower ~= JumpPowerValue then
+            humanoid.JumpPower = JumpPowerValue
+        end
+    end)
+    
+    WindUI:Notify({Title = "Jump Power", Content = "已启用, 跳跃高度: " .. JumpPowerValue})
+end)
+
+Button(Tab1, "禁用Jump Power", function()
+    JumpEnabled = false
+    
+    local player = game.Players.LocalPlayer
+    if player.Character and player.Character:FindFirstChild("Humanoid") then
+        player.Character.Humanoid.JumpPower = 50
+    end
+    
+    WindUI:Notify({Title = "Jump Power", Content = "已禁用"})
 end)
 
 Button(Tab1, "提升fps", function() 
