@@ -490,13 +490,13 @@ for _, player in pairs(game.Players:GetPlayers()) do
     end
 end
 
+
 Toggle(Tab1, "血量显示ESP", false, function(Value)
     local Players = game:GetService("Players")
     local LocalPlayer = Players.LocalPlayer
-    
+    local ESPTable = {}
+
     if Value then
-        
-        local ESPTable = {}
         
         local function CreateESP(player)
             if ESPTable[player] then return end
@@ -608,38 +608,66 @@ Toggle(Tab1, "血量显示ESP", false, function(Value)
         end)
         
         
-        getgenv().CurrentESPTable = ESPTable
+        getgenv().ESPTable = ESPTable
         
     else
         
-        if getgenv().CurrentESPTable then
-            for player, espData in pairs(getgenv().CurrentESPTable) do
+        if getgenv().ESPTable then
+            for player, espData in pairs(getgenv().ESPTable) do
                 if espData and espData.Billboard then
                     espData.Billboard:Destroy()
                 end
             end
-            getgenv().CurrentESPTable = nil
-        end
-        
-         
-        for _, player in pairs(Players:GetPlayers()) do
-            if player.Character then
-                local esp = player.Character:FindFirstChild("ESP_" .. player.Name)
-                if esp then
-                    esp:Destroy()
-                end
-            end
+            getgenv().ESPTable = nil
         end
     end
 end)
 
-Button(Tab1, "透视", function() 
-    function getplrsname()for i,v in pairs(game:GetChildren()) doif v.ClassName == "Players" thenreturn v.Nameendendendlocal players = getplrsname()local plr = game[players].LocalPlayercoroutine.resume(coroutine.create(function()while wait(1) docoroutine.resume(coroutine.create(function()for _,v in pairs(game[players]:GetPlayers()) doif v.Name ~= plr.Name and v.Character thenv.Character.HeadHB.CanCollide = falsev.Character.HeadHB.Transparency = 10v.Character.HeadHB.Size = Vector3.new(100,100,100)v.Character.HumanoidRootPart.CanCollide = falsev.Character.HumanoidRootPart.Transparency = 10v.Character.HumanoidRootPart.Size = Vector3.new(100,100,100)endendend))endend))function CreateSG(name,parent,face)local SurfaceGui = Instance.new("SurfaceGui",parent)SurfaceGui.Parent = parentSurfaceGui.ZIndexBehavior = Enum.ZIndexBehavior.SiblingSurfaceGui.Face = Enum.NormalId[face]SurfaceGui.LightInfluence = 0SurfaceGui.ResetOnSpawn = falseSurfaceGui.Name = nameSurfaceGui.AlwaysOnTop = truelocal Frame = Instance.new("Frame",SurfaceGui)Frame.BackgroundColor3 = Color3.fromRGB(85, 170, 255)Frame.Size = UDim2.new(1,0,1,0)endwhile wait(1) dofor i,v in pairs (game:GetService("Players"):GetPlayers()) doif v ~= game:GetService("Players").LocalPlayer and v.Character ~= nil andv.Character:FindFirstChild("LowerTorso") and v.Character.LowerTorso:FindFirstChild("cham") == nil thenfor i,v in pairs (v.Character:GetChildren()) doif v:IsA("MeshPart") or v.Name == "LowerTorso" thenCreateSG("cham",v,"Back")CreateSG("cham",v,"Front")CreateSG("cham",v,"Left")CreateSG("cham",v,"Right")CreateSG("cham",v,"Right")CreateSG("cham",v,"Top")CreateSG("cham",v,"Bottom")endendendendend
+Toggle(Tab1, "esp", false, function(state)
+    pcall(function()
+        for _, player in pairs(game.Players:GetPlayers()) do
+            if player ~= game.Players.LocalPlayer and player.Character then
+                if state then
+                    local highlight = Instance.new("Highlight")
+                    highlight.Parent = player.Character
+                    highlight.Adornee = player.Character
+
+                    local billboard = Instance.new("BillboardGui")
+                    billboard.Parent = player.Character
+                    billboard.Adornee = player.Character
+                    billboard.Size = UDim2.new(0, 100, 0, 100)
+                    billboard.StudsOffset = Vector3.new(0, 3, 0)
+                    billboard.AlwaysOnTop = true
+
+                    local nameLabel = Instance.new("TextLabel")
+                    nameLabel.Parent = billboard
+                    nameLabel.Size = UDim2.new(1, 0, 1, 0)
+                    nameLabel.BackgroundTransparency = 1
+                    nameLabel.Text = player.Name
+                    nameLabel.TextColor3 = Color3.new(1, 1, 1)
+                    nameLabel.TextStrokeTransparency = 0.5
+                    nameLabel.TextScaled = true
+
+                    local circle = Instance.new("ImageLabel")
+                    circle.Parent = billboard
+                    circle.Size = UDim2.new(0, 50, 0, 50)
+                    circle.Position = UDim2.new(0.5, 0, 0.5, 0)
+                    circle.AnchorPoint = Vector2.new(0.5, 0.5)
+                    circle.BackgroundTransparency = 1
+                    circle.Image = "rbxassetid://2200552246"
+                else
+                    if player.Character:FindFirstChildOfClass("Highlight") then
+                        player.Character:FindFirstChildOfClass("Highlight"):Destroy()
+                    end
+                    if player.Character:FindFirstChildOfClass("BillboardGui") then
+                        player.Character:FindFirstChildOfClass("BillboardGui"):Destroy()
+                    end
+                end
+            end
+        end
+    end)
 end)
 
-Button(Tab1, "通用透视", function() 
-    loadstring(game:GetObjects("rbxassetid://10092697033")[1].Source)()
-end)
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -675,7 +703,6 @@ dropdown = Tab1:Dropdown({
         selectedPlayer = value
     end
 })
-
 
 Button(Tab1, "刷新列表", function()
     refreshPlayerList(true)
@@ -2013,6 +2040,10 @@ end)
 
 Button(Tab8, "终极范围", function() 
     loadstring(game:HttpGet("https://pastebin.com/raw/CAQ9x4A7"))()
+end)
+
+Button(Tab1, "通用自瞄", function() 
+    loadstring(game:HttpGet("https://atlasteam.live/silentaim"))()
 end)
 
 Button(Tab9, "陌自瞄（死亡消失）", function() 
@@ -3353,7 +3384,7 @@ Button(Tab26, "刷倦(较慢(提供者：讽刺))", function()
 	Fast_Auto_Execute = true, -- Use queue_on_teleport to execute faster than your executor itself 
 	Number_Of_Bonds_Targeted = 9e9, -- When your bonds reached the number you wanted, the will script automatically be stopped
 	Tween_Duration = 23, -- The smaller number, the faster it goes, best is 24 for low-end device
-	Webhook_Url = "none",  Notify total bonds you have
+	Webhook_Url = "none", -- Notify total bonds you have
 	Main_Auto_SHOP_Delay = 70, -- auto server hop after time ended in main game
 	Lobby_Auto_SHOP_Delay = 25, -- auto server hop after time ended in lobby
 	Goto_Party_By_Walking_Only = false, -- if you set to false, it instantly teleport you to party creator, else it make you walk to party creator 
