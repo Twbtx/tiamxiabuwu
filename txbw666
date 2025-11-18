@@ -1,5 +1,5 @@
 local sound = Instance.new("Sound") 
-     sound.SoundId = "rbxassetid://4203251375" 
+     sound.SoundId = "rbxassetid://9108472930" 
      sound.Parent = game.Workspace 
      sound:Play()
 
@@ -196,12 +196,9 @@ wait(1)
 Frame1:TweenPosition(UDim2.new(0.5, 0, -3, 0), "Out", "Quad", 1)
 Background:TweenPosition(UDim2.new(0, 0, -3, 0), "Out", "Quad", 1)
 
-task.wait(1.5)
+task.wait(1.25)
 
-local sound = Instance.new("Sound") 
-     sound.SoundId = "rbxassetid://4203251375" 
-     sound.Parent = game.Workspace 
-     sound:Play()
+
 
 print("Anti Afk On")
 		local vu = game:GetService("VirtualUser")
@@ -223,11 +220,6 @@ CoreGui:SetCore("SendNotification", {
     Text = "您好"..game.Players.LocalPlayer.Name.."，欢迎使用混脚本",
     Duration = 5,
 })
-
-local sound = Instance.new("Sound") 
-     sound.SoundId = "rbxassetid://9108472930" 
-     sound.Parent = game.Workspace 
-     sound:Play()
 
 local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
 local Window = WindUI:CreateWindow({
