@@ -1,5 +1,5 @@
 local sound = Instance.new("Sound") 
-     sound.SoundId = "rbxassetid://9108472930" 
+     sound.SoundId = "rbxassetid://4203251375" 
      sound.Parent = game.Workspace 
      sound:Play()
 
@@ -196,9 +196,12 @@ wait(1)
 Frame1:TweenPosition(UDim2.new(0.5, 0, -3, 0), "Out", "Quad", 1)
 Background:TweenPosition(UDim2.new(0, 0, -3, 0), "Out", "Quad", 1)
 
-task.wait(1.25)
+task.wait(1.5)
 
-
+local sound = Instance.new("Sound") 
+     sound.SoundId = "rbxassetid://4203251375" 
+     sound.Parent = game.Workspace 
+     sound:Play()
 
 print("Anti Afk On")
 		local vu = game:GetService("VirtualUser")
@@ -220,6 +223,11 @@ CoreGui:SetCore("SendNotification", {
     Text = "您好"..game.Players.LocalPlayer.Name.."，欢迎使用混脚本",
     Duration = 5,
 })
+
+local sound = Instance.new("Sound") 
+     sound.SoundId = "rbxassetid://9108472930" 
+     sound.Parent = game.Workspace 
+     sound:Play()
 
 local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
 local Window = WindUI:CreateWindow({
@@ -314,6 +322,53 @@ Button(Tab1, "复制QQ群1043213309", function()
     setclipboard("1043213309")
 end)
 
+Slider(Tab1, "移动速度", 1, 600, game.Players.LocalPlayer.Character.Humanoid.WalkSpeed, function(a) 
+        game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = a
+end)
+
+Slider(Tab1, "跳跃高度", 1, 600, game.Players.LocalPlayer.Character.Humanoid.JumpPower, function(a) 
+        game.Players.LocalPlayer.Character.Humanoid.JumpPower = a
+end)
+
+Slider(Tab1, "重力设置", 1, 500, workspace.Gravity, function(a) 
+        workspace.Gravity = a
+end)
+
+Slider(Tab1, "视野缩放距离", 1, 1500, game:GetService("Players").LocalPlayer.CameraMaxZoomDistance, function(a) 
+    game:GetService("Players").LocalPlayer.CameraMaxZoomDistance = a
+end)
+
+Slider(Tab1, "广角", 1, 240, Workspace.CurrentCamera.FieldOfView, function(a)
+    Workspace.CurrentCamera.FieldOfView= a
+end)
+
+Input(Tab1, "设置血量", "输入血量值 (0-999999999)", "", "例如: 100", function(value)
+    local numValue = tonumber(value)
+    if numValue and numValue >= 0 then
+        local character = game.Players.LocalPlayer.Character
+        if character and character:FindFirstChild("Humanoid") then
+            character.Humanoid.Health = numValue
+            WindUI:Notify({Title = "血量设置", Content = "血量已设置为: " .. numValue})
+        else
+            WindUI:Notify({Title = "错误", Content = "角色或Humanoid不存在"})
+        end
+    else
+        WindUI:Notify({Title = "错误", Content = "请输入有效的数字 (≥ 0)"})
+    end
+end)
+
+Button(Tab1, "恢复视野", function() 
+    Workspace.CurrentCamera.FieldOfView = 70
+end)
+
+Button(Tab1, "最大视野缩放", function() 
+    game:GetService("Players").LocalPlayer.CameraMaxZoomDistance = 200000
+end)
+
+Button(Tab1, "视野缩放128", function() 
+    game:GetService("Players").LocalPlayer.CameraMaxZoomDistance = 128
+end)
+
 Button(Tab1, "提升fps", function() 
         loadstring(game:HttpGet("https://raw.githubusercontent.com/smalldesikon/hun/ee906e570c0f5b22e580a20decaba23757533569/fps"))()
 end)
@@ -337,6 +392,10 @@ end)
 
 Button(Tab1, "司空同款飞行", function() 
         loadstring(game:HttpGet("https://raw.githubusercontent.com/XNEOFF/FlyGuiV3/main/FlyGuiV3.txt"))()
+end)
+
+Button(Tab1, "阿尔飞行", function()
+    loadstring(game:HttpGet("https://pastebin.com/raw/5zJu3hfN"))()
 end)
 
 Button(Tab1, "踏空行走", function() 
@@ -420,45 +479,6 @@ end
 end
 end)
 
-Button(Tab1, "最大视野缩放", function() 
-    game:GetService("Players").LocalPlayer.CameraMaxZoomDistance = 200000
-end)
-
-Button(Tab1, "视野缩放128", function() 
-    game:GetService("Players").LocalPlayer.CameraMaxZoomDistance = 128
-end)
-
-Slider(Tab1, "视野缩放距离", 1, 1500, game:GetService("Players").LocalPlayer.CameraMaxZoomDistance, function(a) 
-    game:GetService("Players").LocalPlayer.CameraMaxZoomDistance = a
-end)
-
-Slider(Tab1, "移动速度", 1, 600, game.Players.LocalPlayer.Character.Humanoid.WalkSpeed, function(a) 
-        game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = a
-end)
-
-Slider(Tab1, "跳跃高度", 1, 600, game.Players.LocalPlayer.Character.Humanoid.JumpPower, function(a) 
-        game.Players.LocalPlayer.Character.Humanoid.JumpPower = a
-end)
-
-Slider(Tab1, "重力设置", 1, 500, workspace.Gravity, function(a) 
-        workspace.Gravity = a
-end)
-
-Input(Tab1, "设置血量", "输入血量值 (0-999999999)", "", "例如: 100", function(value)
-    local numValue = tonumber(value)
-    if numValue and numValue >= 0 then
-        local character = game.Players.LocalPlayer.Character
-        if character and character:FindFirstChild("Humanoid") then
-            character.Humanoid.Health = numValue
-            WindUI:Notify({Title = "血量设置", Content = "血量已设置为: " .. numValue})
-        else
-            WindUI:Notify({Title = "错误", Content = "角色或Humanoid不存在"})
-        end
-    else
-        WindUI:Notify({Title = "错误", Content = "请输入有效的数字 (≥ 0)"})
-    end
-end)
-
 
 local selectedPlayer = nil
 
@@ -470,49 +490,205 @@ for _, player in pairs(game.Players:GetPlayers()) do
     end
 end
 
-Toggle(Tab1, "ESP", false, function(state)
-    pcall(function()
-        for _, player in pairs(game.Players:GetPlayers()) do
-            if player ~= game.Players.LocalPlayer and player.Character then
-                if state then
-                    local highlight = Instance.new("Highlight")
-                    highlight.Parent = player.Character
-                    highlight.Adornee = player.Character
+Toggle(Tab1, "血量显示ESP", false, function(Value)
+    local Players = game:GetService("Players")
+    local LocalPlayer = Players.LocalPlayer
+    
+    if Value then
+        
+        local ESPTable = {}
+        
+        local function CreateESP(player)
+            if ESPTable[player] then return end
+            
+            local character = player.Character
+            if not character then return end
+            
+            local humanoid = character:FindFirstChildOfClass("Humanoid")
+            if not humanoid then return end
+            
+            local billboard = Instance.new("BillboardGui")
+            billboard.Name = "ESP_" .. player.Name
+            billboard.Adornee = character:FindFirstChild("Head") or character:FindFirstChild("HumanoidRootPart")
+            billboard.Size = UDim2.new(0, 200, 0, 50)
+            billboard.StudsOffset = Vector3.new(0, 3, 0)
+            billboard.AlwaysOnTop = true
+            billboard.Parent = character
+            
+            local frame = Instance.new("Frame")
+            frame.BackgroundColor3 = Color3.new(0, 0, 0)
+            frame.BackgroundTransparency = 0.3
+            frame.Size = UDim2.new(1, 0, 1, 0)
+            frame.Parent = billboard
+            
+            local textLabel = Instance.new("TextLabel")
+            textLabel.Size = UDim2.new(1, 0, 1, 0)
+            textLabel.BackgroundTransparency = 1
+            textLabel.Text = player.Name .. "\nHP: " .. math.floor(humanoid.Health)
+            textLabel.TextColor3 = Color3.new(1, 1, 1)
+            textLabel.TextStrokeTransparency = 0
+            textLabel.TextScaled = true
+            textLabel.Font = Enum.Font.GothamBold
+            textLabel.Parent = frame
+            
+            local healthBarBackground = Instance.new("Frame")
+            healthBarBackground.Size = UDim2.new(0.8, 0, 0.2, 0)
+            healthBarBackground.Position = UDim2.new(0.1, 0, 0.7, 0)
+            healthBarBackground.BackgroundColor3 = Color3.new(0.3, 0.3, 0.3)
+            healthBarBackground.BorderSizePixel = 0
+            healthBarBackground.Parent = frame
+            
+            local healthBar = Instance.new("Frame")
+            healthBar.Size = UDim2.new(humanoid.Health / humanoid.MaxHealth, 0, 1, 0)
+            healthBar.BackgroundColor3 = Color3.new(1, 0, 0)
+            healthBar.BorderSizePixel = 0
+            healthBar.Parent = healthBarBackground
+            
+            ESPTable[player] = {
+                Billboard = billboard,
+                TextLabel = textLabel,
+                HealthBar = healthBar,
+                Humanoid = humanoid
+            }
+            
+            humanoid.HealthChanged:Connect(function()
+                UpdateESP(player)
+            end)
+        end
 
-                    local billboard = Instance.new("BillboardGui")
-                    billboard.Parent = player.Character
-                    billboard.Adornee = player.Character
-                    billboard.Size = UDim2.new(0, 100, 0, 100)
-                    billboard.StudsOffset = Vector3.new(0, 3, 0)
-                    billboard.AlwaysOnTop = true
+        local function UpdateESP(player)
+            local espData = ESPTable[player]
+            if not espData then return end
+            
+            local humanoid = espData.Humanoid
+            if not humanoid or humanoid.Health <= 0 then
+                RemoveESP(player)
+                return
+            end
+            
+            espData.TextLabel.Text = player.Name .. "\nHP: " .. math.floor(humanoid.Health)
+            
+            local healthPercent = humanoid.Health / humanoid.MaxHealth
+            espData.HealthBar.Size = UDim2.new(healthPercent, 0, 1, 0)
+            
+            if healthPercent > 0.7 then
+                espData.HealthBar.BackgroundColor3 = Color3.new(0, 1, 0)
+            elseif healthPercent > 0.3 then
+                espData.HealthBar.BackgroundColor3 = Color3.new(1, 1, 0)
+            else
+                espData.HealthBar.BackgroundColor3 = Color3.new(1, 0, 0)
+            end
+        end
 
-                    local nameLabel = Instance.new("TextLabel")
-                    nameLabel.Parent = billboard
-                    nameLabel.Size = UDim2.new(1, 0, 1, 0)
-                    nameLabel.BackgroundTransparency = 1
-                    nameLabel.Text = player.Name
-                    nameLabel.TextColor3 = Color3.new(1, 1, 1)
-                    nameLabel.TextStrokeTransparency = 0.5
-                    nameLabel.TextScaled = true
+        local function RemoveESP(player)
+            local espData = ESPTable[player]
+            if espData and espData.Billboard then
+                espData.Billboard:Destroy()
+            end
+            ESPTable[player] = nil
+        end
 
-                    local circle = Instance.new("ImageLabel")
-                    circle.Parent = billboard
-                    circle.Size = UDim2.new(0, 50, 0, 50)
-                    circle.Position = UDim2.new(0.5, 0, 0.5, 0)
-                    circle.AnchorPoint = Vector2.new(0.5, 0.5)
-                    circle.BackgroundTransparency = 1
-                    circle.Image = "rbxassetid://2200552246"
-                else
-                    if player.Character:FindFirstChildOfClass("Highlight") then
-                        player.Character:FindFirstChildOfClass("Highlight"):Destroy()
-                    end
-                    if player.Character:FindFirstChildOfClass("BillboardGui") then
-                        player.Character:FindFirstChildOfClass("BillboardGui"):Destroy()
-                    end
+        
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer then
+                if player.Character then
+                    CreateESP(player)
+                end
+                player.CharacterAdded:Connect(function()
+                    CreateESP(player)
+                end)
+            end
+        end
+        
+        
+        Players.PlayerAdded:Connect(function(player)
+            player.CharacterAdded:Connect(function()
+                CreateESP(player)
+            end)
+        end)
+        
+        
+        getgenv().CurrentESPTable = ESPTable
+        
+    else
+        
+        if getgenv().CurrentESPTable then
+            for player, espData in pairs(getgenv().CurrentESPTable) do
+                if espData and espData.Billboard then
+                    espData.Billboard:Destroy()
+                end
+            end
+            getgenv().CurrentESPTable = nil
+        end
+        
+         
+        for _, player in pairs(Players:GetPlayers()) do
+            if player.Character then
+                local esp = player.Character:FindFirstChild("ESP_" .. player.Name)
+                if esp then
+                    esp:Destroy()
                 end
             end
         end
-    end)
+    end
+end)
+
+Button(Tab1, "透视", function() 
+    function getplrsname()for i,v in pairs(game:GetChildren()) doif v.ClassName == "Players" thenreturn v.Nameendendendlocal players = getplrsname()local plr = game[players].LocalPlayercoroutine.resume(coroutine.create(function()while wait(1) docoroutine.resume(coroutine.create(function()for _,v in pairs(game[players]:GetPlayers()) doif v.Name ~= plr.Name and v.Character thenv.Character.HeadHB.CanCollide = falsev.Character.HeadHB.Transparency = 10v.Character.HeadHB.Size = Vector3.new(100,100,100)v.Character.HumanoidRootPart.CanCollide = falsev.Character.HumanoidRootPart.Transparency = 10v.Character.HumanoidRootPart.Size = Vector3.new(100,100,100)endendend))endend))function CreateSG(name,parent,face)local SurfaceGui = Instance.new("SurfaceGui",parent)SurfaceGui.Parent = parentSurfaceGui.ZIndexBehavior = Enum.ZIndexBehavior.SiblingSurfaceGui.Face = Enum.NormalId[face]SurfaceGui.LightInfluence = 0SurfaceGui.ResetOnSpawn = falseSurfaceGui.Name = nameSurfaceGui.AlwaysOnTop = truelocal Frame = Instance.new("Frame",SurfaceGui)Frame.BackgroundColor3 = Color3.fromRGB(85, 170, 255)Frame.Size = UDim2.new(1,0,1,0)endwhile wait(1) dofor i,v in pairs (game:GetService("Players"):GetPlayers()) doif v ~= game:GetService("Players").LocalPlayer and v.Character ~= nil andv.Character:FindFirstChild("LowerTorso") and v.Character.LowerTorso:FindFirstChild("cham") == nil thenfor i,v in pairs (v.Character:GetChildren()) doif v:IsA("MeshPart") or v.Name == "LowerTorso" thenCreateSG("cham",v,"Back")CreateSG("cham",v,"Front")CreateSG("cham",v,"Left")CreateSG("cham",v,"Right")CreateSG("cham",v,"Right")CreateSG("cham",v,"Top")CreateSG("cham",v,"Bottom")endendendendend
+end)
+
+Button(Tab1, "通用透视", function() 
+    loadstring(game:GetObjects("rbxassetid://10092697033")[1].Source)()
+end)
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+
+function tp(p)
+    LocalPlayer.Character:PivotTo(p)
+end
+
+
+local playerList = {}
+local selectedPlayer = nil
+
+
+function refreshPlayerList(includeSelf)
+    playerList = {}
+    for _, player in pairs(Players:GetPlayers()) do
+        if includeSelf or player ~= LocalPlayer then
+            table.insert(playerList, player.Name)
+        end
+    end
+end
+
+
+refreshPlayerList(true)
+
+
+local dropdown
+dropdown = Tab1:Dropdown({
+    Title = "选择玩家名称",
+    Values = playerList,
+    Callback = function(value)
+        selectedPlayer = value
+    end
+})
+
+
+Button(Tab1, "刷新列表", function()
+    refreshPlayerList(true)
+    dropdown:Refresh(playerList)
+end)
+
+Button(Tab1, "传送到玩家旁边", function()
+    if selectedPlayer and Players:FindFirstChild(selectedPlayer) then
+        local targetPlayer = Players[selectedPlayer]
+        if targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            tp(targetPlayer.Character.HumanoidRootPart.CFrame + Vector3.new(0, 3, 0))
+        end
+    end
 end)
 
 Button(Tab1, "重置人物", function() 
@@ -529,14 +705,6 @@ end)
 
 Button(Tab1, "离开服务器", function() 
     game:Shutdown()
-end)
-
-Button(Tab1, "广角", function() 
-    Workspace.CurrentCamera.FieldOfView = 120
-end)
-
-Button(Tab1, "恢复视野", function() 
-    Workspace.CurrentCamera.FieldOfView = 70
 end)
 
 Button(Tab1, "移动锁", function() 
@@ -975,11 +1143,34 @@ Button(Tab1, "转圈", function()
     loadstring(game:HttpGet('https://pastebin.com/raw/r97d7dS0', true))()
 end)
 
-
 Button(Tab1, "操人脚本", function() 
     loadstring(game:HttpGet("https://pastebin.com/raw/bzmhRgKL"))();
 end)
 
+Button(Tab1, "甩人", function() 
+    loadstring(game:HttpGet("https://pastebin.com/raw/zqyDSUWX"))()
+end)
+
+Button(Tab1, "替身", function() 
+    loadstring(game:HttpGet(('https://raw.githubusercontent.com/SkrillexMe/SkrillexLoader/main/SkrillexLoadMain')))()
+end)
+
+Button(Tab1, "爬墙", function() 
+    loadstring(game:HttpGet("https://pastebin.com/raw/zXk4Rq2r"))()
+end)
+
+Button(Tab1, "工具挂", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/Bebo-Mods/BeboScripts/main/StandAwekening.lua"))()
+end)
+
+Button(Tab1, "铁拳", function() 
+    loadstring(game:HttpGet('https://raw.githubusercontent.com/0Ben1/fe/main/obf_rf6iQURzu1fqrytcnLBAvW34C9N55kS9g9G3CKz086rC47M6632sEd4ZZYB0AYgV.lua.txt'))()
+end)
+
+Button(Tab1,"↓以下是开发脚本↓",function()
+    
+end)
+    
 Button(Tab1, "汉化spy", function() 
     getgenv().Spy="汉化Spy" 
     loadstring(game:HttpGet("https://raw.githubusercontent.com/xiaopi77/xiaopi77/refs/heads/main/spy%E6%B1%89%E5%8C%96%20(1).txt"))()
@@ -1548,26 +1739,6 @@ end)
 
 end)
 
-
-Button(Tab1, "甩人", function() 
-    loadstring(game:HttpGet("https://pastebin.com/raw/zqyDSUWX"))()
-end)
-
-Button(Tab1, "替身", function() 
-    loadstring(game:HttpGet(('https://raw.githubusercontent.com/SkrillexMe/SkrillexLoader/main/SkrillexLoadMain')))()
-end)
-
-Button(Tab1, "爬墙", function() 
-    loadstring(game:HttpGet("https://pastebin.com/raw/zXk4Rq2r"))()
-end)
-
-Button(Tab1, "工具挂", function() 
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/Bebo-Mods/BeboScripts/main/StandAwekening.lua"))()
-end)
-
-Button(Tab1, "铁拳", function() 
-    loadstring(game:HttpGet('https://raw.githubusercontent.com/0Ben1/fe/main/obf_rf6iQURzu1fqrytcnLBAvW34C9N55kS9g9G3CKz086rC47M6632sEd4ZZYB0AYgV.lua.txt'))()
-end)
 
 Button(Tab2, "我自己做的脚本(功能特多)", function() 
     loadstring(game:HttpGet("https://raw.githubusercontent.com/Twbtx/tiamxiabuwu/blob/main/%E6%B7%B7%E5%BF%8D%E8%80%85%E4%BC%A0%E5%A5%87"))()
@@ -3182,7 +3353,7 @@ Button(Tab26, "刷倦(较慢(提供者：讽刺))", function()
 	Fast_Auto_Execute = true, -- Use queue_on_teleport to execute faster than your executor itself 
 	Number_Of_Bonds_Targeted = 9e9, -- When your bonds reached the number you wanted, the will script automatically be stopped
 	Tween_Duration = 23, -- The smaller number, the faster it goes, best is 24 for low-end device
-	Webhook_Url = "none", -- Notify total bonds you have
+	Webhook_Url = "none",  Notify total bonds you have
 	Main_Auto_SHOP_Delay = 70, -- auto server hop after time ended in main game
 	Lobby_Auto_SHOP_Delay = 25, -- auto server hop after time ended in lobby
 	Goto_Party_By_Walking_Only = false, -- if you set to false, it instantly teleport you to party creator, else it make you walk to party creator 
