@@ -2190,7 +2190,7 @@ Button(Tab8, "终极范围", function()
     loadstring(game:HttpGet("https://pastebin.com/raw/CAQ9x4A7"))()
 end)
 
-Button(Tab1, "通用自瞄", function() 
+Button(Tab9, "通用自瞄", function() 
     loadstring(game:HttpGet("https://atlasteam.live/silentaim"))()
 end)
 
