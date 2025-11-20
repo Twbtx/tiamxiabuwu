@@ -1,8 +1,3 @@
-local sound = Instance.new("Sound") 
-     sound.SoundId = "rbxassetid://9108472930" 
-     sound.Parent = game.Workspace 
-     sound:Play()
-
 local DyzhUi = Instance.new('ScreenGui')
 DyzhUi.Name = 'DyzhUi'
 DyzhUi.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
