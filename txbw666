@@ -220,6 +220,11 @@ CoreGui:SetCore("SendNotification", {
     Duration = 5,
 })
 
+local sound = Instance.new("Sound") 
+     sound.SoundId = "rbxassetid://9108472930" 
+     sound.Parent = game.Workspace 
+     sound:Play()
+
 local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
 local Window = WindUI:CreateWindow({
     Title = "混脚本--首页 QQ群：1043213309",
@@ -521,6 +526,10 @@ Button(Tab1, "提升fps", function()
         loadstring(game:HttpGet("https://raw.githubusercontent.com/smalldesikon/hun/ee906e570c0f5b22e580a20decaba23757533569/fps"))()
 end)
 
+Button(Tab1, "好用隐身", function() 
+    loadstring(game:HttpGet('https://pastebin.com/raw/3Rnd9rHf'))()
+end)
+
 Toggle(Tab1, "无限跳(可开关)", false, function(Value)
     Jump = Value
     game:GetService("UserInputService").JumpRequest:Connect(function()
@@ -638,6 +647,137 @@ for _, player in pairs(game.Players:GetPlayers()) do
     end
 end
 
+Toggle(Tab1, "透视相同脚本用户", false, function(Value)
+    local Players = game:GetService("Players")
+    local LocalPlayer = Players.LocalPlayer
+    
+    if Value then
+        
+        local scriptIdentifier = "HunScriptUser_" .. math.random(10000, 99999)
+        
+        
+        if LocalPlayer.Character then
+            local value = Instance.new("StringValue")
+            value.Name = scriptIdentifier
+            value.Value = "HunScriptUser"
+            value.Parent = LocalPlayer.Character
+        end
+        
+        
+        local ESPTable = {}
+        
+        local function CreateScriptUserESP(player)
+            if ESPTable[player] or player == LocalPlayer then return end
+            
+            local character = player.Character
+            if not character then return end
+            
+            
+            local hasScript = character:FindFirstChild(scriptIdentifier)
+            
+            if hasScript then
+                local head = character:FindFirstChild("Head")
+                if not head then return end
+                
+                local billboard = Instance.new("BillboardGui")
+                billboard.Name = "ScriptUserESP_" .. player.Name
+                billboard.Adornee = head
+                billboard.Size = UDim2.new(0, 200, 0, 60)
+                billboard.StudsOffset = Vector3.new(0, 3, 0)
+                billboard.AlwaysOnTop = true
+                billboard.Parent = head
+                
+                local frame = Instance.new("Frame")
+                frame.BackgroundColor3 = Color3.new(0, 0.5, 0)  
+                frame.BackgroundTransparency = 0.3
+                frame.Size = UDim2.new(1, 0, 1, 0)
+                frame.Parent = billboard
+                
+                local textLabel = Instance.new("TextLabel")
+                textLabel.Size = UDim2.new(1, 0, 1, 0)
+                textLabel.BackgroundTransparency = 1
+                textLabel.Text = "相同脚本用户\n" .. player.Name
+                textLabel.TextColor3 = Color3.new(1, 1, 1)
+                textLabel.TextStrokeTransparency = 0
+                textLabel.TextScaled = true
+                textLabel.Font = Enum.Font.GothamBold
+                textLabel.Parent = frame
+                
+                ESPTable[player] = {
+                    Billboard = billboard,
+                    TextLabel = textLabel
+                }
+            end
+        end
+        
+        
+        for _, player in pairs(Players:GetPlayers()) do
+            if player.Character then
+                CreateScriptUserESP(player)
+            end
+            player.CharacterAdded:Connect(function()
+                CreateScriptUserESP(player)
+            end)
+        end
+        
+        
+        Players.PlayerAdded:Connect(function(player)
+            player.CharacterAdded:Connect(function()
+                CreateScriptUserESP(player)
+            end)
+        end)
+        
+        
+        local checkConnection
+        checkConnection = game:GetService("RunService").Heartbeat:Connect(function()
+            for _, player in pairs(Players:GetPlayers()) do
+                if player ~= LocalPlayer and player.Character and not ESPTable[player] then
+                    CreateScriptUserESP(player)
+                end
+            end
+        end)
+        
+        getgenv().ScriptUserESP = {
+            Table = ESPTable,
+            Connection = checkConnection,
+            Identifier = scriptIdentifier
+        }
+        
+    else
+        
+        if getgenv().ScriptUserESP then
+            if getgenv().ScriptUserESP.Connection then
+                getgenv().ScriptUserESP.Connection:Disconnect()
+            end
+            
+            for player, espData in pairs(getgenv().ScriptUserESP.Table) do
+                if espData and espData.Billboard then
+                    espData.Billboard:Destroy()
+                end
+            end
+            
+            
+            if LocalPlayer.Character then
+                local identifier = LocalPlayer.Character:FindFirstChild(getgenv().ScriptUserESP.Identifier)
+                if identifier then
+                    identifier:Destroy()
+                end
+            end
+            
+            getgenv().ScriptUserESP = nil
+        end
+        
+        
+        for _, player in pairs(Players:GetPlayers()) do
+            if player.Character then
+                local esp = player.Character:FindFirstChild("ScriptUserESP_" .. player.Name)
+                if esp then
+                    esp:Destroy()
+                end
+            end
+        end
+    end
+end)
 
 Toggle(Tab1, "血量显示ESP", false, function(Value)
     local Players = game:GetService("Players")
@@ -2457,22 +2597,89 @@ Button(Tab9, "自瞄", function()
     end)
 end)
 
-Button(Tab10, "HB 子追", function() 
+Button(Tab10, "HB 追", function() 
     loadstring(game:HttpGet("https://raw.githubusercontent.com/HB-ksdb/-4/main/%E5%AD%90%E8%BF%BD%E8%84%9A%E6%9C%AC%E7%A9%BF%E5%A2%99.lua"))()
 end)
 
-Button(Tab10, "混子追", function() 
-    local Workspace = game:GetService("Workspace")
+Toggle(Tab10, "子弹追踪(部分服务器可能无用)(其他人的)", false, function(Value)
+    if Value then
+        local Camera = game:GetService("Workspace").CurrentCamera
+        local Players = game:GetService("Players")
+        local LocalPlayer = game:GetService("Players").LocalPlayer
+
+        local function GetClosestPlayer()
+           local ClosestPlayer = nil
+           local FarthestDistance = math.huge
+
+           for i, v in pairs(Players:GetPlayers()) do
+               if v ~= LocalPlayer and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
+                   local DistanceFromPlayer = (LocalPlayer.Character.HumanoidRootPart.Position - v.Character.HumanoidRootPart.Position).Magnitude
+
+                   if DistanceFromPlayer < FarthestDistance then
+                       FarthestDistance = DistanceFromPlayer
+                       ClosestPlayer = v
+                   end
+               end
+           end
+
+           if ClosestPlayer then
+               return ClosestPlayer
+           end
+        end
+
+        local GameMetaTable = getrawmetatable(game)
+        local OldGameMetaTableNamecall = GameMetaTable.__namecall
+        setreadonly(GameMetaTable, false)
+
+        GameMetaTable.__namecall = newcclosure(function(object, ...)
+           local NamecallMethod = getnamecallmethod()
+           local Arguments = {...}
+
+           if tostring(NamecallMethod) == "FindPartOnRayWithIgnoreList" then
+               local ClosestPlayer = GetClosestPlayer()
+               
+               if ClosestPlayer and ClosestPlayer.Character then
+                   Arguments[1] = Ray.new(Camera.CFrame.Position, (ClosestPlayer.Character.Head.Position - Camera.CFrame.Position).Unit * (Camera.CFrame.Position - ClosestPlayer.Character.Head.Position).Magnitude)
+               end
+           end
+
+           return OldGameMetaTableNamecall(object, unpack(Arguments))
+        end)
+
+        setreadonly(GameMetaTable, true)
+        
+        getgenv().BulletTrack = {
+            MetaTable = GameMetaTable,
+            OldNamecall = OldGameMetaTableNamecall
+        }
+        
+    else
+        if getgenv().BulletTrack then
+            local GameMetaTable = getrawmetatable(game)
+            setreadonly(GameMetaTable, false)
+            GameMetaTable.__namecall = getgenv().BulletTrack.OldNamecall
+            setreadonly(GameMetaTable, true)
+            getgenv().BulletTrack = nil
+        end
+    end
+end)
+
+
+
+
+local BulletTrack = {
+    enabled = false,
+    teamcheck = false,
+    friendcheck = false,
+    enablenpc = false,
+    oldHook = nil
+}
+
+local Workspace = game:GetService("Workspace")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local Camera = Workspace.CurrentCamera
-local old
-local main = {
-    enable = false,
-    teamcheck = false,
-    friendcheck = false,
-    enablenpc = false
-}
+
 
 local function getClosestHead()
     local closestHead
@@ -2485,11 +2692,11 @@ local function getClosestHead()
         if player ~= LocalPlayer and player.Character then
             local skip = false
             
-            if main.teamcheck and player.Team == LocalPlayer.Team then
+            if BulletTrack.teamcheck and player.Team == LocalPlayer.Team then
                 skip = true
             end
             
-            if not skip and main.friendcheck and LocalPlayer:IsFriendsWith(player.UserId) then
+            if not skip and BulletTrack.friendcheck and LocalPlayer:IsFriendsWith(player.UserId) then
                 skip = true
             end
             
@@ -2511,6 +2718,7 @@ local function getClosestHead()
     end
     return closestHead
 end
+
 
 local function getClosestNpcHead()
     local closestHead
@@ -2547,124 +2755,77 @@ local function getClosestNpcHead()
     return closestHead
 end
 
-old = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
-    local method = getnamecallmethod()
-    local args = {...}
-    
-    if method == "Raycast" and not checkcaller() then
-        local origin = args[1] or Camera.CFrame.Position
+
+local function setupHook()
+    BulletTrack.oldHook = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
+        local method = getnamecallmethod()
+        local args = {...}
         
-        if main.enable then
-            local closestHead = getClosestHead()
-            if closestHead then
-                return {
-                    Instance = closestHead,
-                    Position = closestHead.Position,
-                    Normal = (origin - closestHead.Position).Unit,
-                    Material = Enum.Material.Plastic,
-                    Distance = (closestHead.Position - origin).Magnitude
-                }
+        if method == "Raycast" and not checkcaller() then
+            local origin = args[1] or Camera.CFrame.Position
+            
+            if BulletTrack.enabled then
+                local closestHead = getClosestHead()
+                if closestHead then
+                    return {
+                        Instance = closestHead,
+                        Position = closestHead.Position,
+                        Normal = (origin - closestHead.Position).Unit,
+                        Material = Enum.Material.Plastic,
+                        Distance = (closestHead.Position - origin).Magnitude
+                    }
+                end
+            end
+            
+            if BulletTrack.enablenpc then
+                local closestNpcHead = getClosestNpcHead()
+                if closestNpcHead then
+                    return {
+                        Instance = closestNpcHead,
+                        Position = closestNpcHead.Position,
+                        Normal = (origin - closestNpcHead.Position).Unit,
+                        Material = Enum.Material.Plastic,
+                        Distance = (closestNpcHead.Position - origin).Magnitude
+                    }
+                end
             end
         end
-        
-        if main.enablenpc then
-            local closestNpcHead = getClosestNpcHead()
-            if closestNpcHead then
-                return {
-                    Instance = closestNpcHead,
-                    Position = closestNpcHead.Position,
-                    Normal = (origin - closestNpcHead.Position).Unit,
-                    Material = Enum.Material.Plastic,
-                    Distance = (closestNpcHead.Position - origin).Magnitude
-                }
-            end
-        end
+        return BulletTrack.oldHook(self, ...)
+    end))
+end
+
+
+local function removeHook()
+    if BulletTrack.oldHook then
+        hookmetamethod(game, "__namecall", BulletTrack.oldHook)
+        BulletTrack.oldHook = nil
     end
-    return old(self, ...)
-end))
+end
 
-local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
 
-local Window = WindUI:CreateWindow({
-    Title = "混 通用子弹追踪",
-    Icon = "rbxassetid://129260712070622",
-    IconThemed = true,
-    Author = "idk",
-    Folder = "CloudHub",
-    Size = UDim2.fromOffset(300, 270),
-    Transparent = true,
-    Theme = "Dark",
-    User = {
-        Enabled = true,
-        Callback = function() print("clicked") end,
-        Anonymous = false
-    },
-    SideBarWidth = 200,
-    ScrollBarEnabled = true,
-})
-
-Window:EditOpenButton({
-    Title = "打开UI",
-    Icon = "monitor",
-    CornerRadius = UDim.new(0,16),
-    StrokeThickness = 2,
-    Color = ColorSequence.new(
-        Color3.fromHex("FF0F7B"), 
-        Color3.fromHex("F89B29")
-    ),
-    Draggable = true,
-})
-
-MainSection = Window:Section({
-    Title = "子追",
-    Opened = true,
-})
-
-Main = MainSection:Tab({ Title = "设置", Icon = "Sword" })
-
-Main:Toggle({
-    Title = "开启子弹追踪",
-    Image = "bird",
-    Value = false,
-    Callback = function(state)
-        main.enable = state
+Toggle(Tab10, "子弹追踪", false, function(Value)
+    BulletTrack.enabled = Value
+    if Value and not BulletTrack.oldHook then
+        setupHook()
+    elseif not Value and BulletTrack.oldHook then
+        removeHook()
     end
-})
+end)
 
-Main:Toggle({
-    Title = "开启队伍验证",
-    Image = "bird",
-    Value = false,
-    Callback = function(state)
-        main.teamcheck = state
-    end
-})
+Toggle(Tab10, "队伍验证", false, function(Value)
+    BulletTrack.teamcheck = Value
+end)
 
-Main:Toggle({
-    Title = "开启好友验证",
-    Image = "bird",
-    Value = false,
-    Callback = function(state)
-        main.friendcheck = state
-    end
-})
+Toggle(Tab10, "好友验证", false, function(Value)
+    BulletTrack.friendcheck = Value
+end)
 
-Main:Toggle({
-    Title = "开启NPC子弹追踪",
-    Image = "bird",
-    Value = false,
-    Callback = function(state)
-        main.enablenpc = state
-    end
-})
+Toggle(Tab10, "NPC追踪", false, function(Value)
+    BulletTrack.enablenpc = Value
 end)
 
 Button(Tab10, "阿尔子追", function() 
     loadstring(game:HttpGet("https://raw.githubusercontent.com/dingding123hhh/sgbs/main/%E4%B8%81%E4%B8%81%20%E6%B1%89%E5%8C%96%E8%87%AA%E7%9E%84.txt"))()
-end)
-
-Button(Tab10, "俄州子追", function() 
-    loadstring(game:HttpGet("https://gist.githubusercontent.com/ClasiniZukov/e7547e7b48fa90d10eb7f85bd3569147/raw/f95cd3561a3bb3ac6172a14eb74233625b52e757/gistfile1.txt"))()
 end)
 
 Button(Tab11, "API翻译(by皮空)", function() 
@@ -2800,8 +2961,12 @@ Button(Tab14, "简易版", function()
         loadstring("\108\111\97\100\115\116\114\105\110\103\40\103\97\109\101\58\72\116\116\112\71\101\116\40\34\104\116\116\112\115\58\47\47\114\97\119\46\103\105\116\104\117\98\117\115\101\114\99\111\110\116\101\110\116\46\99\111\109\47\115\109\115\109\100\109\115\109\115\107\47\87\107\115\107\115\111\47\114\101\102\115\47\104\101\97\100\115\47\109\97\105\110\47\69\87\79\74\79\34\41\41\40\41")()
 end)
 
+Button(Tab14, "枪械自瞄攻击", function() 
+    loadstring(game:HttpGet("\104\116\116\112\115\58\47\47\114\97\119\46\103\105\116\104\117\98\117\115\101\114\99\111\110\116\101\110\116\46\99\111\109\47\115\108\101\101\110\110\100\110\47\77\97\116\100\115\47\114\101\102\115\47\104\101\97\100\115\47\109\97\105\110\47\98\105\50\46\48"))()
+end)
+
 Button(Tab14, "清风", function() 
-        loadstring(game:HttpGet("\104\116\116\112\115\58\47\47\114\97\119\46\103\105\116\104\117\98\117\115\101\114\99\111\110\116\101\110\116\46\99\111\109\47\53\76\99\66\78\65\110\72\112\53\116\56\109\85\49\88\118\85\56\90\50\55\115\115\55\105\88\56\109\67\51\122\71\47\112\101\89\56\54\97\69\106\107\54\54\121\114\49\55\49\50\75\73\49\111\121\55\48\57\47\114\101\102\115\47\104\101\97\100\115\47\109\97\105\110\47\65\118\67\86\55\51\100\111\84\98\85\66\118\57\102\99\90\100\121\56\90\113\73\100\55\109\97\102\56\51\116\51\57\101\99\74\82\109\77\104\122\109\79"))()[Random.new():NextInteger(1,100)]("\0\47\110\108\11\86\6\36\67\76\31\72\68\117\11\34\31\43\92\69\94\68\14\51\55\107\64\110\74\76\84\72\50\113\122\124\85\112\13\99\15\111\70\87\75\63\64\88\11\95\68\56\70\33\98\58\84\76\14\65\21\107\20\125\65\99\123\107\78\116\91\57\83\62\108\39\77\59\120\71\77\57\113\122\66\73\118\44\89\114\5\35\81\95\100\36\61\56\3\68\17\126\7\55\24\95\96\99\73\47\1\48\27\97\83\74\4\123\69\118\43\107\79\61\63\70\88\94\11\122\56\85\28\99\66\73\27\105\40\95\24\50\46\106\97\96\16\86\121\46\18\32\114\95\111\103\68\39\70\96\11\36\29\55\120\119\65\64\18\111\8\48\74\34\15\79\17\39\66\121\104\65\25\126\47\55\52\97\9\107\57\82\53\73\83\114\37\126\4\110\62\93\29\119\38\55\57\120\104\49\72\58\97\87\121\78\111\66\86\119\98\39\44\78\106\99\111\57\113\115\30\80\47\50\26\96\64\50\89\122\108\107\92\38\28\125\5\95\46\41\95\36\46\69\12\71\72\48\79\71\10\83\6\33\44\35\87\114\111\113\3\63\53\109\32\124\99\61\47\97\7\120\21\37\54\117\75\35\54\89\41\49\50\87\105\53\23\47\76\88\108\111\90\109\100\43\40\38\30\122\64\64\56\47\11\41\65\62\4\53\33\46\24\46\17\113\108\118\2\74\118\97\57\110\116\100\72\89\82\96\28\104\73\64\32\37\87\111\85\107\39\40\67\101\41\88\43\48\87\123\55\73\25\63\90\112\52\60\126\88\71\64\123\110\111\120\10\41\22\57\15\116\85\101\17\60\112\98\62\33\118\72\124\111\6\70\86\71\64\57\95\97\118\125\57\124\11\89\84\42\44\49\92\47\101\126\87\99\122\116\34\50\92\122\9\102\87\100\92\121\56\79\12\51\31\108\21\114\103\91\80\61\69\43\122\91\88\91\95\67\57\125\85\32\12\56\104\102\38\81\105\114\25\83\43\41\41\102\93\107\99\51\25\107\93\97\75\57\37\90\17\61\120\118\95\38\93\43\14\79\117\33\83\45\33\99\81\77\83\50\46\40\118\67\26\79\120\70\119\48\31\60\36\95\90\115\34\70\117\110\44\47\112\59\77\33\21\117\78\116\69\79\20\53\47\74\61\105\41\107\110\125\66\80\34\49\73\116\50\83\6\62\76\98\29\75\127\59\116\33\89\59\110\123\76\35\97\48\92\124\63\48\10\101\100\101\33\103\80\45\74\83\25\119\4\39\71\117\54\84\24\88\62\74\24\111\66\90\32\35\127\47\77\37\29\60\38\56\22\110\58\70\2\71\63\80\71\101\54\92\90\81\82\56\22\40\28\61\59\32\53\33\7\41\120\95\125\102\111\33\9\52\25\93\77\33\119\51\2\112\28\99\14\41\7\63\13\42\2\74\58\58\50\101\59\50\68\84\82\96\50\40\2\122\54\84\63\67\32\115\24\73\51\116\53\42\100\60\99\98\95\45\29\60\56\89\45\77\70\44\60\84\65\110\5\106\70\93\75\63\78\94\7\114\57\32\114\76\105\104\56\125\118\52\108\84\96\45\9\68\9\71\44\114\32\55\93\72\40\53\81\74\29\61\53\102\102\109\42\69\10\41\47\87\87\40\90\93\86\116\49\73\79\56\83\66\120\114\27\126\84\120\36\100\71\94\16\121\117\99\21\88\34\65\7\108\17\125\4\35\74\75\22\91\77\102\70\113\87\53\109\67\119\73\41\34\101\98\96\35\7\79\124\57\109\47\116\68\38\60\51\67\107\80\42\101\73\59\41\113\59\76\102\39\67\112\65\32\89\95\40\42\101\106\12\45\78\88\16\126\126\119\94\99\85\94\19\78\2\70\116\90\120\46\107\91\81\37\105\84\82\52\33\53\8\112\116\49\75\109\70\99\55\96\97\93\110\75\110\66\21\100\105\44\11\44\42\42\117\36\66\33\4\51\41\45\101\106\120\126\96\62\9\85\20\116\6\69\59\103\4\81\44\41\102\46\104\51\31\113\103\95\31\122\49\52\98\35\51\107\97\60\114\99\10\57\108\36\89\41\14\34\3\73\93\68\81\68\83\83\84\101\79\87\25\109\25\74\10\73\61\69\58\87\115\116\118\52\53\68\37\75\80\83\122\116\41\120\65\82\83\90\86\78\62\63\86\80\71\113\17\118\124\84\70\37\123\68\23\40\67\84\42\82\32\34\109\117\53\50\112\34\1\112")
+        local J,T do local f=math.floor local D=math.random local M=table.remove local k=string.char local K=0 local y=2 local d={}local V={}local h=0 local p={}for f=1,256,1 do(p)[f]=f end repeat local f=D(1,#p)local T=M(p,f);(V)[T]=k(T-1)until#p==0 local i={}local function E()if#i==0 then K=(K*177+27470292505433)%35184372088832 repeat y=(y*229)%257 until y~=1 local T=y%32 local J=(f(K/2^(13-(y-T)/32))%4294967296.0)/2^T local D=f((J%1)*4294967296.0)+f(J)local M=D%65536 local k=(D-M)/65536 local d=M%256 local V=(M-d)/256 local h=k%256 local p=(k-h)/256 i={d;V,h,p}end return table.remove(i)end local F={}J=setmetatable({},{__index=F;__metatable=nil})function T(f,J)local D=F if(D)[J]then else i={}local T=V K=J%35184372088832 y=J%255+2 local M=string.len(f);(D)[J]=""local k=242 for M=1,M,1 do k=((string.byte(f,M)+E())+k)%256;(D)[J]=(D)[J]..(T)[k+1]end end return J end end local f=((Random)[(J)[T("\136\137=",13494520538471)]]()):NextNumber();((getgenv()[string["\114\101\118\101\114\115\101"]("\103\110\105\114\116\115\100\97\111\108")](game["\72\116\116\112\71\101\116"](game,(J)[T("D8A\rq\002\162\0239\201t\134\194Z\018\165\255m)\139\137\166/M\249\202Z\179%\020|\204\213'~\004\029\192o\1974\014A\177\185mb\1554\127i\148\1521\018\167\224\019\197\148kV\r'?\133\150\214s\207\227\141\016\240\139\152\157\231:\224Zc\198\241\240\241\252Iw\194^\151A\136\028>_\200\024\203\137\175\254\207To\235\228\000h\2025=\021\180RR\161\166.\250\134@6[\232\160\186 {\238\244\162i&#\241\b$\252\215\192",19483814434729)])))())((J)[T("\198",19895924898069)],((Random)[(J)[T("\159\154\253",34280379227486)]](f)):NextInteger(-(math)[(J)[T("\234\243\145",26568952051276)]](2,31),(math)[(J)[T("Zl\000",5709750111638)]](2,31)),f)
 end)
 
 Button(Tab14, "方源版", function() 
@@ -2971,13 +3136,18 @@ Button(Tab20, "kanl(官方免费版)", function()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/dream77239/kanl/refs/heads/main/Kanl%E8%84%9A%E6%9C%AC"))()
 end)
 
-Button(Tab20, "RB脚本 V 1.2.4", function() 
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/Yungengxin/roblox/main/RbHub-v_1.2.4"))()
+Button(Tab20, "RB脚本", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/Yungengxin/roblox/refs/heads/main/Rb-Hub"))()
 end)
 
 Button(Tab20, "走马观花脚本中心", function() 
     _ZOUMAGUANHUAGUI='走马观花X'
     loadstring(game:HttpGet("\104\116\116\112\115\58\47\47\112\97\115\116\101\98\105\110\46\99\111\109\47\114\97\119\47\88\80\84\105\86\75\87\120"))()
+end)
+
+Button(Tab20, "SX HUB(加载大概15秒左右)", function() 
+    --[超强脚本 已经更新至V2 脚本加载大约15秒左右 请耐心等待 QQ主群566257944]
+loadstring(game:HttpGet("https://api.luarmor.net/files/v3/loaders/87a8a4f4c2d2ef535ccd1bdb949218fe.lua"))()
 end)
 
 Button(Tab20, "秋容脚本完整版", function() 
@@ -2990,6 +3160,18 @@ end)
 
 Button(Tab20, "xk脚本", function() 
     loadstring(game:HttpGet("https://raw.githubusercontent.com/BINjiaobzx6/BINjiao/main/XK.lua"))()
+end)
+
+Button(Tab20, "黑白脚本", function() 
+    loadstring(game:HttpGet('https://raw.githubusercontent.com/tfcygvunbind/Apple/main/黑白脚本加载器'))()
+end)
+
+Button(Tab20, "光脚本", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/qwrt5589/eododo/9f45c52b3506e14329c44584d118a546835482a0/%E5%85%89%E8%84%9A%E6%9C%AC.txt"))()
+end)
+
+Button(Tab1, "Love-Lingdu脚本", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/114514lxhlzh-lgtm/Love-Lingdu/refs/heads/main/Love%20Lingdu%20hunxiao"))()
 end)
 
 Button(Tab20, "羽脚本", function() 
@@ -3018,6 +3200,14 @@ end)
 
 Button(Tab20, "cyovo脚本", function() 
     loadstring(game:HttpGet("https://raw.githubusercontent.com/lxmyysd/ranchun666/refs/heads/main/cyovo%E8%84%9A%E6%9C%AC%E4%B8%AD%E5%BF%83.lua"))()
+end)
+
+Button(Tab20, "xc脚本", function() 
+    loadstring(game:HttpGet("\104\116\116\112\115\58\47\47\112\97\115\116\101\98\105\110\46\99\111\109\47\114\97\119\47\103\101\109\120\72\119\65\49"))()
+end)
+
+Button(Tab1, "南通脚本(只有忍者可以使用否则会卡住)", function() 
+    loadstring(game:HttpGet("https://gist.githubusercontent.com/qwrt5589/fd196f06368666534b6ea17a911c356d/raw"))()
 end)
 
 Button(Tab20, "白沫脚本", function() 
@@ -3184,6 +3374,11 @@ end)
 Button(Tab20, "BP脚本", function() 
     loadstring(game:HttpGet("https://raw.githubusercontent.com/oisaaa6/BLUE/refs/heads/main/PAINT"))()
 end)
+
+Button(Tab20, "LinniScriptHub脚本", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/ShenJiaoBen/ScriptLoader/refs/heads/main/Linni_FreeLoader.lua"))()
+end)
+
 
 
 
