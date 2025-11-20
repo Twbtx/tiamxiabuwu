@@ -647,67 +647,99 @@ for _, player in pairs(game.Players:GetPlayers()) do
     end
 end
 
-Toggle(Tab1, "透视相同脚本用户", false, function(Value)
+
+Toggle(Tab1, "透视脚本用户", false, function(Value)
     local Players = game:GetService("Players")
     local LocalPlayer = Players.LocalPlayer
     
     if Value then
         
-        local scriptIdentifier = "HunScriptUser_" .. math.random(10000, 99999)
+        local scriptMarkers = {
+            "HunScriptUser",
+            "CloudHubUser",
+            "WindUIUser",
+            "混脚本用户"
+        }
         
         
-        if LocalPlayer.Character then
-            local value = Instance.new("StringValue")
-            value.Name = scriptIdentifier
-            value.Value = "HunScriptUser"
-            value.Parent = LocalPlayer.Character
+        local function markLocalPlayer()
+            if LocalPlayer.Character then
+                for _, marker in ipairs(scriptMarkers) do
+                    if not LocalPlayer.Character:FindFirstChild(marker) then
+                        local value = Instance.new("StringValue")
+                        value.Name = marker
+                        value.Value = "true"
+                        value.Parent = LocalPlayer.Character
+                    end
+                end
+            end
         end
+        
+        markLocalPlayer()
+        LocalPlayer.CharacterAdded:Connect(markLocalPlayer)
         
         
         local ESPTable = {}
         
-        local function CreateScriptUserESP(player)
-            if ESPTable[player] or player == LocalPlayer then return end
+        local function checkForScriptUser(player)
+            if player == LocalPlayer then return false end
             
             local character = player.Character
-            if not character then return end
+            if not character then return false end
             
             
-            local hasScript = character:FindFirstChild(scriptIdentifier)
-            
-            if hasScript then
-                local head = character:FindFirstChild("Head")
-                if not head then return end
-                
-                local billboard = Instance.new("BillboardGui")
-                billboard.Name = "ScriptUserESP_" .. player.Name
-                billboard.Adornee = head
-                billboard.Size = UDim2.new(0, 200, 0, 60)
-                billboard.StudsOffset = Vector3.new(0, 3, 0)
-                billboard.AlwaysOnTop = true
-                billboard.Parent = head
-                
-                local frame = Instance.new("Frame")
-                frame.BackgroundColor3 = Color3.new(0, 0.5, 0)  
-                frame.BackgroundTransparency = 0.3
-                frame.Size = UDim2.new(1, 0, 1, 0)
-                frame.Parent = billboard
-                
-                local textLabel = Instance.new("TextLabel")
-                textLabel.Size = UDim2.new(1, 0, 1, 0)
-                textLabel.BackgroundTransparency = 1
-                textLabel.Text = "相同脚本用户\n" .. player.Name
-                textLabel.TextColor3 = Color3.new(1, 1, 1)
-                textLabel.TextStrokeTransparency = 0
-                textLabel.TextScaled = true
-                textLabel.Font = Enum.Font.GothamBold
-                textLabel.Parent = frame
-                
-                ESPTable[player] = {
-                    Billboard = billboard,
-                    TextLabel = textLabel
-                }
+            for _, marker in ipairs(scriptMarkers) do
+                if character:FindFirstChild(marker) then
+                    return true
+                end
             end
+            
+            return false
+        end
+        
+        local function CreateScriptUserESP(player)
+            if ESPTable[player] then return end
+            
+            local isScriptUser = checkForScriptUser(player)
+            if not isScriptUser then return end
+            
+            local character = player.Character
+            local head = character:FindFirstChild("Head")
+            if not head then return end
+            
+            local billboard = Instance.new("BillboardGui")
+            billboard.Name = "ScriptUserESP_" .. player.Name
+            billboard.Adornee = head
+            billboard.Size = UDim2.new(0, 250, 0, 80)
+            billboard.StudsOffset = Vector3.new(0, 3.5, 0)
+            billboard.AlwaysOnTop = true
+            billboard.Parent = head
+            
+            local frame = Instance.new("Frame")
+            frame.BackgroundColor3 = Color3.new(0, 1, 0)  
+            frame.BackgroundTransparency = 0.2
+            frame.Size = UDim2.new(1, 0, 1, 0)
+            frame.Parent = billboard
+            
+            local uiCorner = Instance.new("UICorner")
+            uiCorner.CornerRadius = UDim.new(0, 8)
+            uiCorner.Parent = frame
+            
+            local textLabel = Instance.new("TextLabel")
+            textLabel.Size = UDim2.new(1, 0, 1, 0)
+            textLabel.BackgroundTransparency = 1
+            textLabel.Text = "脚本用户\n" .. player.Name
+            textLabel.TextColor3 = Color3.new(1, 1, 1)
+            textLabel.TextStrokeTransparency = 0
+            textLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+            textLabel.TextScaled = true
+            textLabel.Font = Enum.Font.GothamBold
+            textLabel.Parent = frame
+            
+            ESPTable[player] = {
+                Billboard = billboard,
+                TextLabel = textLabel
+            }
         end
         
         
@@ -716,6 +748,7 @@ Toggle(Tab1, "透视相同脚本用户", false, function(Value)
                 CreateScriptUserESP(player)
             end
             player.CharacterAdded:Connect(function()
+                wait(1) 
                 CreateScriptUserESP(player)
             end)
         end
@@ -723,6 +756,7 @@ Toggle(Tab1, "透视相同脚本用户", false, function(Value)
         
         Players.PlayerAdded:Connect(function(player)
             player.CharacterAdded:Connect(function()
+                wait(1) 
                 CreateScriptUserESP(player)
             end)
         end)
@@ -740,7 +774,7 @@ Toggle(Tab1, "透视相同脚本用户", false, function(Value)
         getgenv().ScriptUserESP = {
             Table = ESPTable,
             Connection = checkConnection,
-            Identifier = scriptIdentifier
+            Markers = scriptMarkers
         }
         
     else
@@ -758,9 +792,11 @@ Toggle(Tab1, "透视相同脚本用户", false, function(Value)
             
             
             if LocalPlayer.Character then
-                local identifier = LocalPlayer.Character:FindFirstChild(getgenv().ScriptUserESP.Identifier)
-                if identifier then
-                    identifier:Destroy()
+                for _, marker in ipairs(getgenv().ScriptUserESP.Markers) do
+                    local identifier = LocalPlayer.Character:FindFirstChild(marker)
+                    if identifier then
+                        identifier:Destroy()
+                    end
                 end
             end
             
