@@ -1,0 +1,725 @@
+local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/KingScriptAE/No-sirve-nada./refs/heads/main/main.lua"))()
+
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+
+if not LocalPlayer then
+    repeat wait() until Players.LocalPlayer
+    LocalPlayer = Players.LocalPlayer
+end
+
+print("开始加载自瞄脚本...")
+
+
+local globalAimEnabled = false
+local teamCheck = false
+local wallCheck = true
+local aimPart = "头部"
+local targetType = "玩家"
+local aimStrength = 0.5
+local fovEnabled = false
+local fovRadius = 100
+
+
+local fovX = 0.5
+local fovY = 0.4
+
+
+local predictEnabled = false
+local predictStrength = 0.1
+local targetVelocity = Vector3.new(0, 0, 0)
+local lastTargetPositions = {}
+
+
+local espPlayers = false
+local espNPCs = false
+local espEnabled = false
+
+
+local ESPFolder = Instance.new("Folder")
+ESPFolder.Name = "ESPFolder"
+ESPFolder.Parent = game:GetService("CoreGui")
+
+
+local FOVCircle = Instance.new("Frame")
+FOVCircle.Name = "FOVCircle"
+FOVCircle.Parent = game:GetService("CoreGui")
+FOVCircle.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+FOVCircle.BackgroundTransparency = 1
+FOVCircle.BorderSizePixel = 0
+FOVCircle.Size = UDim2.new(0, fovRadius * 2, 0, fovRadius * 2)
+FOVCircle.AnchorPoint = Vector2.new(0.5, 0.5)
+FOVCircle.Position = UDim2.new(fovX, 0, fovY, 0)
+FOVCircle.Visible = false
+
+local FOVCorner = Instance.new("UICorner")
+FOVCorner.CornerRadius = UDim.new(1, 0)
+FOVCorner.Parent = FOVCircle
+
+local FOVStroke = Instance.new("UIStroke")
+FOVStroke.Parent = FOVCircle
+FOVStroke.Color = Color3.fromRGB(255, 0, 0)
+FOVStroke.Thickness = 2
+FOVStroke.Transparency = 0.3
+
+
+local MobileToggleGui = Instance.new("ScreenGui")
+MobileToggleGui.Name = "MobileAimbotToggle"
+MobileToggleGui.Parent = game:GetService("CoreGui")
+MobileToggleGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+local ToggleButton = Instance.new("TextButton")
+ToggleButton.Name = "AimbotToggle"
+ToggleButton.Parent = MobileToggleGui
+ToggleButton.BackgroundColor3 = Color3.fromRGB(231, 76, 60)
+ToggleButton.Size = UDim2.new(0, 70, 0, 70) 
+ToggleButton.Position = UDim2.new(0.02, 0, 0.1, 0) 
+ToggleButton.Text = "关"
+ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleButton.TextScaled = true
+ToggleButton.TextSize = 20
+ToggleButton.Font = Enum.Font.GothamBold
+ToggleButton.Active = true
+ToggleButton.Draggable = true
+
+
+local ToggleCorner = Instance.new("UICorner")
+ToggleCorner.CornerRadius = UDim.new(1, 0)
+ToggleCorner.Parent = ToggleButton
+
+
+local ToggleGlow = Instance.new("UIStroke")
+ToggleGlow.Parent = ToggleButton
+ToggleGlow.Color = Color3.fromRGB(255, 255, 255)
+ToggleGlow.Thickness = 3
+ToggleGlow.Transparency = 0.3
+
+local StatusIndicator = Instance.new("Frame")
+StatusIndicator.Name = "StatusIndicator"
+StatusIndicator.Parent = ToggleButton
+StatusIndicator.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+StatusIndicator.Size = UDim2.new(0.3, 0, 0.3, 0)
+StatusIndicator.Position = UDim2.new(0.7, 0, 0.1, 0)
+StatusIndicator.AnchorPoint = Vector2.new(0.5, 0.5)
+
+local StatusCorner = Instance.new("UICorner")
+StatusCorner.CornerRadius = UDim.new(1, 0)
+StatusCorner.Parent = StatusIndicator
+
+
+local Window = WindUI:CreateWindow({
+    Title = "天下布武高级自瞄",
+    Icon = "target",
+    IconThemed = true,
+    Author = "自瞄系统",
+    Folder = "AimbotSystem",
+    Size = UDim2.fromOffset(450, 600),
+    Transparent = false,
+    Theme = "Dark"
+})
+
+
+local Tabs = {}
+
+Tabs.AimbotTab = Window:Tab({ Title = "自瞄设置", Icon = "crosshair", Desc = "自瞄功能" })
+Tabs.ESPTab = Window:Tab({ Title = "透视设置", Icon = "eye", Desc = "透视功能" })
+Tabs.AdvancedTab = Window:Tab({ Title = "高级设置", Icon = "settings", Desc = "高级功能" })
+
+
+function AddOutline(Character)
+    if not Character then return end
+    
+    local Highlight = Instance.new("Highlight")
+    Highlight.Name = "ESP_" .. Character.Name
+    Highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+    Highlight.Adornee = Character
+    Highlight.Parent = ESPFolder
+    Highlight.FillTransparency = 1
+    
+    return Highlight
+end
+
+function AddNameTag(Character)
+    if not Character or not Character:FindFirstChild("Head") then return end
+    
+    local BGui = Instance.new("BillboardGui")
+    BGui.Name = "NameTag_" .. Character.Name
+    BGui.Adornee = Character.Head
+    BGui.StudsOffset = Vector3.new(0, 3, 0)
+    BGui.AlwaysOnTop = true
+    BGui.Size = UDim2.new(4, 0, 0.5, 0)
+    BGui.Parent = ESPFolder
+    
+    local Frame = Instance.new("Frame")
+    Frame.BackgroundTransparency = 1
+    Frame.Size = UDim2.new(1, 0, 1, 0)
+    Frame.Parent = BGui
+    
+    local TextLabel = Instance.new("TextLabel")
+    TextLabel.BackgroundTransparency = 1
+    TextLabel.Size = UDim2.new(1, 0, 1, 0)
+    TextLabel.Text = Character.Name
+    TextLabel.Font = Enum.Font.RobotoMono
+    TextLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    TextLabel.TextScaled = false
+    TextLabel.Parent = Frame
+    
+    return BGui
+end
+
+function RemoveESP(Character)
+    if ESPFolder:FindFirstChild("ESP_" .. Character.Name) then
+        ESPFolder:FindFirstChild("ESP_" .. Character.Name):Destroy()
+    end
+    if ESPFolder:FindFirstChild("NameTag_" .. Character.Name) then
+        ESPFolder:FindFirstChild("NameTag_" .. Character.Name):Destroy()
+    end
+end
+
+function ClearAllESP()
+    for _, child in pairs(ESPFolder:GetChildren()) do
+        child:Destroy()
+    end
+end
+
+function UpdateESP()
+    ClearAllESP()
+    
+    if not espEnabled then return end
+    
+    
+    if espPlayers then
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer and player.Character then
+                AddOutline(player.Character)
+                AddNameTag(player.Character)
+            end
+        end
+    end
+    
+    
+    if espNPCs then
+        for _, obj in pairs(workspace:GetDescendants()) do
+            if obj:IsA("Model") then
+                local humanoid = obj:FindFirstChildOfClass("Humanoid")
+                if humanoid then
+                    if not Players:GetPlayerFromCharacter(obj) then
+                        AddOutline(obj)
+                        AddNameTag(obj)
+                    end
+                end
+            end
+        end
+    end
+end
+
+
+Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(function(character)
+        if espEnabled and espPlayers then
+            wait(1)
+            AddOutline(character)
+            AddNameTag(character)
+        end
+    end)
+end)
+
+
+local ESPUpdateConnection
+function StartESPUpdate()
+    if ESPUpdateConnection then
+        ESPUpdateConnection:Disconnect()
+    end
+    
+    ESPUpdateConnection = RunService.Heartbeat:Connect(function()
+        if espEnabled then
+            UpdateESP()
+        end
+    end)
+end
+
+function StopESPUpdate()
+    if ESPUpdateConnection then
+        ESPUpdateConnection:Disconnect()
+        ESPUpdateConnection = nil
+    end
+end
+
+
+function updateFOVPosition()
+    FOVCircle.Position = UDim2.new(fovX, 0, fovY, 0)
+end
+
+
+function closeAllAim()
+    globalAimEnabled = false
+    updateToggleButton()
+    print("已关闭所有自瞄")
+end
+
+function isTargetVisible(target)
+    if not wallCheck then return true end
+    
+    if not target or not target.object or not LocalPlayer.Character then
+        return false
+    end
+    
+    local camera = workspace.CurrentCamera
+    local localRoot = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not localRoot then return false end
+    
+    local rayOrigin = camera.CFrame.Position
+    local rayDirection = (target.object.Position - rayOrigin).Unit * 1000
+    local raycastParams = RaycastParams.new()
+    raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+    raycastParams.FilterDescendantsInstances = {LocalPlayer.Character}
+    
+    local raycastResult = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
+    
+    if raycastResult then
+        local hitPart = raycastResult.Instance
+        local hitModel = hitPart:FindFirstAncestorOfClass("Model")
+        
+        if hitModel == target.character then
+            return true
+        else
+            return false
+        end
+    end
+    
+    return true
+end
+
+function isInFOV(target)
+    if not fovEnabled then return true end
+    
+    local camera = workspace.CurrentCamera
+    local screenPoint, onScreen = camera:WorldToViewportPoint(target.object.Position)
+    
+    if onScreen then
+        local fovCenter = Vector2.new(fovX * camera.ViewportSize.X, fovY * camera.ViewportSize.Y)
+        local targetPos = Vector2.new(screenPoint.X, screenPoint.Y)
+        local distance = (fovCenter - targetPos).Magnitude
+        
+        return distance <= fovRadius
+    end
+    
+    return false
+end
+
+function getAllTargets()
+    local targets = {}
+    
+    if not LocalPlayer.Character then return targets end
+    
+    local localRoot = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not localRoot then return targets end
+    
+    
+    if targetType == "玩家" or targetType == "全部" then
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer and player.Character then
+                local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+                if humanoid and humanoid.Health > 0 then
+                    if teamCheck and player.Team == LocalPlayer.Team then
+                        continue
+                    end
+                    
+                    local aimObject
+                    if aimPart == "头部" then
+                        aimObject = player.Character:FindFirstChild("Head") or player.Character:FindFirstChild("HumanoidRootPart")
+                    else
+                        aimObject = player.Character:FindFirstChild("HumanoidRootPart")
+                    end
+                    
+                    if aimObject then
+                        local target = {
+                            object = aimObject,
+                            player = player,
+                            isNPC = false,
+                            character = player.Character,
+                            name = player.Name,
+                            humanoid = humanoid
+                        }
+                        
+                        if isTargetVisible(target) and isInFOV(target) then
+                            table.insert(targets, target)
+                        end
+                    end
+                end
+            end
+        end
+    end
+    
+    if targetType == "NPC" or targetType == "全部" then
+        for _, obj in pairs(workspace:GetDescendants()) do
+            if obj:IsA("Model") then
+                local humanoid = obj:FindFirstChildOfClass("Humanoid")
+                if humanoid then
+                    if not Players:GetPlayerFromCharacter(obj) then
+                        local aimObject
+                        if aimPart == "头部" then
+                            aimObject = obj:FindFirstChild("Head") or obj:FindFirstChild("HumanoidRootPart")
+                        else
+                            aimObject = obj:FindFirstChild("HumanoidRootPart")
+                        end
+                        
+                        if aimObject then
+                            local target = {
+                                object = aimObject,
+                                player = nil,
+                                isNPC = true,
+                                character = obj,
+                                name = obj.Name,
+                                humanoid = humanoid
+                            }
+                            
+                            if isTargetVisible(target) and isInFOV(target) then
+                                table.insert(targets, target)
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+    
+    return targets
+end
+
+function getNearestTarget()
+    local nearest = nil
+    local nearestDistance = math.huge
+    
+    if not LocalPlayer.Character then return nil end
+    
+    local localRoot = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not localRoot then return nil end
+    
+    for _, target in pairs(getAllTargets()) do
+        if target.object and target.object.Parent then
+            local distance = (localRoot.Position - target.object.Position).Magnitude
+            
+            if distance < nearestDistance then
+                nearestDistance = distance
+                nearest = target
+            end
+        end
+    end
+    
+    return nearest
+end
+
+
+function calculateTargetVelocity(target)
+    if not target or not target.object then
+        return Vector3.new(0, 0, 0)
+    end
+    
+    local currentTime = tick()
+    local currentPosition = target.object.Position
+    
+    if not lastTargetPositions[target.name] then
+        lastTargetPositions[target.name] = {
+            position = currentPosition,
+            time = currentTime
+        }
+        return Vector3.new(0, 0, 0)
+    end
+    
+    local lastData = lastTargetPositions[target.name]
+    local timeDiff = currentTime - lastData.time
+    
+    if timeDiff > 0 then
+        local positionDiff = currentPosition - lastData.position
+        local velocity = positionDiff / timeDiff
+        
+        lastTargetPositions[target.name] = {
+            position = currentPosition,
+            time = currentTime
+        }
+        
+        return velocity
+    end
+    
+    return Vector3.new(0, 0, 0)
+end
+
+function aimAt(target)
+    if target and target.object and target.object.Parent then
+        local camera = workspace.CurrentCamera
+        
+        local targetPosition = target.object.Position
+        
+        if predictEnabled then
+            local velocity = calculateTargetVelocity(target)
+            targetPosition = targetPosition + velocity * predictStrength * 0.5
+        end
+        
+        local currentCF = camera.CFrame
+        local targetCF = CFrame.new(camera.CFrame.Position, targetPosition)
+        
+        camera.CFrame = currentCF:Lerp(targetCF, aimStrength)
+    end
+end
+
+function isTargetValid(target)
+    if not target or not target.object or not target.character then
+        return false
+    end
+    
+    if not target.object:IsDescendantOf(workspace) then
+        return false
+    end
+    
+    if not target.isNPC then
+        local humanoid = target.character:FindFirstChildOfClass("Humanoid")
+        if not humanoid or humanoid.Health <= 0 then
+            return false
+        end
+    end
+    
+    if not isTargetVisible(target) then
+        return false
+    end
+    
+    if not isInFOV(target) then
+        return false
+    end
+    
+    return true
+end
+
+function updateToggleButton()
+    if globalAimEnabled then
+        ToggleButton.BackgroundColor3 = Color3.fromRGB(46, 204, 113) -- 绿色开启状态
+        ToggleButton.Text = "开"
+        StatusIndicator.BackgroundColor3 = Color3.fromRGB(46, 204, 113)
+    else
+        ToggleButton.BackgroundColor3 = Color3.fromRGB(231, 76, 60) -- 红色关闭状态
+        ToggleButton.Text = "关"
+        StatusIndicator.BackgroundColor3 = Color3.fromRGB(231, 76, 60)
+    end
+end
+
+
+ToggleButton.MouseButton1Click:Connect(function()
+    globalAimEnabled = not globalAimEnabled
+    updateToggleButton()
+    
+    if globalAimEnabled then
+        print("自瞄已开启 (手机按钮)")
+    else
+        print("自瞄已关闭 (手机按钮)")
+    end
+end)
+
+
+local globalAimToggle = Tabs.AimbotTab:Toggle({
+    Title = "自瞄总开关",
+    Value = false,
+    Callback = function(state)
+        globalAimEnabled = state
+        updateToggleButton()
+        print("自瞄总开关: " .. (state and "开启" or "关闭"))
+    end
+})
+
+local teamCheckToggle = Tabs.AimbotTab:Toggle({
+    Title = "团队检查",
+    Value = false,
+    Callback = function(state)
+        teamCheck = state
+        print("团队检查: " .. (state and "开启" or "关闭"))
+    end
+})
+
+local wallCheckToggle = Tabs.AimbotTab:Toggle({
+    Title = "墙壁检测",
+    Value = true,
+    Callback = function(state)
+        wallCheck = state
+        print("墙壁检测: " .. (state and "开启" or "关闭"))
+    end
+})
+
+local aimPartDropdown = Tabs.AimbotTab:Dropdown({
+    Title = "瞄准部位",
+    Values = {"头部", "身体"},
+    Value = "头部",
+    Callback = function(option)
+        aimPart = option
+        print("瞄准部位设置为: " .. option)
+    end
+})
+
+local targetTypeDropdown = Tabs.AimbotTab:Dropdown({
+    Title = "目标类型",
+    Values = {"玩家", "NPC", "全部"},
+    Value = "玩家",
+    Callback = function(option)
+        targetType = option
+        print("目标类型设置为: " .. option)
+    end
+})
+
+local fovToggle = Tabs.AimbotTab:Toggle({
+    Title = "FOV圆圈显示",
+    Value = false,
+    Callback = function(state)
+        fovEnabled = state
+        FOVCircle.Visible = state
+        print("FOV圆圈: " .. (state and "开启" or "关闭"))
+    end
+})
+
+local aimStrengthSlider = Tabs.AimbotTab:Slider({
+    Title = "瞄准强度",
+    Value = {
+        Min = 0.1,
+        Max = 1.0,
+        Default = 0.5,
+    },
+    Callback = function(value)
+        aimStrength = value
+        print("瞄准强度设置为: " .. value)
+    end
+})
+
+local espPlayersToggle = Tabs.ESPTab:Toggle({
+    Title = "透视玩家",
+    Value = false,
+    Callback = function(state)
+        espPlayers = state
+        espEnabled = espPlayers or espNPCs
+        
+        if espEnabled then
+            StartESPUpdate()
+            print("透视玩家: 开启")
+        else
+            if not espNPCs then
+                StopESPUpdate()
+                ClearAllESP()
+            end
+            print("透视玩家: 关闭")
+        end
+    end
+})
+
+local espNPCsToggle = Tabs.ESPTab:Toggle({
+    Title = "透视NPC",
+    Value = false,
+    Callback = function(state)
+        espNPCs = state
+        espEnabled = espPlayers or espNPCs
+        
+        if espEnabled then
+            StartESPUpdate()
+            print("透视NPC: 开启")
+        else
+            if not espPlayers then
+                StopESPUpdate()
+                ClearAllESP()
+            end
+            print("透视NPC: 关闭")
+        end
+    end
+})
+
+
+local predictToggle = Tabs.AdvancedTab:Toggle({
+    Title = "预判功能",
+    Value = false,
+    Callback = function(state)
+        predictEnabled = state
+        print("预判功能: " .. (state and "开启" or "关闭"))
+    end
+})
+
+local predictStrengthSlider = Tabs.AdvancedTab:Slider({
+    Title = "预判强度",
+    Value = {
+        Min = 0.01,
+        Max = 1.0,
+        Default = 0.1,
+    },
+    Callback = function(value)
+        predictStrength = value
+        print("预判强度设置为: " .. value)
+    end
+})
+
+local fovRadiusSlider = Tabs.AdvancedTab:Slider({
+    Title = "FOV范围",
+    Value = {
+        Min = 50,
+        Max = 300,
+        Default = 100,
+    },
+    Callback = function(value)
+        fovRadius = value
+        FOVCircle.Size = UDim2.new(0, value * 2, 0, value * 2)
+        print("FOV范围设置为: " .. value)
+    end
+})
+
+local fovXSlider = Tabs.AdvancedTab:Slider({
+    Title = "FOV X位置",
+    Value = {
+        Min = 0,
+        Max = 1,
+        Default = 0.5,
+    },
+    Callback = function(value)
+        fovX = value
+        updateFOVPosition()
+        print("FOV X位置设置为: " .. value)
+    end
+})
+
+local fovYSlider = Tabs.AdvancedTab:Slider({
+    Title = "FOV Y位置",
+    Value = {
+        Min = 0,
+        Max = 1,
+        Default = 0.4,
+    },
+    Callback = function(value)
+        fovY = value
+        updateFOVPosition()
+        print("FOV Y位置设置为: " .. value)
+    end
+})
+
+Tabs.AdvancedTab:Button({
+    Title = "停止所有自瞄",
+    Callback = function()
+        closeAllAim()
+        predictEnabled = false
+        print("已停止所有自瞄")
+    end
+})
+
+RunService.RenderStepped:Connect(function()
+    -- 自瞄逻辑
+    if globalAimEnabled then
+        local nearest = getNearestTarget()
+        if nearest then
+            aimAt(nearest)
+        end
+    end
+end)
+
+
+ToggleButton.MouseButton1Down:Connect(function()
+    
+    ToggleButton.Size = UDim2.new(0, 65, 0, 65)
+    wait(0.1)
+    ToggleButton.Size = UDim2.new(0, 70, 0, 70)
+end)
+
+
+updateToggleButton()
