@@ -186,7 +186,7 @@ task.wait(3)
 
 ProgressBar:TweenSize(UDim2.new(1, 0, 1, 0), "Out", "Quad", 1)
 wait(1)
-LoadState.Text = "加载完成"
+LoadState.Text = "加载完成"
 wait(1)
 Frame1:TweenPosition(UDim2.new(0.5, 0, -3, 0), "Out", "Quad", 1)
 Background:TweenPosition(UDim2.new(0, 0, -3, 0), "Out", "Quad", 1)
@@ -222,9 +222,9 @@ local sound = Instance.new("Sound")
 
 local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
 local Window = WindUI:CreateWindow({
-    Title = "混脚本--首页 QQ群：1043213309",
+    Title = "混脚本--首页 QQ群：1043213309",
     Icon = "door-open",
-    Author = "司空,WBTX 制作",
+    Author = "司空,WBTX 制作",
     Folder = "CloudHub",
     Size = UDim2.fromOffset(560, 360),
     Transparent = true,
@@ -241,7 +241,7 @@ local Window = WindUI:CreateWindow({
 
 Window:EditOpenButton(
     {
-        Title = "打开HUN脚本",
+        Title = "打开HUN脚本",
         Icon = "crown",
         CornerRadius = UDim.new(0, 13),
         StrokeThickness = 4,
@@ -309,8 +309,39 @@ local Tab25 = Tab("偷走脑红")
 local Tab26 = Tab("死铁轨")
 local Tab27 = Tab("河北唐县")
 
-Button(Tab1, "复制QQ群1043213309", function()
+Button(Tab1, "复制QQ群1043213309", function()
     setclipboard("1043213309")
+end)
+
+Button(Tab1, "复制用户ID", function()
+    setclipboard(game:GetService("Players").LocalPlayer.UserId)
+end)
+
+Button(Tab1, "复制服务器名称", function()
+    setclipboard(game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name)
+end)
+
+Button(Tab1, "复制注册时间", function()
+    setclipboard(game:GetService("Players").LocalPlayer.AccountAge)
+end)
+
+Button(Tab1, "测试注入器UNC", function()
+    Window:Dialog({
+        Title = "HUNHUB",
+        Content = "请勿多次点击，否则会造成游戏卡顿!",
+        Buttons = {{
+            Title = "确定",
+            Variant = "Primary",
+            Callback = function()
+                loadstring(game:HttpGet "https://raw.githubusercontent.com/Yungengxin/roblox/refs/heads/main/unc")()
+                WindUI:Notify({
+                    Title = "HUNHUB",
+                    Content = "已成功执行，请在控制台查看UNC！",
+                    Duration = 5
+                })
+            end
+        }}
+    })
 end)
 
 Slider(Tab1, "移动速度", 1, 600, game.Players.LocalPlayer.Character.Humanoid.WalkSpeed, function(a) 
@@ -632,192 +663,13 @@ end
 end)
 
 
-local selectedPlayer = nil
-
-
-local playerOptions = {}
-for _, player in pairs(game.Players:GetPlayers()) do
-    if player ~= game.Players.LocalPlayer then
-        table.insert(playerOptions, player.Name)
-    end
-end
-
-
-Toggle(Tab1, "透视脚本用户", false, function(Value)
-    local Players = game:GetService("Players")
-    local LocalPlayer = Players.LocalPlayer
-    
-    if Value then
-        
-        local scriptMarkers = {
-            "HunScriptUser",
-            "CloudHubUser",
-            "WindUIUser",
-            "混脚本用户"
-        }
-        
-        
-        local function markLocalPlayer()
-            if LocalPlayer.Character then
-                for _, marker in ipairs(scriptMarkers) do
-                    if not LocalPlayer.Character:FindFirstChild(marker) then
-                        local value = Instance.new("StringValue")
-                        value.Name = marker
-                        value.Value = "true"
-                        value.Parent = LocalPlayer.Character
-                    end
-                end
-            end
-        end
-        
-        markLocalPlayer()
-        LocalPlayer.CharacterAdded:Connect(markLocalPlayer)
-        
-        
-        local ESPTable = {}
-        
-        local function checkForScriptUser(player)
-            if player == LocalPlayer then return false end
-            
-            local character = player.Character
-            if not character then return false end
-            
-            
-            for _, marker in ipairs(scriptMarkers) do
-                if character:FindFirstChild(marker) then
-                    return true
-                end
-            end
-            
-            return false
-        end
-        
-        local function CreateScriptUserESP(player)
-            if ESPTable[player] then return end
-            
-            local isScriptUser = checkForScriptUser(player)
-            if not isScriptUser then return end
-            
-            local character = player.Character
-            local head = character:FindFirstChild("Head")
-            if not head then return end
-            
-            local billboard = Instance.new("BillboardGui")
-            billboard.Name = "ScriptUserESP_" .. player.Name
-            billboard.Adornee = head
-            billboard.Size = UDim2.new(0, 250, 0, 80)
-            billboard.StudsOffset = Vector3.new(0, 3.5, 0)
-            billboard.AlwaysOnTop = true
-            billboard.Parent = head
-            
-            local frame = Instance.new("Frame")
-            frame.BackgroundColor3 = Color3.new(0, 1, 0)  
-            frame.BackgroundTransparency = 0.2
-            frame.Size = UDim2.new(1, 0, 1, 0)
-            frame.Parent = billboard
-            
-            local uiCorner = Instance.new("UICorner")
-            uiCorner.CornerRadius = UDim.new(0, 8)
-            uiCorner.Parent = frame
-            
-            local textLabel = Instance.new("TextLabel")
-            textLabel.Size = UDim2.new(1, 0, 1, 0)
-            textLabel.BackgroundTransparency = 1
-            textLabel.Text = "脚本用户\n" .. player.Name
-            textLabel.TextColor3 = Color3.new(1, 1, 1)
-            textLabel.TextStrokeTransparency = 0
-            textLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
-            textLabel.TextScaled = true
-            textLabel.Font = Enum.Font.GothamBold
-            textLabel.Parent = frame
-            
-            ESPTable[player] = {
-                Billboard = billboard,
-                TextLabel = textLabel
-            }
-        end
-        
-        
-        for _, player in pairs(Players:GetPlayers()) do
-            if player.Character then
-                CreateScriptUserESP(player)
-            end
-            player.CharacterAdded:Connect(function()
-                wait(1) 
-                CreateScriptUserESP(player)
-            end)
-        end
-        
-        
-        Players.PlayerAdded:Connect(function(player)
-            player.CharacterAdded:Connect(function()
-                wait(1) 
-                CreateScriptUserESP(player)
-            end)
-        end)
-        
-        
-        local checkConnection
-        checkConnection = game:GetService("RunService").Heartbeat:Connect(function()
-            for _, player in pairs(Players:GetPlayers()) do
-                if player ~= LocalPlayer and player.Character and not ESPTable[player] then
-                    CreateScriptUserESP(player)
-                end
-            end
-        end)
-        
-        getgenv().ScriptUserESP = {
-            Table = ESPTable,
-            Connection = checkConnection,
-            Markers = scriptMarkers
-        }
-        
-    else
-        
-        if getgenv().ScriptUserESP then
-            if getgenv().ScriptUserESP.Connection then
-                getgenv().ScriptUserESP.Connection:Disconnect()
-            end
-            
-            for player, espData in pairs(getgenv().ScriptUserESP.Table) do
-                if espData and espData.Billboard then
-                    espData.Billboard:Destroy()
-                end
-            end
-            
-            
-            if LocalPlayer.Character then
-                for _, marker in ipairs(getgenv().ScriptUserESP.Markers) do
-                    local identifier = LocalPlayer.Character:FindFirstChild(marker)
-                    if identifier then
-                        identifier:Destroy()
-                    end
-                end
-            end
-            
-            getgenv().ScriptUserESP = nil
-        end
-        
-        
-        for _, player in pairs(Players:GetPlayers()) do
-            if player.Character then
-                local esp = player.Character:FindFirstChild("ScriptUserESP_" .. player.Name)
-                if esp then
-                    esp:Destroy()
-                end
-            end
-        end
-    end
-end)
-
-Toggle(Tab1, "血量显示ESP", false, function(Value)
+Toggle(Tab1, "血量条显示", false, function(Value)
     local Players = game:GetService("Players")
     local LocalPlayer = Players.LocalPlayer
     local ESPTable = {}
 
     if Value then
-        
-        local function CreateESP(player)
+        local function CreateHealthBar(player)
             if ESPTable[player] then return end
             
             local character = player.Character
@@ -826,69 +678,70 @@ Toggle(Tab1, "血量显示ESP", false, function(Value)
             local humanoid = character:FindFirstChildOfClass("Humanoid")
             if not humanoid then return end
             
+            local head = character:FindFirstChild("Head")
+            if not head then return end
+            
+            
             local billboard = Instance.new("BillboardGui")
-            billboard.Name = "ESP_" .. player.Name
-            billboard.Adornee = character:FindFirstChild("Head") or character:FindFirstChild("HumanoidRootPart")
-            billboard.Size = UDim2.new(0, 200, 0, 50)
-            billboard.StudsOffset = Vector3.new(0, 3, 0)
+            billboard.Name = "HealthBar_" .. player.Name
+            billboard.Adornee = head
+            billboard.Size = UDim2.new(0, 100, 0, 20)
+            billboard.StudsOffset = Vector3.new(0, 2.5, 0)
             billboard.AlwaysOnTop = true
-            billboard.Parent = character
+            billboard.Parent = head
             
-            local frame = Instance.new("Frame")
-            frame.BackgroundColor3 = Color3.new(0, 0, 0)
-            frame.BackgroundTransparency = 0.3
-            frame.Size = UDim2.new(1, 0, 1, 0)
-            frame.Parent = billboard
             
-            local textLabel = Instance.new("TextLabel")
-            textLabel.Size = UDim2.new(1, 0, 1, 0)
-            textLabel.BackgroundTransparency = 1
-            textLabel.Text = player.Name .. "\nHP: " .. math.floor(humanoid.Health)
-            textLabel.TextColor3 = Color3.new(1, 1, 1)
-            textLabel.TextStrokeTransparency = 0
-            textLabel.TextScaled = true
-            textLabel.Font = Enum.Font.GothamBold
-            textLabel.Parent = frame
+            local background = Instance.new("Frame")
+            background.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
+            background.BackgroundTransparency = 0.3
+            background.Size = UDim2.new(1, 0, 1, 0)
+            background.Parent = billboard
             
-            local healthBarBackground = Instance.new("Frame")
-            healthBarBackground.Size = UDim2.new(0.8, 0, 0.2, 0)
-            healthBarBackground.Position = UDim2.new(0.1, 0, 0.7, 0)
-            healthBarBackground.BackgroundColor3 = Color3.new(0.3, 0.3, 0.3)
-            healthBarBackground.BorderSizePixel = 0
-            healthBarBackground.Parent = frame
             
             local healthBar = Instance.new("Frame")
-            healthBar.Size = UDim2.new(humanoid.Health / humanoid.MaxHealth, 0, 1, 0)
-            healthBar.BackgroundColor3 = Color3.new(1, 0, 0)
+            healthBar.BackgroundColor3 = Color3.new(0, 1, 0)
             healthBar.BorderSizePixel = 0
-            healthBar.Parent = healthBarBackground
+            healthBar.Size = UDim2.new(humanoid.Health / humanoid.MaxHealth, 0, 1, 0)
+            healthBar.Parent = background
+            
+            
+            local healthText = Instance.new("TextLabel")
+            healthText.Size = UDim2.new(1, 0, 1, 0)
+            healthText.BackgroundTransparency = 1
+            healthText.Text = math.floor(humanoid.Health)
+            healthText.TextColor3 = Color3.new(1, 1, 1)
+            healthText.TextStrokeTransparency = 0
+            healthText.TextScaled = true
+            healthText.Font = Enum.Font.GothamBold
+            healthText.Parent = background
             
             ESPTable[player] = {
                 Billboard = billboard,
-                TextLabel = textLabel,
                 HealthBar = healthBar,
+                HealthText = healthText,
                 Humanoid = humanoid
             }
             
+            
             humanoid.HealthChanged:Connect(function()
-                UpdateESP(player)
+                UpdateHealthBar(player)
             end)
         end
 
-        local function UpdateESP(player)
+        local function UpdateHealthBar(player)
             local espData = ESPTable[player]
             if not espData then return end
             
             local humanoid = espData.Humanoid
             if not humanoid or humanoid.Health <= 0 then
-                RemoveESP(player)
+                RemoveHealthBar(player)
                 return
             end
             
-            espData.TextLabel.Text = player.Name .. "\nHP: " .. math.floor(humanoid.Health)
-            
             local healthPercent = humanoid.Health / humanoid.MaxHealth
             espData.HealthBar.Size = UDim2.new(healthPercent, 0, 1, 0)
+            espData.HealthText.Text = math.floor(humanoid.Health)
+            
             
             if healthPercent > 0.7 then
                 espData.HealthBar.BackgroundColor3 = Color3.new(0, 1, 0)
@@ -899,7 +752,7 @@ Toggle(Tab1, "血量显示ESP", false, function(Value)
             end
         end
 
-        local function RemoveESP(player)
+        local function RemoveHealthBar(player)
             local espData = ESPTable[player]
             if espData and espData.Billboard then
                 espData.Billboard:Destroy()
@@ -911,10 +764,10 @@ Toggle(Tab1, "血量显示ESP", false, function(Value)
         for _, player in pairs(Players:GetPlayers()) do
             if player ~= LocalPlayer then
                 if player.Character then
-                    CreateESP(player)
+                    CreateHealthBar(player)
                 end
                 player.CharacterAdded:Connect(function()
-                    CreateESP(player)
+                    CreateHealthBar(player)
                 end)
             end
         end
@@ -922,22 +775,229 @@ Toggle(Tab1, "血量显示ESP", false, function(Value)
         
         Players.PlayerAdded:Connect(function(player)
             player.CharacterAdded:Connect(function()
-                CreateESP(player)
+                CreateHealthBar(player)
             end)
         end)
         
-        
-        getgenv().ESPTable = ESPTable
+        getgenv().HealthBarESP = ESPTable
         
     else
         
-        if getgenv().ESPTable then
-            for player, espData in pairs(getgenv().ESPTable) do
+        if getgenv().HealthBarESP then
+            for player, espData in pairs(getgenv().HealthBarESP) do
                 if espData and espData.Billboard then
                     espData.Billboard:Destroy()
                 end
             end
-            getgenv().ESPTable = nil
+            getgenv().HealthBarESP = nil
+        end
+        
+        
+        for _, player in pairs(Players:GetPlayers()) do
+            if player.Character then
+                local healthBar = player.Character:FindFirstChild("HealthBar_" .. player.Name)
+                if healthBar then
+                    healthBar:Destroy()
+                end
+            end
+        end
+    end
+end)
+
+Toggle(Tab1, "透视NPC", false, function(Value)
+    local RunService = game:GetService("RunService")
+    local Workspace = game:GetService("Workspace")
+    
+    if Value then
+        local NPCESPTable = {}
+        
+        local function IsNPC(model)
+            
+            if not model:IsA("Model") then return false end
+            
+            local humanoid = model:FindFirstChildOfClass("Humanoid")
+            if not humanoid then return false end
+            
+            
+            local isPlayer = false
+            for _, player in pairs(game:GetService("Players"):GetPlayers()) do
+                if player.Character == model then
+                    isPlayer = true
+                    break
+                end
+            end
+            
+            return not isPlayer and humanoid.Health > 0
+        end
+        
+        local function CreateNPCESP(npc)
+            if NPCESPTable[npc] then return end
+            
+            local humanoid = npc:FindFirstChildOfClass("Humanoid")
+            local head = npc:FindFirstChild("Head") or npc:FindFirstChild("HumanoidRootPart")
+            if not humanoid or not head then return end
+            
+            
+            local billboard = Instance.new("BillboardGui")
+            billboard.Name = "NPCESP_" .. npc.Name
+            billboard.Adornee = head
+            billboard.Size = UDim2.new(0, 250, 0, 60)
+            billboard.StudsOffset = Vector3.new(0, 3, 0)
+            billboard.AlwaysOnTop = true
+            billboard.Parent = head
+            
+            local frame = Instance.new("Frame")
+            frame.BackgroundColor3 = Color3.new(0.5, 0, 0.5)
+            frame.BackgroundTransparency = 0.2
+            frame.Size = UDim2.new(1, 0, 1, 0)
+            frame.Parent = billboard
+            
+            local uiCorner = Instance.new("UICorner")
+            uiCorner.CornerRadius = UDim.new(0, 5)
+            uiCorner.Parent = frame
+            
+            local textLabel = Instance.new("TextLabel")
+            textLabel.Size = UDim2.new(1, 0, 1, 0)
+            textLabel.BackgroundTransparency = 1
+            textLabel.Text = "NPC: " .. npc.Name .. "\nHP: " .. math.floor(humanoid.Health)
+            textLabel.TextColor3 = Color3.new(1, 1, 1)
+            textLabel.TextStrokeTransparency = 0
+            textLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+            textLabel.TextScaled = true
+            textLabel.Font = Enum.Font.GothamBold
+            textLabel.Parent = frame
+            
+            
+            local highlight = Instance.new("Highlight")
+            highlight.Name = "NPCHighlight_" .. npc.Name
+            highlight.FillColor = Color3.new(0.5, 0, 0.5) 
+            highlight.FillTransparency = 0.7
+            highlight.OutlineColor = Color3.new(1, 1, 1)
+            highlight.OutlineTransparency = 0
+            highlight.Adornee = npc
+            highlight.Parent = npc
+            
+            
+            local healthConnection = humanoid.HealthChanged:Connect(function()
+                if humanoid.Health <= 0 then
+                    RemoveNPCESP(npc)
+                else
+                    textLabel.Text = "NPC: " .. npc.Name .. "\nHP: " .. math.floor(humanoid.Health)
+                end
+            end)
+            
+            
+            local ancestryConnection
+            ancestryConnection = npc.AncestryChanged:Connect(function(_, parent)
+                if not parent then
+                    RemoveNPCESP(npc)
+                end
+            end)
+            
+            NPCESPTable[npc] = {
+                Billboard = billboard,
+                Highlight = highlight,
+                HealthConnection = healthConnection,
+                AncestryConnection = ancestryConnection,
+                Humanoid = humanoid
+            }
+        end
+        
+        local function RemoveNPCESP(npc)
+            local espData = NPCESPTable[npc]
+            if espData then
+                if espData.Billboard then
+                    espData.Billboard:Destroy()
+                end
+                if espData.Highlight then
+                    espData.Highlight:Destroy()
+                end
+                if espData.HealthConnection then
+                    espData.HealthConnection:Disconnect()
+                end
+                if espData.AncestryConnection then
+                    espData.AncestryConnection:Disconnect()
+                end
+                NPCESPTable[npc] = nil
+            end
+        end
+        
+        
+        local function ScanForNPCs()
+            for _, descendant in pairs(Workspace:GetDescendants()) do
+                if IsNPC(descendant) then
+                    CreateNPCESP(descendant)
+                end
+            end
+        end
+        
+        
+        ScanForNPCs()
+        
+        
+        local scanConnection
+        scanConnection = RunService.Heartbeat:Connect(function()
+            for _, descendant in pairs(Workspace:GetDescendants()) do
+                if IsNPC(descendant) and not NPCESPTable[descendant] then
+                    CreateNPCESP(descendant)
+                end
+            end
+            
+            
+            for npc, espData in pairs(NPCESPTable) do
+                if not npc:IsDescendantOf(Workspace) or (espData.Humanoid and espData.Humanoid.Health <= 0) then
+                    RemoveNPCESP(npc)
+                end
+            end
+        end)
+        
+        
+        local descendantAddedConnection
+        descendantAddedConnection = Workspace.DescendantAdded:Connect(function(descendant)
+            if IsNPC(descendant) then
+                CreateNPCESP(descendant)
+            end
+        end)
+        
+        getgenv().NPCESP = {
+            Table = NPCESPTable,
+            ScanConnection = scanConnection,
+            DescendantConnection = descendantAddedConnection
+        }
+        
+    else
+        
+        if getgenv().NPCESP then
+            if getgenv().NPCESP.ScanConnection then
+                getgenv().NPCESP.ScanConnection:Disconnect()
+            end
+            if getgenv().NPCESP.DescendantConnection then
+                getgenv().NPCESP.DescendantConnection:Disconnect()
+            end
+            
+            for npc, espData in pairs(getgenv().NPCESP.Table) do
+                RemoveNPCESP(npc)
+            end
+            
+            getgenv().NPCESP = nil
+        end
+        
+        
+        for _, descendant in pairs(Workspace:GetDescendants()) do
+            if descendant:IsA("Model") then
+                
+                for _, child in ipairs(descendant:GetDescendants()) do
+                    if child:IsA("BillboardGui") and string.find(child.Name, "NPCESP_") then
+                        child:Destroy()
+                    end
+                end
+                
+                for _, child in ipairs(descendant:GetDescendants()) do
+                    if child:IsA("Highlight") and string.find(child.Name, "NPCHighlight_") then
+                        child:Destroy()
+                    end
+                end
+            end
         end
     end
 end)
@@ -987,6 +1047,792 @@ Toggle(Tab1, "esp", false, function(state)
     end)
 end)
 
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+
+local ESPData = {
+    BoxESP = false,
+    SkeletonESP = false,
+    NameESP = false,
+    TracerESP = false
+}
+
+
+local ESPObjects = {}
+
+
+local function CreateSkeletonESP(player)
+    if not player.Character then return end
+    
+    local character = player.Character
+    local connections = {}
+    
+    
+    local boneConnections = {
+        
+        {"Head", "UpperTorso"},
+        {"UpperTorso", "LowerTorso"},
+        {"LowerTorso", "LeftUpperLeg"},
+        {"LowerTorso", "RightUpperLeg"},
+        
+        
+        {"UpperTorso", "LeftUpperArm"},
+        {"LeftUpperArm", "LeftLowerArm"},
+        {"LeftLowerArm", "LeftHand"},
+        
+        
+        {"UpperTorso", "RightUpperArm"},
+        {"RightUpperArm", "RightLowerArm"},
+        {"RightLowerArm", "RightHand"},
+        
+        
+        {"LeftUpperLeg", "LeftLowerLeg"},
+        {"LeftLowerLeg", "LeftFoot"},
+        
+        
+        {"RightUpperLeg", "RightLowerLeg"},
+        {"RightLowerLeg", "RightFoot"}
+    }
+    
+    
+    for _, connection in ipairs(boneConnections) do
+        local part1 = character:FindFirstChild(connection[1])
+        local part2 = character:FindFirstChild(connection[2])
+        
+        if part1 and part2 then
+            local line = Drawing.new("Line")
+            line.Visible = false
+            line.Color = Color3.new(0, 1, 0)
+            line.Thickness = 2
+            
+            table.insert(connections, {
+                Part1 = part1,
+                Part2 = part2,
+                Line = line
+            })
+        end
+    end
+    
+    return connections
+end
+
+
+local function CreateTracer(player)
+    local line = Drawing.new("Line")
+    line.Visible = false
+    line.Color = Color3.new(1, 1, 1)
+    line.Thickness = 1
+    return line
+end
+
+
+local function CreateNameTag(player)
+    local text = Drawing.new("Text")
+    text.Visible = false
+    text.Color = Color3.new(1, 1, 1) 
+    text.Size = 18
+    text.Text = player.Name
+    text.Center = true
+    text.Outline = true
+    return text
+end
+
+
+local function CreateBoxESP(player)
+    if not player.Character then return end
+    
+    local character = player.Character
+    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+    if not humanoidRootPart then return end
+    
+    local box = Drawing.new("Square")
+    box.Visible = false
+    box.Color = Color3.new(1, 0, 0)
+    box.Thickness = 2
+    box.Filled = false
+    
+    return box
+end
+
+
+local function UpdateESP()
+    for player, data in pairs(ESPObjects) do
+        if not player or not player.Character or player.Character.Humanoid.Health <= 0 then
+            
+            if data.Box then data.Box.Visible = false end
+            if data.NameTag then data.NameTag.Visible = false end
+            if data.Tracer then data.Tracer.Visible = false end
+            if data.Skeleton then
+                for _, bone in ipairs(data.Skeleton) do
+                    bone.Line.Visible = false
+                end
+            end
+        else
+            local character = player.Character
+            local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+            local head = character:FindFirstChild("Head")
+            
+            if humanoidRootPart and head then
+                
+                local rootPos, rootOnScreen = Camera:WorldToViewportPoint(humanoidRootPart.Position)
+                local headPos, headOnScreen = Camera:WorldToViewportPoint(head.Position)
+                
+                
+                if data.Box and ESPData.BoxESP then
+                    if rootOnScreen then
+                        local size = (headPos.Y - rootPos.Y) * 2
+                        data.Box.Size = Vector2.new(size * 0.8, size)
+                        data.Box.Position = Vector2.new(rootPos.X - size * 0.4, rootPos.Y - size * 0.5)
+                        data.Box.Visible = true
+                    else
+                        data.Box.Visible = false
+                    end
+                elseif data.Box then
+                    data.Box.Visible = false
+                end
+                
+                
+                if data.NameTag and ESPData.NameESP then
+                    if headOnScreen then
+                        data.NameTag.Position = Vector2.new(headPos.X, headPos.Y - 30)
+                        data.NameTag.Visible = true
+                    else
+                        data.NameTag.Visible = false
+                    end
+                elseif data.NameTag then
+                    data.NameTag.Visible = false
+                end
+                
+                
+                if data.Tracer and ESPData.TracerESP then
+                    if rootOnScreen then
+                        data.Tracer.From = Vector2.new(Camera.ViewportSize.X / 2, 0)
+                        data.Tracer.To = Vector2.new(rootPos.X, rootPos.Y)
+                        data.Tracer.Visible = true
+                    else
+                        data.Tracer.Visible = false
+                    end
+                elseif data.Tracer then
+                    data.Tracer.Visible = false
+                end
+                
+                
+                if data.Skeleton and ESPData.SkeletonESP then
+                    for _, bone in ipairs(data.Skeleton) do
+                        if bone.Part1 and bone.Part2 then
+                            local pos1, onScreen1 = Camera:WorldToViewportPoint(bone.Part1.Position)
+                            local pos2, onScreen2 = Camera:WorldToViewportPoint(bone.Part2.Position)
+                            
+                            if onScreen1 and onScreen2 then
+                                bone.Line.From = Vector2.new(pos1.X, pos1.Y)
+                                bone.Line.To = Vector2.new(pos2.X, pos2.Y)
+                                bone.Line.Visible = true
+                            else
+                                bone.Line.Visible = false
+                            end
+                        else
+                            bone.Line.Visible = false
+                        end
+                    end
+                elseif data.Skeleton then
+                    for _, bone in ipairs(data.Skeleton) do
+                        bone.Line.Visible = false
+                    end
+                end
+            end
+        end
+    end
+end
+
+
+local function InitializePlayerESP(player)
+    if player == LocalPlayer then return end
+    
+    ESPObjects[player] = {
+        Box = CreateBoxESP(player),
+        NameTag = CreateNameTag(player),
+        Tracer = CreateTracer(player),
+        Skeleton = CreateSkeletonESP(player)
+    }
+    
+    
+    player.CharacterAdded:Connect(function()
+        wait(1) 
+        ESPObjects[player] = {
+            Box = CreateBoxESP(player),
+            NameTag = CreateNameTag(player),
+            Tracer = CreateTracer(player),
+            Skeleton = CreateSkeletonESP(player)
+        }
+    end)
+    
+    player.CharacterRemoving:Connect(function()
+        if ESPObjects[player] then
+            if ESPObjects[player].Box then ESPObjects[player].Box:Remove() end
+            if ESPObjects[player].NameTag then ESPObjects[player].NameTag:Remove() end
+            if ESPObjects[player].Tracer then ESPObjects[player].Tracer:Remove() end
+            if ESPObjects[player].Skeleton then
+                for _, bone in ipairs(ESPObjects[player].Skeleton) do
+                    bone.Line:Remove()
+                end
+            end
+            ESPObjects[player] = nil
+        end
+    end)
+end
+
+
+local function CleanupESP()
+    for player, data in pairs(ESPObjects) do
+        if data.Box then data.Box:Remove() end
+        if data.NameTag then data.NameTag:Remove() end
+        if data.Tracer then data.Tracer:Remove() end
+        if data.Skeleton then
+            for _, bone in ipairs(data.Skeleton) do
+                bone.Line:Remove()
+            end
+        end
+    end
+    ESPObjects = {}
+end
+
+
+local ESPConnection
+local function StartESP()
+    if ESPConnection then return end
+    
+    
+    for _, player in pairs(Players:GetPlayers()) do
+        InitializePlayerESP(player)
+    end
+    
+    
+    Players.PlayerAdded:Connect(InitializePlayerESP)
+    
+    
+    ESPConnection = RunService.RenderStepped:Connect(UpdateESP)
+end
+
+local function StopESP()
+    if ESPConnection then
+        ESPConnection:Disconnect()
+        ESPConnection = nil
+    end
+    CleanupESP()
+end
+
+
+Toggle(Tab1, "方框透视", false, function(Value)
+    ESPData.BoxESP = Value
+    if not ESPConnection and (ESPData.BoxESP or ESPData.SkeletonESP or ESPData.NameESP or ESPData.TracerESP) then
+        StartESP()
+    elseif ESPConnection and not (ESPData.BoxESP or ESPData.SkeletonESP or ESPData.NameESP or ESPData.TracerESP) then
+        StopESP()
+    end
+end)
+
+Toggle(Tab1, "骨骼透视", false, function(Value)
+    ESPData.SkeletonESP = Value
+    if not ESPConnection and (ESPData.BoxESP or ESPData.SkeletonESP or ESPData.NameESP or ESPData.TracerESP) then
+        StartESP()
+    elseif ESPConnection and not (ESPData.BoxESP or ESPData.SkeletonESP or ESPData.NameESP or ESPData.TracerESP) then
+        StopESP()
+    end
+end)
+
+Toggle(Tab1, "名称透视", false, function(Value)
+    ESPData.NameESP = Value
+    if not ESPConnection and (ESPData.BoxESP or ESPData.SkeletonESP or ESPData.NameESP or ESPData.TracerESP) then
+        StartESP()
+    elseif ESPConnection and not (ESPData.BoxESP or ESPData.SkeletonESP or ESPData.NameESP or ESPData.TracerESP) then
+        StopESP()
+    end
+end)
+
+Toggle(Tab1, "透视线条", false, function(Value)
+    ESPData.TracerESP = Value
+    if not ESPConnection and (ESPData.BoxESP or ESPData.SkeletonESP or ESPData.NameESP or ESPData.TracerESP) then
+        StartESP()
+    elseif ESPConnection and not (ESPData.BoxESP or ESPData.SkeletonESP or ESPData.NameESP or ESPData.TracerESP) then
+        StopESP()
+    end
+end)
+
+Toggle(Tab1, "距离显示", false, function(Value)
+    local Players = game:GetService("Players")
+    local LocalPlayer = Players.LocalPlayer
+    local RunService = game:GetService("RunService")
+    local DistanceTable = {}
+
+    if Value then
+        local function CreateDistanceDisplay(player)
+            if DistanceTable[player] then return end
+            
+            local character = player.Character
+            if not character then return end
+            
+            local head = character:FindFirstChild("Head")
+            if not head then return end
+            
+            
+            local billboard = Instance.new("BillboardGui")
+            billboard.Name = "DistanceDisplay_" .. player.Name
+            billboard.Adornee = head
+            billboard.Size = UDim2.new(0, 80, 0, 20)
+            billboard.StudsOffset = Vector3.new(0, 2, 0)
+            billboard.AlwaysOnTop = true
+            billboard.Parent = head
+            
+            local textLabel = Instance.new("TextLabel")
+            textLabel.Size = UDim2.new(1, 0, 1, 0)
+            textLabel.BackgroundTransparency = 1
+            textLabel.Text = "0m"
+            textLabel.TextColor3 = Color3.new(1, 1, 1)
+            textLabel.TextStrokeTransparency = 0
+            textLabel.TextScaled = true
+            textLabel.Font = Enum.Font.GothamBold
+            textLabel.Parent = billboard
+            
+            DistanceTable[player] = {
+                Billboard = billboard,
+                TextLabel = textLabel
+            }
+        end
+
+        local function UpdateDistance()
+            for player, espData in pairs(DistanceTable) do
+                if player.Character and player.Character:FindFirstChild("Head") and 
+                   LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                   
+                    local distance = (player.Character.Head.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
+                    espData.TextLabel.Text = string.format("%.1fm", distance)
+                end
+            end
+        end
+        
+        
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer then
+                if player.Character then
+                    CreateDistanceDisplay(player)
+                end
+                player.CharacterAdded:Connect(function()
+                    CreateDistanceDisplay(player)
+                end)
+            end
+        end
+        
+        
+        Players.PlayerAdded:Connect(function(player)
+            player.CharacterAdded:Connect(function()
+                CreateDistanceDisplay(player)
+            end)
+        end)
+        
+        
+        local connection = RunService.Heartbeat:Connect(UpdateDistance)
+        
+        getgenv().DistanceESP = {
+            Table = DistanceTable,
+            Connection = connection
+        }
+        
+    else
+        
+        if getgenv().DistanceESP then
+            if getgenv().DistanceESP.Connection then
+                getgenv().DistanceESP.Connection:Disconnect()
+            end
+            
+            for player, espData in pairs(getgenv().DistanceESP.Table) do
+                if espData and espData.Billboard then
+                    espData.Billboard:Destroy()
+                end
+            end
+            
+            getgenv().DistanceESP = nil
+        end
+        
+        
+        for _, player in pairs(Players:GetPlayers()) do
+            if player.Character then
+                local distanceDisplay = player.Character:FindFirstChild("DistanceDisplay_" .. player.Name)
+                if distanceDisplay then
+                    distanceDisplay:Destroy()
+                end
+            end
+        end
+    end
+end)
+Toggle(Tab1, "距离显示", false, function(Value)
+    local Players = game:GetService("Players")
+    local LocalPlayer = Players.LocalPlayer
+    local RunService = game:GetService("RunService")
+    local DistanceTable = {}
+
+    if Value then
+        local function CreateDistanceDisplay(player)
+            if DistanceTable[player] then return end
+            
+            local character = player.Character
+            if not character then return end
+            
+            local head = character:FindFirstChild("Head")
+            if not head then return end
+            
+            
+            local billboard = Instance.new("BillboardGui")
+            billboard.Name = "DistanceDisplay_" .. player.Name
+            billboard.Adornee = head
+            billboard.Size = UDim2.new(0, 80, 0, 20)
+            billboard.StudsOffset = Vector3.new(0, 2, 0)
+            billboard.AlwaysOnTop = true
+            billboard.Parent = head
+            
+            local textLabel = Instance.new("TextLabel")
+            textLabel.Size = UDim2.new(1, 0, 1, 0)
+            textLabel.BackgroundTransparency = 1
+            textLabel.Text = "0m"
+            textLabel.TextColor3 = Color3.new(1, 1, 1)
+            textLabel.TextStrokeTransparency = 0
+            textLabel.TextScaled = true
+            textLabel.Font = Enum.Font.GothamBold
+            textLabel.Parent = billboard
+            
+            DistanceTable[player] = {
+                Billboard = billboard,
+                TextLabel = textLabel
+            }
+        end
+
+        local function UpdateDistance()
+            for player, espData in pairs(DistanceTable) do
+                if player.Character and player.Character:FindFirstChild("Head") and 
+                   LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                   
+                    local distance = (player.Character.Head.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
+                    espData.TextLabel.Text = string.format("%.1fm", distance)
+                end
+            end
+        end
+        
+        
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer then
+                if player.Character then
+                    CreateDistanceDisplay(player)
+                end
+                player.CharacterAdded:Connect(function()
+                    CreateDistanceDisplay(player)
+                end)
+            end
+        end
+        
+        
+        Players.PlayerAdded:Connect(function(player)
+            player.CharacterAdded:Connect(function()
+                CreateDistanceDisplay(player)
+            end)
+        end)
+        
+        
+        local connection = RunService.Heartbeat:Connect(UpdateDistance)
+        
+        getgenv().DistanceESP = {
+            Table = DistanceTable,
+            Connection = connection
+        }
+        
+    else
+        
+        if getgenv().DistanceESP then
+            if getgenv().DistanceESP.Connection then
+                getgenv().DistanceESP.Connection:Disconnect()
+            end
+            
+            for player, espData in pairs(getgenv().DistanceESP.Table) do
+                if espData and espData.Billboard then
+                    espData.Billboard:Destroy()
+                end
+            end
+            
+            getgenv().DistanceESP = nil
+        end
+        
+        
+        for _, player in pairs(Players:GetPlayers()) do
+            if player.Character then
+                local distanceDisplay = player.Character:FindFirstChild("DistanceDisplay_" .. player.Name)
+                if distanceDisplay then
+                    distanceDisplay:Destroy()
+                end
+            end
+        end
+    end
+end)
+
+Toggle(Tab1, "透视手中物品", false, function(Value)
+    local Players = game:GetService("Players")
+    local RunService = game:GetService("RunService")
+    local LocalPlayer = Players.LocalPlayer
+    
+    if Value then
+        local ToolESPTable = {}
+        
+        local function CreateToolESP(player)
+            if ToolESPTable[player] then return end
+            
+            local character = player.Character
+            if not character then return end
+            
+            
+            local function findEquippedTool()
+                
+                local rightHand = character:FindFirstChild("RightHand")
+                if rightHand then
+                    for _, tool in ipairs(character:GetChildren()) do
+                        if tool:IsA("Tool") and tool:FindFirstChild("Handle") then
+                            local handle = tool.Handle
+                            
+                            for _, weld in ipairs(handle:GetChildren()) do
+                                if weld:IsA("Weld") and weld.Part1 == rightHand then
+                                    return tool
+                                end
+                            end
+                        end
+                    end
+                end
+                
+                
+                for _, tool in ipairs(character:GetChildren()) do
+                    if tool:IsA("Tool") then
+                        return tool
+                    end
+                end
+                
+                return nil
+            end
+            
+            local tool = findEquippedTool()
+            if not tool then return end
+            
+            local handle = tool:FindFirstChild("Handle")
+            if not handle then return end
+            
+            
+            local billboard = Instance.new("BillboardGui")
+            billboard.Name = "ToolESP_" .. player.Name
+            billboard.Adornee = handle
+            billboard.Size = UDim2.new(0, 200, 0, 40)
+            billboard.StudsOffset = Vector3.new(0, 2, 0)
+            billboard.AlwaysOnTop = true
+            billboard.Parent = handle
+            
+            local frame = Instance.new("Frame")
+            frame.BackgroundColor3 = Color3.new(1, 0.5, 0)
+            frame.BackgroundTransparency = 0.2
+            frame.Size = UDim2.new(1, 0, 1, 0)
+            frame.Parent = billboard
+            
+            local uiCorner = Instance.new("UICorner")
+            uiCorner.CornerRadius = UDim.new(0, 5)
+            uiCorner.Parent = frame
+            
+            local textLabel = Instance.new("TextLabel")
+            textLabel.Size = UDim2.new(1, 0, 1, 0)
+            textLabel.BackgroundTransparency = 1
+            textLabel.Text = tool.Name
+            textLabel.TextColor3 = Color3.new(1, 1, 1)
+            textLabel.TextStrokeTransparency = 0
+            textLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+            textLabel.TextScaled = true
+            textLabel.Font = Enum.Font.GothamBold
+            textLabel.Parent = frame
+            
+            
+            local highlight = Instance.new("Highlight")
+            highlight.Name = "ToolHighlight_" .. player.Name
+            highlight.FillColor = Color3.new(1, 0.5, 0)
+            highlight.FillTransparency = 0.7
+            highlight.OutlineColor = Color3.new(1, 1, 1)
+            highlight.OutlineTransparency = 0
+            highlight.Adornee = tool
+            highlight.Parent = tool
+            
+            ToolESPTable[player] = {
+                Billboard = billboard,
+                Highlight = highlight,
+                Tool = tool
+            }
+            
+            
+            local toolConnection
+            toolConnection = character.ChildAdded:Connect(function(child)
+                if child:IsA("Tool") then
+                    
+                    wait(0.1)
+                    RemoveToolESP(player)
+                    CreateToolESP(player)
+                end
+            end)
+            
+            ToolESPTable[player].ToolConnection = toolConnection
+        end
+        
+        local function RemoveToolESP(player)
+            local espData = ToolESPTable[player]
+            if espData then
+                if espData.Billboard then
+                    espData.Billboard:Destroy()
+                end
+                if espData.Highlight then
+                    espData.Highlight:Destroy()
+                end
+                if espData.ToolConnection then
+                    espData.ToolConnection:Disconnect()
+                end
+                ToolESPTable[player] = nil
+            end
+        end
+        
+        
+        local checkConnection
+        checkConnection = RunService.Heartbeat:Connect(function()
+            for _, player in pairs(Players:GetPlayers()) do
+                if player ~= LocalPlayer and player.Character then
+                    if not ToolESPTable[player] then
+                        CreateToolESP(player)
+                    else
+                        
+                        local espData = ToolESPTable[player]
+                        if espData and espData.Tool and not player.Character:FindFirstChild(espData.Tool.Name) then
+                            RemoveToolESP(player)
+                            CreateToolESP(player)
+                        end
+                    end
+                end
+            end
+        end)
+        
+        
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer then
+                if player.Character then
+                    CreateToolESP(player)
+                end
+                player.CharacterAdded:Connect(function()
+                    wait(1)
+                    CreateToolESP(player)
+                end)
+            end
+        end
+        
+        Players.PlayerAdded:Connect(function(player)
+            player.CharacterAdded:Connect(function()
+                wait(1)
+                CreateToolESP(player)
+            end)
+        end)
+        
+        getgenv().ToolESP = {
+            Table = ToolESPTable,
+            Connection = checkConnection
+        }
+        
+    else
+        
+        if getgenv().ToolESP then
+            if getgenv().ToolESP.Connection then
+                getgenv().ToolESP.Connection:Disconnect()
+            end
+            
+            for player, espData in pairs(getgenv().ToolESP.Table) do
+                RemoveToolESP(player)
+            end
+            
+            getgenv().ToolESP = nil
+        end
+        
+        
+        for _, player in pairs(Players:GetPlayers()) do
+            if player.Character then
+                
+                for _, child in ipairs(player.Character:GetDescendants()) do
+                    if child:IsA("BillboardGui") and string.find(child.Name, "ToolESP_") then
+                        child:Destroy()
+                    end
+                end
+                
+                for _, child in ipairs(player.Character:GetDescendants()) do
+                    if child:IsA("Highlight") and string.find(child.Name, "ToolHighlight_") then
+                        child:Destroy()
+                    end
+                end
+            end
+        end
+    end
+end)
+
+Toggle(Tab1, "视野穿墙", false, function(Value)
+    if Value then
+        
+        getgenv().OriginalCameraProperties = {
+            CameraType = workspace.CurrentCamera.CameraType,
+            CameraSubject = workspace.CurrentCamera.CameraSubject
+        }
+        
+        
+        local function setupWallhackCamera()
+            
+            workspace.CurrentCamera.CameraType = Enum.CameraType.Scriptable
+            
+            
+            local wallhackConnection
+            wallhackConnection = game:GetService("RunService").RenderStepped:Connect(function()
+                if not Value then
+                    wallhackConnection:Disconnect()
+                    return
+                end
+                
+                local character = game.Players.LocalPlayer.Character
+                if character and character:FindFirstChild("HumanoidRootPart") then
+                    local rootPart = character.HumanoidRootPart
+                    local head = character:FindFirstChild("Head")
+                    
+                    if head then
+                    
+                        local offset = rootPart.CFrame.LookVector * 5 + Vector3.new(0, 2, 0)
+                        local cameraPosition = rootPart.Position + offset
+                        
+                        workspace.CurrentCamera.CFrame = CFrame.new(cameraPosition, rootPart.Position)
+                    end
+                end
+            end)
+            
+            getgenv().WallhackConnection = wallhackConnection
+        end
+        
+        setupWallhackCamera()
+        
+    else
+        
+        if getgenv().OriginalCameraProperties then
+            workspace.CurrentCamera.CameraType = getgenv().OriginalCameraProperties.CameraType
+            workspace.CurrentCamera.CameraSubject = getgenv().OriginalCameraProperties.CameraSubject
+            getgenv().OriginalCameraProperties = nil
+        end
+        
+        
+        if getgenv().WallhackConnection then
+            getgenv().WallhackConnection:Disconnect()
+            getgenv().WallhackConnection = nil
+        end
+    end
+end)
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -2361,6 +3207,10 @@ Button(Tab8, "终极范围", function()
     loadstring(game:HttpGet("https://pastebin.com/raw/CAQ9x4A7"))()
 end)
 
+Button(Tab1, "我自己做的自瞄", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/Twbtx/tiamxiabuwu/main/%E8%87%AA%E7%9E%84"))()
+end)
+
 Button(Tab9, "通用自瞄", function() 
     loadstring(game:HttpGet("https://atlasteam.live/silentaim"))()
 end)
@@ -3320,6 +4170,10 @@ Button(Tab20, "鬼脚本", function()
     Ghost_Script = "作者_鬼"
     Ghost_Script = "交流群858895377"
     loadstring(game:HttpGet("https://raw.githubusercontent.com/Ghost-Gui-888/Ghost-Script/refs/heads/main/QQ858895377"))()
+end)
+
+Button(Tab20, "暗红脚本", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/wdwvwfw/wos/refs/heads/main/%E6%B5%8B%E8%AF%95%E5%8D%B7.lua"))()
 end)
 
 Button(Tab20, "依脚本", function() 
