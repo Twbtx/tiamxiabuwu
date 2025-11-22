@@ -672,16 +672,241 @@ Button(Tab1, "关闭所有透视", function()
         getgenv().HealthBarESP = nil
     end
     
+    
+    if getgenv().PlayerHighlight then
+        if getgenv().PlayerHighlight.TeamConnection then
+            getgenv().PlayerHighlight.TeamConnection:Disconnect()
+        end
+        for player, highlightData in pairs(getgenv().PlayerHighlight.Table) do
+            if highlightData and highlightData.Highlight then
+                highlightData.Highlight:Destroy()
+            end
+        end
+        getgenv().PlayerHighlight = nil
+    end
+    
+    
+    if getgenv().NPCHighlight then
+        if getgenv().NPCHighlight.ScanConnection then
+            getgenv().NPCHighlight.ScanConnection:Disconnect()
+        end
+        if getgenv().NPCHighlight.DescendantConnection then
+            getgenv().NPCHighlight.DescendantConnection:Disconnect()
+        end
+        for npc, highlightData in pairs(getgenv().NPCHighlight.Table) do
+            if highlightData and highlightData.Highlight then
+                highlightData.Highlight:Destroy()
+            end
+        end
+        getgenv().NPCHighlight = nil
+    end
+    
+    
+    if getgenv().NPCESP then
+        if getgenv().NPCESP.ScanConnection then
+            getgenv().NPCESP.ScanConnection:Disconnect()
+        end
+        if getgenv().NPCESP.DescendantConnection then
+            getgenv().NPCESP.DescendantConnection:Disconnect()
+        end
+        for npc, espData in pairs(getgenv().NPCESP.Table) do
+            if espData then
+                if espData.Billboard then espData.Billboard:Destroy() end
+                if espData.Highlight then espData.Highlight:Destroy() end
+            end
+        end
+        getgenv().NPCESP = nil
+    end
+    
+    
+    if getgenv().EnemyPlayerESP then
+        if getgenv().EnemyPlayerESP.Connection then
+            getgenv().EnemyPlayerESP.Connection:Disconnect()
+        end
+        for player, espData in pairs(getgenv().EnemyPlayerESP.Table) do
+            if espData then
+                if espData.Billboard then espData.Billboard:Destroy() end
+                if espData.Highlight then espData.Highlight:Destroy() end
+            end
+        end
+        getgenv().EnemyPlayerESP = nil
+    end
+    
+    
+    if getgenv().EnemyNPCESP then
+        if getgenv().EnemyNPCESP.ScanConnection then
+            getgenv().EnemyNPCESP.ScanConnection:Disconnect()
+        end
+        if getgenv().EnemyNPCESP.DescendantConnection then
+            getgenv().EnemyNPCESP.DescendantConnection:Disconnect()
+        end
+        for npc, espData in pairs(getgenv().EnemyNPCESP.Table) do
+            if espData then
+                if espData.Billboard then espData.Billboard:Destroy() end
+                if espData.Highlight then espData.Highlight:Destroy() end
+            end
+        end
+        getgenv().EnemyNPCESP = nil
+    end
+    
+    
+    if getgenv().DistanceESP then
+        if getgenv().DistanceESP.Connection then
+            getgenv().DistanceESP.Connection:Disconnect()
+        end
+        for player, espData in pairs(getgenv().DistanceESP.Table) do
+            if espData and espData.Billboard then
+                espData.Billboard:Destroy()
+            end
+        end
+        getgenv().DistanceESP = nil
+    end
+    
+    
+    if getgenv().ToolESP then
+        if getgenv().ToolESP.Connection then
+            getgenv().ToolESP.Connection:Disconnect()
+        end
+        for player, espData in pairs(getgenv().ToolESP.Table) do
+            if espData then
+                if espData.Billboard then espData.Billboard:Destroy() end
+                if espData.Highlight then espData.Highlight:Destroy() end
+                if espData.ToolConnection then espData.ToolConnection:Disconnect() end
+            end
+        end
+        getgenv().ToolESP = nil
+    end
+    
+    
+    if ESPConnection then
+        ESPConnection:Disconnect()
+        ESPConnection = nil
+    end
+    CleanupESP()
+    
+    
+    ESPData = {
+        BoxESP = false,
+        SkeletonESP = false,
+        NameESP = false,
+        TracerESP = false
+    }
+    
+    
+    local Players = game:GetService("Players")
+    local Workspace = game:GetService("Workspace")
+    
+    
     for _, player in pairs(Players:GetPlayers()) do
         if player.Character then
+            
             local healthBar = player.Character:FindFirstChild("HealthBar_" .. player.Name)
-            if healthBar then
-                healthBar:Destroy()
+            if healthBar then healthBar:Destroy() end
+            
+            
+            local distanceDisplay = player.Character:FindFirstChild("DistanceDisplay_" .. player.Name)
+            if distanceDisplay then distanceDisplay:Destroy() end
+            
+            
+            local highlight = player.Character:FindFirstChild("PlayerHighlight")
+            if highlight then highlight:Destroy() end
+            
+            
+            local enemyESP = player.Character:FindFirstChild("EnemyPlayerESP_" .. player.Name)
+            if enemyESP then enemyESP:Destroy() end
+            
+            local enemyHighlight = player.Character:FindFirstChild("EnemyPlayerHighlight")
+            if enemyHighlight then enemyHighlight:Destroy() end
+            
+            
+            for _, child in ipairs(player.Character:GetDescendants()) do
+                if child:IsA("BillboardGui") and (string.find(child.Name, "ToolESP_") or string.find(child.Name, "EnemyPlayerESP_")) then
+                    child:Destroy()
+                end
+                if child:IsA("Highlight") and (string.find(child.Name, "ToolHighlight_") or string.find(child.Name, "EnemyPlayerHighlight")) then
+                    child:Destroy()
+                end
             end
         end
     end
     
+    
+    for _, descendant in pairs(Workspace:GetDescendants()) do
+        if descendant:IsA("Model") then
+            for _, child in ipairs(descendant:GetDescendants()) do
+                
+                if child:IsA("Highlight") and (child.Name == "NPCHighlight" or child.Name == "NPCESP_Highlight" or string.find(child.Name, "EnemyNPCHighlight")) then
+                    child:Destroy()
+                end
+                
+                if child:IsA("BillboardGui") and (string.find(child.Name, "NPCESP_") or string.find(child.Name, "EnemyNPCESP_")) then
+                    child:Destroy()
+                end
+            end
+        end
+    end
+    
+    
+    if getgenv().OriginalCameraProperties then
+        workspace.CurrentCamera.CameraType = getgenv().OriginalCameraProperties.CameraType
+        workspace.CurrentCamera.CameraSubject = getgenv().OriginalCameraProperties.CameraSubject
+        getgenv().OriginalCameraProperties = nil
+    end
+    
+    if getgenv().WallhackConnection then
+        getgenv().WallhackConnection:Disconnect()
+        getgenv().WallhackConnection = nil
+    end
+    
+    
+    if getgenv().BulletTrack then
+        local GameMetaTable = getrawmetatable(game)
+        setreadonly(GameMetaTable, false)
+        GameMetaTable.__namecall = getgenv().BulletTrack.OldNamecall
+        setreadonly(GameMetaTable, true)
+        getgenv().BulletTrack = nil
+    end
+    
+    
+    if BulletTrack.oldHook then
+        removeHook()
+    end
+    BulletTrack.enabled = false
+    
     WindUI:Notify({Title = "透视", Content = "所有透视已关闭"})
+end)
+
+Toggle(Tab1, "透视所有玩家", false, function(value)
+    if value then
+        local Players = game:GetService("Players")
+        for _, player in pairs(Players:GetPlayers()) do
+            if player.Character then
+                local head = player.Character:FindFirstChild("Head")
+                if head then
+                    local highlight = Instance.new("Highlight")
+                    highlight.Name = "PlayerESP_" .. player.Name
+                    highlight.FillColor = Color3.fromRGB(255, 0, 0)    
+                    highlight.OutlineColor = Color3.fromRGB(255, 255, 0) 
+                    highlight.FillTransparency = 0.3  
+                    highlight.OutlineTransparency = 0.3 
+                    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                    highlight.Parent = head
+                end
+            end
+        end
+    else
+        for _, player in pairs(game:GetService("Players"):GetPlayers()) do
+            if player.Character then
+                local head = player.Character:FindFirstChild("Head")
+                if head then
+                    local esp = head:FindFirstChild("PlayerESP_" .. player.Name)
+                    if esp then
+                        esp:Destroy()
+                    end
+                end
+            end
+        end
+    end
 end)
 
 Toggle(Tab1, "血量条显示", false, function(Value)
