@@ -2412,6 +2412,10 @@ Button(Tab1, "西格玛spy", function()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/depthso/Sigma-Spy/refs/heads/main/Main.lua"))()
 end)
 
+Button(Tab1, "汉化dex++", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/Twbtx/tiamxiabuwu/main/txbw%20dex%2B%2B%20huan%20huan%20HUN%20NB%21"))()
+end)
+
 Button(Tab1, "dex++", function() 
     loadstring(game:HttpGet("https://github.com/AZYsGithub/DexPlusPlus/releases/latest/download/out.lua"))()
 end)
@@ -3191,6 +3195,57 @@ Button(Tab7, "磁铁黑洞", function()
         loadstring(game:HttpGet("https://raw.githubusercontent.com/ke9460394-dot/ugik/refs/heads/main/%E7%A3%81%E9%93%81%E9%BB%91%E6%B4%9EV2.txt"))()
 end)
 
+local rangeValue = 50
+local rangeEnabled = false
+local rangeConnection = nil
+
+Slider(Tab8, "范围大小", 0, 1000, rangeValue, function(value)
+    rangeValue = value
+end)
+
+Toggle(Tab8, "启用范围", false, function(state)
+    rangeEnabled = state
+    
+    if rangeEnabled then
+        local player = game.Players.LocalPlayer
+        local character = player.Character or player.CharacterAdded:Wait()
+        local root = character:WaitForChild("HumanoidRootPart")
+        
+        rangeConnection = game:GetService("RunService").Heartbeat:Connect(function()
+            if not rangeEnabled then return end
+            
+            for _, part in pairs(workspace:GetDescendants()) do
+                if part:IsA("BasePart") and part ~= root then
+                    local distance = (part.Position - root.Position).Magnitude
+                    if distance <= rangeValue then
+                        part.CanCollide = false
+                        part.Transparency = 0.5
+                    else
+                        part.CanCollide = true
+                        part.Transparency = 0
+                    end
+                end
+            end
+        end)
+        
+        WindUI:Notify({Title = "范围控制", Content = "范围已启用，大小: " .. rangeValue})
+    else
+        if rangeConnection then
+            rangeConnection:Disconnect()
+            rangeConnection = nil
+        end
+        
+        for _, part in pairs(workspace:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = true
+                part.Transparency = 0
+            end
+        end
+        
+        WindUI:Notify({Title = "范围控制", Content = "范围已禁用"})
+    end
+end)
+
 Button(Tab8, "普通范围", function() 
     loadstring(game:HttpGet("https://pastebin.com/raw/jiNwDbCN"))()
 end)
@@ -3207,7 +3262,7 @@ Button(Tab8, "终极范围", function()
     loadstring(game:HttpGet("https://pastebin.com/raw/CAQ9x4A7"))()
 end)
 
-Button(Tab1, "我自己做的自瞄", function() 
+Button(Tab9, "自瞄(我做的的)", function() 
     loadstring(game:HttpGet("https://raw.githubusercontent.com/Twbtx/tiamxiabuwu/main/%E8%87%AA%E7%9E%84"))()
 end)
 
