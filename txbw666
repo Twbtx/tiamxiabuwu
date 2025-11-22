@@ -662,6 +662,27 @@ end
 end
 end)
 
+Button(Tab1, "关闭所有透视", function()
+    if getgenv().HealthBarESP then
+        for player, espData in pairs(getgenv().HealthBarESP) do
+            if espData and espData.Billboard then
+                espData.Billboard:Destroy()
+            end
+        end
+        getgenv().HealthBarESP = nil
+    end
+    
+    for _, player in pairs(Players:GetPlayers()) do
+        if player.Character then
+            local healthBar = player.Character:FindFirstChild("HealthBar_" .. player.Name)
+            if healthBar then
+                healthBar:Destroy()
+            end
+        end
+    end
+    
+    WindUI:Notify({Title = "透视", Content = "所有透视已关闭"})
+end)
 
 Toggle(Tab1, "血量条显示", false, function(Value)
     local Players = game:GetService("Players")
@@ -681,15 +702,13 @@ Toggle(Tab1, "血量条显示", false, function(Value)
             local head = character:FindFirstChild("Head")
             if not head then return end
             
-            
             local billboard = Instance.new("BillboardGui")
             billboard.Name = "HealthBar_" .. player.Name
             billboard.Adornee = head
-            billboard.Size = UDim2.new(0, 100, 0, 20)
+            billboard.Size = UDim2.new(0, 80, 0, 15)
             billboard.StudsOffset = Vector3.new(0, 2.5, 0)
             billboard.AlwaysOnTop = true
             billboard.Parent = head
-            
             
             local background = Instance.new("Frame")
             background.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
@@ -697,13 +716,11 @@ Toggle(Tab1, "血量条显示", false, function(Value)
             background.Size = UDim2.new(1, 0, 1, 0)
             background.Parent = billboard
             
-            
             local healthBar = Instance.new("Frame")
             healthBar.BackgroundColor3 = Color3.new(0, 1, 0)
             healthBar.BorderSizePixel = 0
             healthBar.Size = UDim2.new(humanoid.Health / humanoid.MaxHealth, 0, 1, 0)
             healthBar.Parent = background
-            
             
             local healthText = Instance.new("TextLabel")
             healthText.Size = UDim2.new(1, 0, 1, 0)
@@ -711,7 +728,7 @@ Toggle(Tab1, "血量条显示", false, function(Value)
             healthText.Text = math.floor(humanoid.Health)
             healthText.TextColor3 = Color3.new(1, 1, 1)
             healthText.TextStrokeTransparency = 0
-            healthText.TextScaled = true
+            healthText.TextSize = 12
             healthText.Font = Enum.Font.GothamBold
             healthText.Parent = background
             
@@ -721,7 +738,6 @@ Toggle(Tab1, "血量条显示", false, function(Value)
                 HealthText = healthText,
                 Humanoid = humanoid
             }
-            
             
             humanoid.HealthChanged:Connect(function()
                 UpdateHealthBar(player)
@@ -742,7 +758,6 @@ Toggle(Tab1, "血量条显示", false, function(Value)
             espData.HealthBar.Size = UDim2.new(healthPercent, 0, 1, 0)
             espData.HealthText.Text = math.floor(humanoid.Health)
             
-            
             if healthPercent > 0.7 then
                 espData.HealthBar.BackgroundColor3 = Color3.new(0, 1, 0)
             elseif healthPercent > 0.3 then
@@ -760,7 +775,6 @@ Toggle(Tab1, "血量条显示", false, function(Value)
             ESPTable[player] = nil
         end
 
-        
         for _, player in pairs(Players:GetPlayers()) do
             if player ~= LocalPlayer then
                 if player.Character then
@@ -772,7 +786,6 @@ Toggle(Tab1, "血量条显示", false, function(Value)
             end
         end
         
-        
         Players.PlayerAdded:Connect(function(player)
             player.CharacterAdded:Connect(function()
                 CreateHealthBar(player)
@@ -782,7 +795,6 @@ Toggle(Tab1, "血量条显示", false, function(Value)
         getgenv().HealthBarESP = ESPTable
         
     else
-        
         if getgenv().HealthBarESP then
             for player, espData in pairs(getgenv().HealthBarESP) do
                 if espData and espData.Billboard then
@@ -792,12 +804,241 @@ Toggle(Tab1, "血量条显示", false, function(Value)
             getgenv().HealthBarESP = nil
         end
         
-        
         for _, player in pairs(Players:GetPlayers()) do
             if player.Character then
                 local healthBar = player.Character:FindFirstChild("HealthBar_" .. player.Name)
                 if healthBar then
                     healthBar:Destroy()
+                end
+            end
+        end
+    end
+end)
+
+Toggle(Tab1, "高亮显示玩家", false, function(Value)
+    local Players = game:GetService("Players")
+    local LocalPlayer = Players.LocalPlayer
+    local HighlightTable = {}
+
+    if Value then
+        local function GetTeamColor(player)
+            if player.Team then
+                return player.Team.TeamColor.Color
+            else
+                return Color3.new(0.5, 0.5, 0.5)
+            end
+        end
+
+        local function CreatePlayerHighlight(player)
+            if HighlightTable[player] then return end
+            
+            local character = player.Character
+            if not character then return end
+            
+            local teamColor = GetTeamColor(player)
+            
+            local highlight = Instance.new("Highlight")
+            highlight.Name = "PlayerHighlight"
+            highlight.FillColor = teamColor
+            highlight.FillTransparency = 0.7
+            highlight.OutlineColor = Color3.new(1, 1, 1)
+            highlight.OutlineTransparency = 0
+            highlight.Adornee = character
+            highlight.Parent = character
+            
+            HighlightTable[player] = {
+                Highlight = highlight,
+                TeamColor = teamColor
+            }
+        end
+
+        local function UpdatePlayerHighlight(player)
+            local highlightData = HighlightTable[player]
+            if highlightData and highlightData.Highlight then
+                local teamColor = GetTeamColor(player)
+                highlightData.Highlight.FillColor = teamColor
+                highlightData.TeamColor = teamColor
+            end
+        end
+
+        local function RemovePlayerHighlight(player)
+            local highlightData = HighlightTable[player]
+            if highlightData and highlightData.Highlight then
+                highlightData.Highlight:Destroy()
+            end
+            HighlightTable[player] = nil
+        end
+
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer then
+                if player.Character then
+                    CreatePlayerHighlight(player)
+                end
+                player.CharacterAdded:Connect(function()
+                    CreatePlayerHighlight(player)
+                end)
+            end
+        end
+        
+        Players.PlayerAdded:Connect(function(player)
+            player.CharacterAdded:Connect(function()
+                CreatePlayerHighlight(player)
+            end)
+        end)
+        
+        
+        local teamChangedConnection
+        teamChangedConnection = game:GetService("RunService").Heartbeat:Connect(function()
+            for player, highlightData in pairs(HighlightTable) do
+                if player and player.Team then
+                    local currentTeamColor = GetTeamColor(player)
+                    if highlightData.TeamColor ~= currentTeamColor then
+                        UpdatePlayerHighlight(player)
+                    end
+                end
+            end
+        end)
+        
+        getgenv().PlayerHighlight = {
+            Table = HighlightTable,
+            TeamConnection = teamChangedConnection
+        }
+        
+    else
+        if getgenv().PlayerHighlight then
+            if getgenv().PlayerHighlight.TeamConnection then
+                getgenv().PlayerHighlight.TeamConnection:Disconnect()
+            end
+            
+            for player, highlightData in pairs(getgenv().PlayerHighlight.Table) do
+                RemovePlayerHighlight(player)
+            end
+            
+            getgenv().PlayerHighlight = nil
+        end
+        
+        for _, player in pairs(Players:GetPlayers()) do
+            if player.Character then
+                local highlight = player.Character:FindFirstChild("PlayerHighlight")
+                if highlight then
+                    highlight:Destroy()
+                end
+            end
+        end
+    end
+end)
+
+Toggle(Tab1, "高亮显示NPC", false, function(Value)
+    local RunService = game:GetService("RunService")
+    local Workspace = game:GetService("Workspace")
+    
+    if Value then
+        local NPCHighlightTable = {}
+        
+        local function IsNPC(model)
+            if not model:IsA("Model") then return false end
+            
+            local humanoid = model:FindFirstChildOfClass("Humanoid")
+            if not humanoid then return false end
+            
+            local isPlayer = false
+            for _, player in pairs(game:GetService("Players"):GetPlayers()) do
+                if player.Character == model then
+                    isPlayer = true
+                    break
+                end
+            end
+            
+            return not isPlayer and humanoid.Health > 0
+        end
+        
+        local function CreateNPCHighlight(npc)
+            if NPCHighlightTable[npc] then return end
+            
+            local highlight = Instance.new("Highlight")
+            highlight.Name = "NPCHighlight"
+            highlight.FillColor = Color3.new(1, 0.5, 0)
+            highlight.FillTransparency = 0.7
+            highlight.OutlineColor = Color3.new(1, 1, 1)
+            highlight.OutlineTransparency = 0
+            highlight.Adornee = npc
+            highlight.Parent = npc
+            
+            NPCHighlightTable[npc] = {
+                Highlight = highlight
+            }
+        end
+        
+        local function RemoveNPCHighlight(npc)
+            local highlightData = NPCHighlightTable[npc]
+            if highlightData and highlightData.Highlight then
+                highlightData.Highlight:Destroy()
+            end
+            NPCHighlightTable[npc] = nil
+        end
+        
+        local function ScanForNPCs()
+            for _, descendant in pairs(Workspace:GetDescendants()) do
+                if IsNPC(descendant) then
+                    CreateNPCHighlight(descendant)
+                end
+            end
+        end
+        
+        ScanForNPCs()
+        
+        local scanConnection
+        scanConnection = RunService.Heartbeat:Connect(function()
+            for _, descendant in pairs(Workspace:GetDescendants()) do
+                if IsNPC(descendant) and not NPCHighlightTable[descendant] then
+                    CreateNPCHighlight(descendant)
+                end
+            end
+            
+            for npc, highlightData in pairs(NPCHighlightTable) do
+                if not npc:IsDescendantOf(Workspace) then
+                    RemoveNPCHighlight(npc)
+                end
+            end
+        end)
+        
+        local descendantAddedConnection
+        descendantAddedConnection = Workspace.DescendantAdded:Connect(function(descendant)
+            if IsNPC(descendant) then
+                CreateNPCHighlight(descendant)
+            end
+        end)
+        
+        getgenv().NPCHighlight = {
+            Table = NPCHighlightTable,
+            ScanConnection = scanConnection,
+            DescendantConnection = descendantAddedConnection
+        }
+        
+    else
+        
+        if getgenv().NPCHighlight then
+            if getgenv().NPCHighlight.ScanConnection then
+                getgenv().NPCHighlight.ScanConnection:Disconnect()
+            end
+            if getgenv().NPCHighlight.DescendantConnection then
+                getgenv().NPCHighlight.DescendantConnection:Disconnect()
+            end
+            
+            for npc, highlightData in pairs(getgenv().NPCHighlight.Table) do
+                RemoveNPCHighlight(npc)
+            end
+            
+            getgenv().NPCHighlight = nil
+        end
+        
+        
+        for _, descendant in pairs(Workspace:GetDescendants()) do
+            if descendant:IsA("Model") then
+                for _, child in ipairs(descendant:GetChildren()) do
+                    if child:IsA("Highlight") and child.Name == "NPCHighlight" then
+                        child:Destroy()
+                    end
                 end
             end
         end
@@ -812,12 +1053,10 @@ Toggle(Tab1, "透视NPC", false, function(Value)
         local NPCESPTable = {}
         
         local function IsNPC(model)
-            
             if not model:IsA("Model") then return false end
             
             local humanoid = model:FindFirstChildOfClass("Humanoid")
             if not humanoid then return false end
-            
             
             local isPlayer = false
             for _, player in pairs(game:GetService("Players"):GetPlayers()) do
@@ -833,73 +1072,39 @@ Toggle(Tab1, "透视NPC", false, function(Value)
         local function CreateNPCESP(npc)
             if NPCESPTable[npc] then return end
             
-            local humanoid = npc:FindFirstChildOfClass("Humanoid")
             local head = npc:FindFirstChild("Head") or npc:FindFirstChild("HumanoidRootPart")
-            if not humanoid or not head then return end
-            
+            if not head then return end
             
             local billboard = Instance.new("BillboardGui")
             billboard.Name = "NPCESP_" .. npc.Name
             billboard.Adornee = head
-            billboard.Size = UDim2.new(0, 250, 0, 60)
+            billboard.Size = UDim2.new(0, 150, 0, 30)
             billboard.StudsOffset = Vector3.new(0, 3, 0)
             billboard.AlwaysOnTop = true
             billboard.Parent = head
             
-            local frame = Instance.new("Frame")
-            frame.BackgroundColor3 = Color3.new(0.5, 0, 0.5)
-            frame.BackgroundTransparency = 0.2
-            frame.Size = UDim2.new(1, 0, 1, 0)
-            frame.Parent = billboard
-            
-            local uiCorner = Instance.new("UICorner")
-            uiCorner.CornerRadius = UDim.new(0, 5)
-            uiCorner.Parent = frame
-            
             local textLabel = Instance.new("TextLabel")
             textLabel.Size = UDim2.new(1, 0, 1, 0)
             textLabel.BackgroundTransparency = 1
-            textLabel.Text = "NPC: " .. npc.Name .. "\nHP: " .. math.floor(humanoid.Health)
+            textLabel.Text = npc.Name
             textLabel.TextColor3 = Color3.new(1, 1, 1)
             textLabel.TextStrokeTransparency = 0
-            textLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
-            textLabel.TextScaled = true
-            textLabel.Font = Enum.Font.GothamBold
-            textLabel.Parent = frame
-            
+            textLabel.TextSize = 14
+            textLabel.Font = Enum.Font.Gotham
+            textLabel.Parent = billboard
             
             local highlight = Instance.new("Highlight")
-            highlight.Name = "NPCHighlight_" .. npc.Name
-            highlight.FillColor = Color3.new(0.5, 0, 0.5) 
+            highlight.Name = "NPCESP_Highlight"
+            highlight.FillColor = Color3.new(0.5, 0, 0.5)
             highlight.FillTransparency = 0.7
             highlight.OutlineColor = Color3.new(1, 1, 1)
             highlight.OutlineTransparency = 0
             highlight.Adornee = npc
             highlight.Parent = npc
             
-            
-            local healthConnection = humanoid.HealthChanged:Connect(function()
-                if humanoid.Health <= 0 then
-                    RemoveNPCESP(npc)
-                else
-                    textLabel.Text = "NPC: " .. npc.Name .. "\nHP: " .. math.floor(humanoid.Health)
-                end
-            end)
-            
-            
-            local ancestryConnection
-            ancestryConnection = npc.AncestryChanged:Connect(function(_, parent)
-                if not parent then
-                    RemoveNPCESP(npc)
-                end
-            end)
-            
             NPCESPTable[npc] = {
                 Billboard = billboard,
-                Highlight = highlight,
-                HealthConnection = healthConnection,
-                AncestryConnection = ancestryConnection,
-                Humanoid = humanoid
+                Highlight = highlight
             }
         end
         
@@ -912,16 +1117,9 @@ Toggle(Tab1, "透视NPC", false, function(Value)
                 if espData.Highlight then
                     espData.Highlight:Destroy()
                 end
-                if espData.HealthConnection then
-                    espData.HealthConnection:Disconnect()
-                end
-                if espData.AncestryConnection then
-                    espData.AncestryConnection:Disconnect()
-                end
                 NPCESPTable[npc] = nil
             end
         end
-        
         
         local function ScanForNPCs()
             for _, descendant in pairs(Workspace:GetDescendants()) do
@@ -931,9 +1129,7 @@ Toggle(Tab1, "透视NPC", false, function(Value)
             end
         end
         
-        
         ScanForNPCs()
-        
         
         local scanConnection
         scanConnection = RunService.Heartbeat:Connect(function()
@@ -943,14 +1139,12 @@ Toggle(Tab1, "透视NPC", false, function(Value)
                 end
             end
             
-            
             for npc, espData in pairs(NPCESPTable) do
-                if not npc:IsDescendantOf(Workspace) or (espData.Humanoid and espData.Humanoid.Health <= 0) then
+                if not npc:IsDescendantOf(Workspace) then
                     RemoveNPCESP(npc)
                 end
             end
         end)
-        
         
         local descendantAddedConnection
         descendantAddedConnection = Workspace.DescendantAdded:Connect(function(descendant)
@@ -966,7 +1160,6 @@ Toggle(Tab1, "透视NPC", false, function(Value)
         }
         
     else
-        
         if getgenv().NPCESP then
             if getgenv().NPCESP.ScanConnection then
                 getgenv().NPCESP.ScanConnection:Disconnect()
@@ -982,18 +1175,315 @@ Toggle(Tab1, "透视NPC", false, function(Value)
             getgenv().NPCESP = nil
         end
         
-        
         for _, descendant in pairs(Workspace:GetDescendants()) do
             if descendant:IsA("Model") then
-                
                 for _, child in ipairs(descendant:GetDescendants()) do
                     if child:IsA("BillboardGui") and string.find(child.Name, "NPCESP_") then
                         child:Destroy()
                     end
+                    if child:IsA("Highlight") and child.Name == "NPCESP_Highlight" then
+                        child:Destroy()
+                    end
                 end
-                
+            end
+        end
+    end
+end)
+
+Toggle(Tab1, "透视敌方玩家", false, function(Value)
+    local Players = game:GetService("Players")
+    local LocalPlayer = Players.LocalPlayer
+    local ESPTable = {}
+
+    if Value then
+        local function IsEnemyPlayer(player)
+            if player == LocalPlayer then return false end
+            
+            local localTeam = LocalPlayer.Team
+            local playerTeam = player.Team
+            
+            
+            if not localTeam or not playerTeam or localTeam ~= playerTeam then
+                return true
+            end
+            
+            return false
+        end
+
+        local function CreateEnemyPlayerESP(player)
+            if ESPTable[player] or not IsEnemyPlayer(player) then return end
+            
+            local character = player.Character
+            if not character then return end
+            
+            local head = character:FindFirstChild("Head") or character:FindFirstChild("HumanoidRootPart")
+            if not head then return end
+            
+            local billboard = Instance.new("BillboardGui")
+            billboard.Name = "EnemyPlayerESP_" .. player.Name
+            billboard.Adornee = head
+            billboard.Size = UDim2.new(0, 150, 0, 30)
+            billboard.StudsOffset = Vector3.new(0, 3, 0)
+            billboard.AlwaysOnTop = true
+            billboard.Parent = head
+            
+            local textLabel = Instance.new("TextLabel")
+            textLabel.Size = UDim2.new(1, 0, 1, 0)
+            textLabel.BackgroundTransparency = 1
+            textLabel.Text = player.Name
+            textLabel.TextColor3 = Color3.new(1, 0, 0) 
+            textLabel.TextStrokeTransparency = 0
+            textLabel.TextSize = 14
+            textLabel.Font = Enum.Font.GothamBold
+            textLabel.Parent = billboard
+            
+            local highlight = Instance.new("Highlight")
+            highlight.Name = "EnemyPlayerHighlight"
+            highlight.FillColor = Color3.new(1, 0, 0)
+            highlight.FillTransparency = 0.7
+            highlight.OutlineColor = Color3.new(1, 1, 1)
+            highlight.OutlineTransparency = 0
+            highlight.Adornee = character
+            highlight.Parent = character
+            
+            ESPTable[player] = {
+                Billboard = billboard,
+                Highlight = highlight
+            }
+        end
+
+        local function RemoveEnemyPlayerESP(player)
+            local espData = ESPTable[player]
+            if espData then
+                if espData.Billboard then
+                    espData.Billboard:Destroy()
+                end
+                if espData.Highlight then
+                    espData.Highlight:Destroy()
+                end
+                ESPTable[player] = nil
+            end
+        end
+
+        local function UpdateEnemyPlayers()
+            for _, player in pairs(Players:GetPlayers()) do
+                if IsEnemyPlayer(player) then
+                    if not ESPTable[player] and player.Character then
+                        CreateEnemyPlayerESP(player)
+                    end
+                else
+                    if ESPTable[player] then
+                        RemoveEnemyPlayerESP(player)
+                    end
+                end
+            end
+        end
+
+        for _, player in pairs(Players:GetPlayers()) do
+            if IsEnemyPlayer(player) and player.Character then
+                CreateEnemyPlayerESP(player)
+            end
+            player.CharacterAdded:Connect(function()
+                if IsEnemyPlayer(player) then
+                    CreateEnemyPlayerESP(player)
+                end
+            end)
+        end
+        
+        Players.PlayerAdded:Connect(function(player)
+            player.CharacterAdded:Connect(function()
+                if IsEnemyPlayer(player) then
+                    CreateEnemyPlayerESP(player)
+                end
+            end)
+        end)
+        
+        local teamCheckConnection
+        teamCheckConnection = game:GetService("RunService").Heartbeat:Connect(function()
+            UpdateEnemyPlayers()
+        end)
+        
+        getgenv().EnemyPlayerESP = {
+            Table = ESPTable,
+            Connection = teamCheckConnection
+        }
+        
+    else
+        if getgenv().EnemyPlayerESP then
+            if getgenv().EnemyPlayerESP.Connection then
+                getgenv().EnemyPlayerESP.Connection:Disconnect()
+            end
+            
+            for player, espData in pairs(getgenv().EnemyPlayerESP.Table) do
+                RemoveEnemyPlayerESP(player)
+            end
+            
+            getgenv().EnemyPlayerESP = nil
+        end
+        
+        for _, player in pairs(Players:GetPlayers()) do
+            if player.Character then
+                local esp = player.Character:FindFirstChild("EnemyPlayerESP_" .. player.Name)
+                if esp then
+                    esp:Destroy()
+                end
+                local highlight = player.Character:FindFirstChild("EnemyPlayerHighlight")
+                if highlight then
+                    highlight:Destroy()
+                end
+            end
+        end
+    end
+end)
+
+Toggle(Tab1, "透视敌方NPC", false, function(Value)
+    local RunService = game:GetService("RunService")
+    local Workspace = game:GetService("Workspace")
+    
+    if Value then
+        local EnemyNPCESPTable = {}
+        
+        local function IsEnemyNPC(model)
+            if not model:IsA("Model") then return false end
+            
+            local humanoid = model:FindFirstChildOfClass("Humanoid")
+            if not humanoid then return false end
+            
+            local isPlayer = false
+            for _, player in pairs(game:GetService("Players"):GetPlayers()) do
+                if player.Character == model then
+                    isPlayer = true
+                    break
+                end
+            end
+            
+            if isPlayer then return false end
+            
+            
+            local localTeam = game.Players.LocalPlayer.Team
+            local npcTeam = model:FindFirstChild("Team") or model:FindFirstChildOfClass("Team")
+            
+            
+            if not localTeam or not npcTeam or localTeam ~= npcTeam then
+                return true
+            end
+            
+            return false
+        end
+        
+        local function CreateEnemyNPCESP(npc)
+            if EnemyNPCESPTable[npc] then return end
+            
+            local head = npc:FindFirstChild("Head") or npc:FindFirstChild("HumanoidRootPart")
+            if not head then return end
+            
+            local billboard = Instance.new("BillboardGui")
+            billboard.Name = "EnemyNPCESP_" .. npc.Name
+            billboard.Adornee = head
+            billboard.Size = UDim2.new(0, 150, 0, 30)
+            billboard.StudsOffset = Vector3.new(0, 3, 0)
+            billboard.AlwaysOnTop = true
+            billboard.Parent = head
+            
+            local textLabel = Instance.new("TextLabel")
+            textLabel.Size = UDim2.new(1, 0, 1, 0)
+            textLabel.BackgroundTransparency = 1
+            textLabel.Text = npc.Name
+            textLabel.TextColor3 = Color3.new(1, 0, 0)
+            textLabel.TextStrokeTransparency = 0
+            textLabel.TextSize = 14
+            textLabel.Font = Enum.Font.Gotham
+            textLabel.Parent = billboard
+            
+            local highlight = Instance.new("Highlight")
+            highlight.Name = "EnemyNPCHighlight"
+            highlight.FillColor = Color3.new(1, 0, 0)
+            highlight.FillTransparency = 0.7
+            highlight.OutlineColor = Color3.new(1, 1, 1)
+            highlight.OutlineTransparency = 0
+            highlight.Adornee = npc
+            highlight.Parent = npc
+            
+            EnemyNPCESPTable[npc] = {
+                Billboard = billboard,
+                Highlight = highlight
+            }
+        end
+        
+        local function RemoveEnemyNPCESP(npc)
+            local espData = EnemyNPCESPTable[npc]
+            if espData then
+                if espData.Billboard then
+                    espData.Billboard:Destroy()
+                end
+                if espData.Highlight then
+                    espData.Highlight:Destroy()
+                end
+                EnemyNPCESPTable[npc] = nil
+            end
+        end
+        
+        local function ScanForEnemyNPCs()
+            for _, descendant in pairs(Workspace:GetDescendants()) do
+                if IsEnemyNPC(descendant) then
+                    CreateEnemyNPCESP(descendant)
+                end
+            end
+        end
+        
+        ScanForEnemyNPCs()
+        
+        local scanConnection
+        scanConnection = RunService.Heartbeat:Connect(function()
+            for _, descendant in pairs(Workspace:GetDescendants()) do
+                if IsEnemyNPC(descendant) and not EnemyNPCESPTable[descendant] then
+                    CreateEnemyNPCESP(descendant)
+                end
+            end
+            
+            for npc, espData in pairs(EnemyNPCESPTable) do
+                if not npc:IsDescendantOf(Workspace) or not IsEnemyNPC(npc) then
+                    RemoveEnemyNPCESP(npc)
+                end
+            end
+        end)
+        
+        local descendantAddedConnection
+        descendantAddedConnection = Workspace.DescendantAdded:Connect(function(descendant)
+            if IsEnemyNPC(descendant) then
+                CreateEnemyNPCESP(descendant)
+            end
+        end)
+        
+        getgenv().EnemyNPCESP = {
+            Table = EnemyNPCESPTable,
+            ScanConnection = scanConnection,
+            DescendantConnection = descendantAddedConnection
+        }
+        
+    else
+        if getgenv().EnemyNPCESP then
+            if getgenv().EnemyNPCESP.ScanConnection then
+                getgenv().EnemyNPCESP.ScanConnection:Disconnect()
+            end
+            if getgenv().EnemyNPCESP.DescendantConnection then
+                getgenv().EnemyNPCESP.DescendantConnection:Disconnect()
+            end
+            
+            for npc, espData in pairs(getgenv().EnemyNPCESP.Table) do
+                RemoveEnemyNPCESP(npc)
+            end
+            
+            getgenv().EnemyNPCESP = nil
+        end
+        
+        for _, descendant in pairs(Workspace:GetDescendants()) do
+            if descendant:IsA("Model") then
                 for _, child in ipairs(descendant:GetDescendants()) do
-                    if child:IsA("Highlight") and string.find(child.Name, "NPCHighlight_") then
+                    if child:IsA("BillboardGui") and string.find(child.Name, "EnemyNPCESP_") then
+                        child:Destroy()
+                    end
+                    if child:IsA("Highlight") and string.find(child.Name, "EnemyNPCHighlight") then
                         child:Destroy()
                     end
                 end
@@ -1362,112 +1852,6 @@ Toggle(Tab1, "透视线条", false, function(Value)
     end
 end)
 
-Toggle(Tab1, "距离显示", false, function(Value)
-    local Players = game:GetService("Players")
-    local LocalPlayer = Players.LocalPlayer
-    local RunService = game:GetService("RunService")
-    local DistanceTable = {}
-
-    if Value then
-        local function CreateDistanceDisplay(player)
-            if DistanceTable[player] then return end
-            
-            local character = player.Character
-            if not character then return end
-            
-            local head = character:FindFirstChild("Head")
-            if not head then return end
-            
-            
-            local billboard = Instance.new("BillboardGui")
-            billboard.Name = "DistanceDisplay_" .. player.Name
-            billboard.Adornee = head
-            billboard.Size = UDim2.new(0, 80, 0, 20)
-            billboard.StudsOffset = Vector3.new(0, 2, 0)
-            billboard.AlwaysOnTop = true
-            billboard.Parent = head
-            
-            local textLabel = Instance.new("TextLabel")
-            textLabel.Size = UDim2.new(1, 0, 1, 0)
-            textLabel.BackgroundTransparency = 1
-            textLabel.Text = "0m"
-            textLabel.TextColor3 = Color3.new(1, 1, 1)
-            textLabel.TextStrokeTransparency = 0
-            textLabel.TextScaled = true
-            textLabel.Font = Enum.Font.GothamBold
-            textLabel.Parent = billboard
-            
-            DistanceTable[player] = {
-                Billboard = billboard,
-                TextLabel = textLabel
-            }
-        end
-
-        local function UpdateDistance()
-            for player, espData in pairs(DistanceTable) do
-                if player.Character and player.Character:FindFirstChild("Head") and 
-                   LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                   
-                    local distance = (player.Character.Head.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
-                    espData.TextLabel.Text = string.format("%.1fm", distance)
-                end
-            end
-        end
-        
-        
-        for _, player in pairs(Players:GetPlayers()) do
-            if player ~= LocalPlayer then
-                if player.Character then
-                    CreateDistanceDisplay(player)
-                end
-                player.CharacterAdded:Connect(function()
-                    CreateDistanceDisplay(player)
-                end)
-            end
-        end
-        
-        
-        Players.PlayerAdded:Connect(function(player)
-            player.CharacterAdded:Connect(function()
-                CreateDistanceDisplay(player)
-            end)
-        end)
-        
-        
-        local connection = RunService.Heartbeat:Connect(UpdateDistance)
-        
-        getgenv().DistanceESP = {
-            Table = DistanceTable,
-            Connection = connection
-        }
-        
-    else
-        
-        if getgenv().DistanceESP then
-            if getgenv().DistanceESP.Connection then
-                getgenv().DistanceESP.Connection:Disconnect()
-            end
-            
-            for player, espData in pairs(getgenv().DistanceESP.Table) do
-                if espData and espData.Billboard then
-                    espData.Billboard:Destroy()
-                end
-            end
-            
-            getgenv().DistanceESP = nil
-        end
-        
-        
-        for _, player in pairs(Players:GetPlayers()) do
-            if player.Character then
-                local distanceDisplay = player.Character:FindFirstChild("DistanceDisplay_" .. player.Name)
-                if distanceDisplay then
-                    distanceDisplay:Destroy()
-                end
-            end
-        end
-    end
-end)
 Toggle(Tab1, "距离显示", false, function(Value)
     local Players = game:GetService("Players")
     local LocalPlayer = Players.LocalPlayer
