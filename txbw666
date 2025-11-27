@@ -1,3 +1,249 @@
+do
+    local ProtectionSystem = {
+        _enabled = true,
+        _hooks = {}
+    }
+
+    function ProtectionSystem:Initialize()
+        self:PreventKicks()
+        self:HookMetamethods()
+        self:FilterRemotes()
+        self:DisguiseEnvironment()
+        self:DisruptScans()
+        self:SpoofFingerprint()
+        self:CreateDecoys()
+        self:ObfuscateExecution()
+    end
+
+    function ProtectionSystem:PreventKicks()
+        if game.Players.LocalPlayer then
+            local player = game.Players.LocalPlayer
+            local oldKick = player.Kick
+            player.Kick = function(self, ...)
+                return nil
+            end
+        end
+    end
+
+    function ProtectionSystem:HookMetamethods()
+        local gameMt = getrawmetatable(game)
+        if gameMt then
+            setreadonly(gameMt, false)
+            
+            self._hooks.oldNamecall = gameMt.__namecall
+            gameMt.__namecall = newcclosure(function(self, ...)
+                local method = getnamecallmethod()
+                local args = {...}
+                
+                if method == "Kick" or method == "kick" then
+                    return nil
+                end
+                
+                if method == "FireServer" or method == "InvokeServer" then
+                    local remoteName = tostring(self)
+                    if string.find(remoteName:lower(), "anti") or 
+                       string.find(remoteName:lower(), "cheat") or 
+                       string.find(remoteName:lower(), "detect") then
+                        return nil
+                    end
+                end
+                
+                return self._hooks.oldNamecall(self, ...)
+            end)
+            
+            setreadonly(gameMt, true)
+        end
+    end
+
+    function ProtectionSystem:FilterRemotes()
+        local rs = game:GetService("ReplicatedStorage")
+        local remoteEventMT = getrawmetatable(rs)
+        
+        if remoteEventMT then
+            local oldNamecall = remoteEventMT.__namecall
+            setreadonly(remoteEventMT, false)
+            
+            remoteEventMT.__namecall = newcclosure(function(self, ...)
+                local method = getnamecallmethod()
+                
+                if method == "FireServer" or method == "InvokeServer" then
+                    local remoteName = tostring(self)
+                    local blockedPatterns = {
+                        "anti", "cheat", "detect", "report", "scan", "security",
+                        "validation", "verify", "check", "kick", "ban"
+                    }
+                    
+                    for _, pattern in ipairs(blockedPatterns) do
+                        if string.find(remoteName:lower(), pattern) then
+                            return nil
+                        end
+                    end
+                end
+                
+                return oldNamecall(self, ...)
+            end)
+            
+            setreadonly(remoteEventMT, true)
+        end
+    end
+
+    function ProtectionSystem:DisguiseEnvironment()
+        local originalG = _G
+        local fakeEnvironment = {}
+        
+        for k, v in pairs(originalG) do
+            fakeEnvironment[k] = v
+        end
+        
+        fakeEnvironment.checkInjector = function() return false end
+        fakeEnvironment.isScriptRunning = function() return false end
+        fakeEnvironment.detectExploit = function() return "clean" end
+        
+        if setfenv then
+            local originalSetfenv = setfenv
+            setfenv = function(f, env)
+                if env == _G then
+                    return originalSetfenv(f, fakeEnvironment)
+                end
+                return originalSetfenv(f, env)
+            end
+        end
+    end
+
+    function ProtectionSystem:DisruptScans()
+        spawn(function()
+            while self._enabled do
+                local fakePart = Instance.new("Part")
+                fakePart.Name = "SurfaceGui"
+                fakePart.Parent = workspace
+                wait(0.1)
+                pcall(function() fakePart:Destroy() end)
+                wait(math.random(5, 10))
+            end
+        end)
+    end
+
+    function ProtectionSystem:SpoofFingerprint()
+        local players = game:GetService("Players")
+        local localPlayer = players.LocalPlayer
+        
+        if localPlayer then
+            local originalGetJoinData = localPlayer.GetJoinData
+            localPlayer.GetJoinData = function(self)
+                local realData = originalGetJoinData(self)
+                if realData and realData.ClientId then
+                    realData.ClientId = "0"
+                end
+                return realData
+            end
+        end
+    end
+
+    function ProtectionSystem:CreateDecoys()
+        local decoyNames = {
+            "CoreScript", "PlayerScript", "CameraScript", 
+            "ControlScript", "CharacterScript", "UIScript"
+        }
+        
+        for _, name in pairs(decoyNames) do
+            local fakeScript = Instance.new("LocalScript")
+            fakeScript.Name = name
+            fakeScript.Source = "print('正常脚本')"
+            fakeScript.Parent = game:GetService("Players").LocalPlayer.PlayerScripts
+        end
+    end
+
+    function ProtectionSystem:ObfuscateExecution()
+        local originalWait = wait
+        _G.wait = function(time)
+            local adjustedTime = time or 0.03
+            if adjustedTime > 0.5 then
+                adjustedTime = adjustedTime * (0.8 + math.random() * 0.4)
+            end
+            return originalWait(adjustedTime)
+        end
+
+        local originalTick = tick
+        _G.tick = function()
+            return originalTick() + (math.random(-10, 10) / 1000)
+        end
+    end
+
+    pcall(function()
+        ProtectionSystem:Initialize()
+    end)
+end
+
+
+
+local function SafeExecute(mainFunction)
+    local success, err = pcall(function()
+        mainFunction()
+    end)
+    
+    if not success then
+        warn("脚本执行失败: " .. tostring(err))
+        
+        local retrySuccess = pcall(function()
+            wait(2)
+            mainFunction()
+        end)
+        
+        if not retrySuccess then
+            game:GetService("StarterGui"):SetCore("SendNotification", {
+                Title = "脚本错误",
+                Text = "无法加载脚本，请重试",
+                Duration = 5,
+            })
+        end
+    end
+end
+
+
+local function SafeHttpGet(url, retries)
+    retries = retries or 3
+    local attempt = 0
+    
+    while attempt < retries do
+        local success, result = pcall(function()
+            return game:HttpGet(url, true)
+        end)
+        
+        if success then
+            return result
+        end
+        
+        attempt = attempt + 1
+        if attempt < retries then
+            wait(1)
+        end
+    end
+    
+    error("HTTP请求失败: " .. url)
+end
+
+
+local function SafeLoadstring(code, context)
+    local success, result = pcall(function()
+        return loadstring(code)
+    end)
+    
+    if success then
+        local execSuccess, execResult = pcall(result)
+        if execSuccess then
+            return execResult
+        else
+            warn("执行失败: " .. tostring(execResult))
+        end
+    else
+        warn("加载失败: " .. tostring(result))
+    end
+    
+    return nil
+end
+
+
+local function Main()
 local DyzhUi = Instance.new('ScreenGui')
 DyzhUi.Name = 'DyzhUi'
 DyzhUi.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
@@ -191,7 +437,7 @@ wait(1)
 Frame1:TweenPosition(UDim2.new(0.5, 0, -3, 0), "Out", "Quad", 1)
 Background:TweenPosition(UDim2.new(0, 0, -3, 0), "Out", "Quad", 1)
 
-task.wait(1.25)
+task.wait(1.2)
 
 
 print("Anti Afk On")
@@ -221,12 +467,13 @@ local sound = Instance.new("Sound")
      sound:Play()
 
 local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
+
 local Window = WindUI:CreateWindow({
-    Title = "混脚本--首页 QQ群：1043213309",
+    Title = "混脚本--首页 QQ群：1043213309",
     Icon = "door-open",
     Author = "司空,WBTX 制作",
     Folder = "CloudHub",
-    Size = UDim2.fromOffset(560, 360),
+    Size = UDim2.fromOffset(500, 300),
     Transparent = true,
     Theme = "Dark",
     Background = "rbxassetid://129429398197953",
@@ -309,23 +556,23 @@ local Tab25 = Tab("偷走脑红")
 local Tab26 = Tab("死铁轨")
 local Tab27 = Tab("河北唐县")
 
-Button(Tab1, "复制QQ群1043213309", function()
+Button(Tab1, "复制QQ群1043213309", function()
     setclipboard("1043213309")
 end)
 
-Button(Tab1, "复制用户ID", function()
+Button(Tab1, "复制用户ID", function()
     setclipboard(game:GetService("Players").LocalPlayer.UserId)
 end)
 
-Button(Tab1, "复制服务器名称", function()
+Button(Tab1, "复制服务器名称", function()
     setclipboard(game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name)
 end)
 
-Button(Tab1, "复制注册时间", function()
+Button(Tab1, "复制注册时间", function()
     setclipboard(game:GetService("Players").LocalPlayer.AccountAge)
 end)
 
-Button(Tab1, "测试注入器UNC", function()
+Button(Tab1, "测试注入器UNC(聊天框输入：/console 查看)", function()
     Window:Dialog({
         Title = "HUNHUB",
         Content = "请勿多次点击，否则会造成游戏卡顿!",
@@ -348,6 +595,34 @@ Slider(Tab1, "移动速度", 1, 600, game.Players.LocalPlayer.Character.Humanoid
         game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = a
 end)
 
+local forceSpeedEnabled = false
+local speedConnection = nil
+local targetSpeed = 16
+
+Slider(Tab1, "强制移动速度", 1, 100, 16, function(value)
+    targetSpeed = value
+    if game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("Humanoid") then
+        game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = value
+    end
+end)
+
+Toggle(Tab1, "启用强制速度", false, function(state)
+    forceSpeedEnabled = state
+    if state then
+        if speedConnection then
+            speedConnection:Disconnect()
+        end
+        speedConnection = game:GetService("RunService").Heartbeat:Connect(function()
+            if game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("Humanoid") then
+                game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = targetSpeed
+            end
+        end)
+    elseif speedConnection then
+        speedConnection:Disconnect()
+        speedConnection = nil
+    end
+end)
+
 Slider(Tab1, "跳跃高度", 1, 600, game.Players.LocalPlayer.Character.Humanoid.JumpPower, function(a) 
         game.Players.LocalPlayer.Character.Humanoid.JumpPower = a
 end)
@@ -356,12 +631,18 @@ Slider(Tab1, "重力设置", 1, 500, workspace.Gravity, function(a)
         workspace.Gravity = a
 end)
 
-Slider(Tab1, "视野缩放距离", 1, 1500, game:GetService("Players").LocalPlayer.CameraMaxZoomDistance, function(a) 
-    game:GetService("Players").LocalPlayer.CameraMaxZoomDistance = a
+Slider(Tab1, "视野缩放距离", 0, 2500, game:GetService("Players").LocalPlayer.CameraMaxZoomDistance, function(value)
+    game:GetService("Players").LocalPlayer.CameraMaxZoomDistance = value
+    _G.CameraZoomConnection = game:GetService("RunService").Heartbeat:Connect(function()
+        game:GetService("Players").LocalPlayer.CameraMaxZoomDistance = value
+    end)
 end)
 
-Slider(Tab1, "广角", 1, 240, Workspace.CurrentCamera.FieldOfView, function(a)
-    Workspace.CurrentCamera.FieldOfView= a
+local fovValue = workspace.CurrentCamera.FieldOfView
+
+Slider(Tab1, "广角设置", 1, 120, fovValue, function(value)
+    fovValue = value
+    workspace.CurrentCamera.FieldOfView = value
 end)
 
 Input(Tab1, "设置血量", "输入血量值 (0-999999999)", "", "例如: 100", function(value)
@@ -548,12 +829,88 @@ Button(Tab1, "禁用Jump Power", function()
     WindUI:Notify({Title = "Jump Power", Content = "已禁用"})
 end)
 
+local downloadInput = Input(Tab1, "下载文件URL", "输入文件下载链接", "", "例如: https://raw.githubusercontent.com/xxxxx(其他的链接也可以)", function(url)
+    
+end)
+
+Button(Tab1, "下载文件", function()
+    local url = downloadInput.Value
+    if url == "" or url == nil then
+        WindUI:Notify({
+            Title = "下载失败",
+            Content = "请输入有效的URL",
+            Duration = 5
+        })
+        return
+    end
+    
+    
+    if string.find(url:lower(), "loadstring") and string.find(url:lower(), "game:httpget") then
+        WindUI:Notify({
+            Title = "下载失败",
+            Content = "URL格式错误",
+            Duration = 5
+        })
+        return
+    end
+    
+    
+    local success, content = pcall(function()
+        return game:HttpGet(url)
+    end)
+    
+    if success and content then
+        
+        local filename = "downloaded_file(您下载的文件).txt"
+        local lastSlash = string.match(url, "([^/]+)$")
+        if lastSlash then
+            filename = lastSlash
+            
+            filename = string.gsub(filename, "%?.*", "")
+        end
+        
+        
+        local writeSuccess, writeError = pcall(function()
+            writefile(filename, content)
+        end)
+        
+        if writeSuccess then
+            WindUI:Notify({
+                Title = "下载成功",
+                Content = "文件已保存: " .. filename,
+                Duration = 5
+            })
+            
+            
+            wait(3)
+            
+            WindUI:Notify({
+                Title = "文件位置提示",
+                Content = "文件保存在脚本工作目录下的: " .. filename .. "\n请查看执行器的文件管理器",
+                Duration = 8
+            })
+        else
+            WindUI:Notify({
+                Title = "下载失败",
+                Content = "文件保存失败: " .. tostring(writeError),
+                Duration = 5
+            })
+        end
+    else
+        WindUI:Notify({
+            Title = "下载失败",
+            Content = "无法从URL获取内容: " .. tostring(content),
+            Duration = 5
+        })
+    end
+end)
+
 Button(Tab1, "提升fps", function() 
         loadstring(game:HttpGet("https://raw.githubusercontent.com/smalldesikon/hun/ee906e570c0f5b22e580a20decaba23757533569/fps"))()
 end)
 
 Button(Tab1, "好用隐身", function() 
-    loadstring(game:HttpGet('https://pastebin.com/raw/3Rnd9rHf'))()
+    loadstring(game:HttpGet("https://pastebin.com/raw/3Rnd9rHf"))()
 end)
 
 Toggle(Tab1, "无限跳(可开关)", false, function(Value)
@@ -622,6 +979,39 @@ runService.Heartbeat:Connect(function()
 end)
 end)
 
+Toggle(Tab1, "穿墙模式", false, function(state)
+    _G.noclip = state
+    
+    if state then
+        if not game:GetService('Players').LocalPlayer.Character:FindFirstChild("LowerTorso") then
+            local connection = game:GetService("RunService").Stepped:Connect(function()
+                if not _G.noclip then connection:Disconnect() return end
+                game.Players.LocalPlayer.Character.Head.CanCollide = false
+                game.Players.LocalPlayer.Character.Torso.CanCollide = false
+            end)
+        else
+            if _G.InitNC ~= true then
+                _G.NCFunc = function(part)
+                    local pos = game:GetService('Players').LocalPlayer.Character.LowerTorso.Position.Y
+                    if _G.noclip and part.Position.Y > pos then
+                        part.CanCollide = false
+                    end
+                end
+                _G.InitNC = true
+            end
+            game:GetService('Players').LocalPlayer.Character.Humanoid.Touched:Connect(_G.NCFunc)
+        end
+    else
+        if game.Players.LocalPlayer.Character then
+            for _, part in pairs(game.Players.LocalPlayer.Character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = true
+                end
+            end
+        end
+    end
+end)
+
 Toggle(Tab1, "夜视", false, function(a)
         if a then
             game.Lighting.Ambient = Color3.new(1, 1, 1)
@@ -662,7 +1052,45 @@ end
 end
 end)
 
-Button(Tab1, "关闭所有透视", function()
+Button(Tab1, "通用透视1(关不掉)", function() 
+    while wait(1) do
+local players = game.Players:GetPlayers()
+
+for i,v in pairs(players) do
+ local esp = Instance.new("Highlight")
+ esp.Name = v.Name
+ esp.FillTransparency = 0.5
+ esp.FillColor = Color3.new(0, 0, 0)
+ esp.OutlineColor = Color3.new(255, 255, 255)
+ esp.OutlineTransparency = 0
+ esp.Parent = v.Character
+end
+end
+end)
+
+Button(Tab1, "通用透视2", function() 
+    local getnamecallmethod
+= getnamecallmethod
+local Speaker = cloneref(game:GetService("Players")).LocalPlayer
+local OldNameCall
+OldNameCall = hookmetamethod(game, "__namecall", function(self, ...)
+if self ~= Speaker or getnamecallmethod() ~= "IsInGroup" then
+return OldNameCall(self, ...)
+end
+return true
+end)
+hookfunction(Speaker.IsInGroup, function(self, ...)
+return true
+end)
+    
+    loadstring(game:GetObjects("rbxassetid://10092697033")[1].Source)()
+end)
+
+Button(Tab1, "↓↓以下的透视有bug↓↓", function() 
+    
+end)
+
+Button(Tab1, "关闭所有透视(关不了上面的透视)", function()
     if getgenv().HealthBarESP then
         for player, espData in pairs(getgenv().HealthBarESP) do
             if espData and espData.Billboard then
@@ -921,11 +1349,15 @@ Toggle(Tab1, "血量条显示", false, function(Value)
             local character = player.Character
             if not character then return end
             
-            local humanoid = character:FindFirstChildOfClass("Humanoid")
-            if not humanoid then return end
+            local humanoid = character:WaitForChild("Humanoid", 5)
+            local head = character:WaitForChild("Head", 5)
             
-            local head = character:FindFirstChild("Head")
-            if not head then return end
+            if not humanoid or not head then return end
+            
+            
+            if head:FindFirstChild("HealthBar_" .. player.Name) then
+                head:FindFirstChild("HealthBar_" .. player.Name):Destroy()
+            end
             
             local billboard = Instance.new("BillboardGui")
             billboard.Name = "HealthBar_" .. player.Name
@@ -933,12 +1365,14 @@ Toggle(Tab1, "血量条显示", false, function(Value)
             billboard.Size = UDim2.new(0, 80, 0, 15)
             billboard.StudsOffset = Vector3.new(0, 2.5, 0)
             billboard.AlwaysOnTop = true
+            billboard.ResetOnSpawn = false
             billboard.Parent = head
             
             local background = Instance.new("Frame")
             background.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
             background.BackgroundTransparency = 0.3
             background.Size = UDim2.new(1, 0, 1, 0)
+            background.BorderSizePixel = 0
             background.Parent = billboard
             
             local healthBar = Instance.new("Frame")
@@ -950,7 +1384,7 @@ Toggle(Tab1, "血量条显示", false, function(Value)
             local healthText = Instance.new("TextLabel")
             healthText.Size = UDim2.new(1, 0, 1, 0)
             healthText.BackgroundTransparency = 1
-            healthText.Text = math.floor(humanoid.Health)
+            healthText.Text = tostring(math.floor(humanoid.Health))
             healthText.TextColor3 = Color3.new(1, 1, 1)
             healthText.TextStrokeTransparency = 0
             healthText.TextSize = 12
@@ -964,9 +1398,25 @@ Toggle(Tab1, "血量条显示", false, function(Value)
                 Humanoid = humanoid
             }
             
-            humanoid.HealthChanged:Connect(function()
+            
+            local healthConnection
+            healthConnection = humanoid.HealthChanged:Connect(function()
                 UpdateHealthBar(player)
             end)
+            
+            
+            local characterRemovingConnection
+            characterRemovingConnection = player.CharacterRemoving:Connect(function()
+                if ESPTable[player] then
+                    RemoveHealthBar(player)
+                end
+            end)
+            
+            
+            ESPTable[player].Connections = {
+                HealthChanged = healthConnection,
+                CharacterRemoving = characterRemovingConnection
+            }
         end
 
         local function UpdateHealthBar(player)
@@ -981,61 +1431,89 @@ Toggle(Tab1, "血量条显示", false, function(Value)
             
             local healthPercent = humanoid.Health / humanoid.MaxHealth
             espData.HealthBar.Size = UDim2.new(healthPercent, 0, 1, 0)
-            espData.HealthText.Text = math.floor(humanoid.Health)
+            espData.HealthText.Text = tostring(math.floor(humanoid.Health))
+            
             
             if healthPercent > 0.7 then
-                espData.HealthBar.BackgroundColor3 = Color3.new(0, 1, 0)
+                espData.HealthBar.BackgroundColor3 = Color3.new(0, 1, 0) -- 绿色
             elseif healthPercent > 0.3 then
-                espData.HealthBar.BackgroundColor3 = Color3.new(1, 1, 0)
+                espData.HealthBar.BackgroundColor3 = Color3.new(1, 1, 0) -- 黄色
             else
-                espData.HealthBar.BackgroundColor3 = Color3.new(1, 0, 0)
+                espData.HealthBar.BackgroundColor3 = Color3.new(1, 0, 0) -- 红色
             end
         end
 
         local function RemoveHealthBar(player)
             local espData = ESPTable[player]
-            if espData and espData.Billboard then
-                espData.Billboard:Destroy()
+            if espData then
+                
+                if espData.Connections then
+                    for _, connection in pairs(espData.Connections) do
+                        if connection then
+                            connection:Disconnect()
+                        end
+                    end
+                end
+                
+                
+                if espData.Billboard and espData.Billboard.Parent then
+                    espData.Billboard:Destroy()
+                end
+                
+                ESPTable[player] = nil
             end
-            ESPTable[player] = nil
         end
 
+        
         for _, player in pairs(Players:GetPlayers()) do
             if player ~= LocalPlayer then
                 if player.Character then
-                    CreateHealthBar(player)
+                    coroutine.wrap(CreateHealthBar)(player)
                 end
-                player.CharacterAdded:Connect(function()
+                player.CharacterAdded:Connect(function(character)
+                    wait(1)
                     CreateHealthBar(player)
                 end)
             end
         end
         
+        
         Players.PlayerAdded:Connect(function(player)
-            player.CharacterAdded:Connect(function()
+            player.CharacterAdded:Connect(function(character)
+                wait(1)
                 CreateHealthBar(player)
             end)
+        end)
+        
+        
+        Players.PlayerRemoving:Connect(function(player)
+            if ESPTable[player] then
+                RemoveHealthBar(player)
+            end
         end)
         
         getgenv().HealthBarESP = ESPTable
         
     else
-        if getgenv().HealthBarESP then
-            for player, espData in pairs(getgenv().HealthBarESP) do
-                if espData and espData.Billboard then
-                    espData.Billboard:Destroy()
-                end
-            end
-            getgenv().HealthBarESP = nil
+        
+        for player, espData in pairs(ESPTable) do
+            RemoveHealthBar(player)
         end
         
+        
         for _, player in pairs(Players:GetPlayers()) do
-            if player.Character then
-                local healthBar = player.Character:FindFirstChild("HealthBar_" .. player.Name)
+            if player.Character and player.Character:FindFirstChild("Head") then
+                local head = player.Character.Head
+                local healthBar = head:FindFirstChild("HealthBar_" .. player.Name)
                 if healthBar then
                     healthBar:Destroy()
                 end
             end
+        end
+        
+        table.clear(ESPTable)
+        if getgenv().HealthBarESP then
+            getgenv().HealthBarESP = nil
         end
     end
 end)
@@ -2386,63 +2864,6 @@ Toggle(Tab1, "透视手中物品", false, function(Value)
     end
 end)
 
-Toggle(Tab1, "视野穿墙", false, function(Value)
-    if Value then
-        
-        getgenv().OriginalCameraProperties = {
-            CameraType = workspace.CurrentCamera.CameraType,
-            CameraSubject = workspace.CurrentCamera.CameraSubject
-        }
-        
-        
-        local function setupWallhackCamera()
-            
-            workspace.CurrentCamera.CameraType = Enum.CameraType.Scriptable
-            
-            
-            local wallhackConnection
-            wallhackConnection = game:GetService("RunService").RenderStepped:Connect(function()
-                if not Value then
-                    wallhackConnection:Disconnect()
-                    return
-                end
-                
-                local character = game.Players.LocalPlayer.Character
-                if character and character:FindFirstChild("HumanoidRootPart") then
-                    local rootPart = character.HumanoidRootPart
-                    local head = character:FindFirstChild("Head")
-                    
-                    if head then
-                    
-                        local offset = rootPart.CFrame.LookVector * 5 + Vector3.new(0, 2, 0)
-                        local cameraPosition = rootPart.Position + offset
-                        
-                        workspace.CurrentCamera.CFrame = CFrame.new(cameraPosition, rootPart.Position)
-                    end
-                end
-            end)
-            
-            getgenv().WallhackConnection = wallhackConnection
-        end
-        
-        setupWallhackCamera()
-        
-    else
-        
-        if getgenv().OriginalCameraProperties then
-            workspace.CurrentCamera.CameraType = getgenv().OriginalCameraProperties.CameraType
-            workspace.CurrentCamera.CameraSubject = getgenv().OriginalCameraProperties.CameraSubject
-            getgenv().OriginalCameraProperties = nil
-        end
-        
-        
-        if getgenv().WallhackConnection then
-            getgenv().WallhackConnection:Disconnect()
-            getgenv().WallhackConnection = nil
-        end
-    end
-end)
-
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
@@ -2759,17 +3180,7 @@ Button(Tab1, "点击传送工具", function()
                 tool.Parent = game.Players.LocalPlayer.Backpack
 end)
 
-Toggle(Tab1, "穿墙", false, function(a)
-    pcall(function()
-        for i, v in pairs(game.Players.LocalPlayer.Character:GetChildren()) do
-            if v:IsA("BasePart") then
-                v.CanCollide = not a
-            end
-        end
-    end)
-end)
-
-Button(Tab1, "玩家进入游戏，退出游戏通知", function() 
+Button(Tab1, "玩家进入游戏 退出游戏通知", function() 
     loadstring(game:HttpGet("https://raw.githubusercontent.com/boyscp/scriscriptsc/main/bbn.lua"))()
 end)
 
@@ -2791,10 +3202,6 @@ end)
 
 Button(Tab1, "摔落无伤害(可创飞人)", function() 
         loadstring(game:HttpGet("http://rawscripts.net/raw/Universal-Script-Touch-fling-script-22447"))()
-end)
-
-Button(Tab1, "玩家加入游戏提示", function() 
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/boyscp/scriscriptsc/main/bbn.lua"))()
 end)
 
 Button(Tab1, "飞车(by皮空)", function() 
@@ -2823,6 +3230,99 @@ end)
 
 Button(Tab1, "fenny甩飞gui", function() 
     loadstring(game:HttpGet("https://raw.githubusercontent.com/ke9460394-dot/ugik/refs/heads/main/fe-flinger-gui-works-anywhere_1756291955889_SwfaGHMWsT.txt"))()
+end)
+
+local AntiFlingEnabled = false
+local AntiFlingConnections = {}
+
+Toggle(Tab1, "防甩飞", false, function(Value)
+    AntiFlingEnabled = Value
+    
+    if Value then
+        
+        local Services = setmetatable({}, {__index = function(Self, Index)
+            local NewService = game.GetService(game, Index)
+            if NewService then
+                Self[Index] = NewService
+            end
+            return NewService
+        end})
+
+        local LocalPlayer = Services.Players.LocalPlayer
+
+        local function PlayerAdded(Player)
+            local Detected = false
+            local Character
+            local PrimaryPart
+
+            local function CharacterAdded(NewCharacter)
+                Character = NewCharacter
+                repeat
+                    wait()
+                    PrimaryPart = NewCharacter:FindFirstChild("HumanoidRootPart")
+                until PrimaryPart
+                Detected = false
+            end
+
+            CharacterAdded(Player.Character or Player.CharacterAdded:Wait())
+            local charAddedConn = Player.CharacterAdded:Connect(CharacterAdded)
+            
+            local heartbeatConn = Services.RunService.Heartbeat:Connect(function()
+                if not AntiFlingEnabled then return end
+                
+                if (Character and Character:IsDescendantOf(workspace)) and (PrimaryPart and PrimaryPart:IsDescendantOf(Character)) then
+                    if PrimaryPart.AssemblyAngularVelocity.Magnitude > 50 or PrimaryPart.AssemblyLinearVelocity.Magnitude > 100 then
+                        Detected = true
+                        for i,v in ipairs(Character:GetDescendants()) do
+                            if v:IsA("BasePart") then
+                                v.CanCollide = false
+                                v.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+                                v.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+                                v.CustomPhysicalProperties = PhysicalProperties.new(0, 0, 0)
+                            end
+                        end
+                        PrimaryPart.CanCollide = false
+                        PrimaryPart.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+                        PrimaryPart.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+                        PrimaryPart.CustomPhysicalProperties = PhysicalProperties.new(0, 0, 0)
+                    end
+                end
+            end)
+            
+            
+            AntiFlingConnections[Player] = {
+                CharacterAdded = charAddedConn,
+                Heartbeat = heartbeatConn
+            }
+        end
+
+        for i,v in ipairs(Services.Players:GetPlayers()) do
+            if v ~= LocalPlayer then
+                PlayerAdded(v)
+            end
+        end
+        
+        local playerAddedConn = Services.Players.PlayerAdded:Connect(PlayerAdded)
+        AntiFlingConnections.Global = {PlayerAdded = playerAddedConn}
+        
+    else
+        
+        for player, connections in pairs(AntiFlingConnections) do
+            if player == "Global" then
+                if connections.PlayerAdded then
+                    connections.PlayerAdded:Disconnect()
+                end
+            else
+                if connections.CharacterAdded then
+                    connections.CharacterAdded:Disconnect()
+                end
+                if connections.Heartbeat then
+                    connections.Heartbeat:Disconnect()
+                end
+            end
+        end
+        AntiFlingConnections = {}
+    end
 end)
 
 Button(Tab1, "防甩飞", function() 
@@ -2968,7 +3468,7 @@ Button(Tab1, "铁拳", function()
     loadstring(game:HttpGet('https://raw.githubusercontent.com/0Ben1/fe/main/obf_rf6iQURzu1fqrytcnLBAvW34C9N55kS9g9G3CKz086rC47M6632sEd4ZZYB0AYgV.lua.txt'))()
 end)
 
-Button(Tab1,"↓以下是开发脚本↓",function()
+Button(Tab1,"↓以下是开发脚本↓",function()
     
 end)
     
@@ -3033,10 +3533,6 @@ Button(Tab1, "氯胺酮spy", function()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/InfernusScripts/Ketamine/refs/heads/main/Ketamine.lua"))()
 end)
 
-Button(Tab1, "绕过spy和dex检测", function() 
-    loadstring(game:HttpGet("https://gist.githubusercontent.com/Tesker-103/23ea97f58891617afd8f797f0a7446e6/raw/011b70e99abb44aa6fc970c587c3eb686b40594e/Securedexbytesker103"))()
-end)
-
 Button(Tab1, "http嗅探器", function() 
     loadstring(game:HttpGet("https://ripskids.lol/official/HttpSpy/loader.lua"))()
 end)
@@ -3079,10 +3575,6 @@ end)
 
 Button(Tab1, "杰森SPY", function() 
     loadstring(game:HttpGet("https://pastebin.com/raw/wjF5j5YD"))() 
-end)
-
-Button(Tab1, "速度spy", function() 
-    loadstring(game:HttpGet('https://gist.githubusercontent.com/24rr/ec08ee90929e07f3b4d2dd22f15146dc/raw/b337951012d6ed330067058f196ee0c414b42df3/spy-velocity'))()
 end)
 
 Button(Tab1, "Hydroxide", function() 
@@ -3549,6 +4041,12 @@ Button(Tab2, "我自己做的脚本(功能特多)", function()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/Twbtx/tiamxiabuwu/blob/main/%E6%B7%B7%E5%BF%8D%E8%80%85%E4%BC%A0%E5%A5%87"))()
 end)
 
+local MuscleLegends = {
+    AutoBrawl = false,
+    AutoWeight = false,
+    AutoPushups = false,
+    AutoRebirth = false
+}
 
 Toggle(Tab3, "自动比赛", false, function(state)
     MuscleLegends.AutoBrawl = state
@@ -5297,7 +5795,9 @@ Button(Tab27, "卡车刷钱限时免费版(可能无用)", function()
 loadstring(game:HttpGet("https://raw.githubusercontent.com/xiaoyi-boop/-/refs/heads/main/tangxianxianmian.lua",true))()
 end)
 
-Button(Tab27, "号称卡车最强刷钱", function() 
+Button(Tab27, "号称卡车最强刷钱(国外的要卡密)", function() 
     loadstring(game:HttpGet("https://raw.githubusercontent.com/Marco8642/science/ok/T%20ang%20County"))()
 end)
+end
 
+SafeExecute(Main)
