@@ -617,10 +617,7 @@ end)
 
 Slider(Tab1, "视野缩放距离", 0, 2500, game:GetService("Players").LocalPlayer.CameraMaxZoomDistance, function(value)
     game:GetService("Players").LocalPlayer.CameraMaxZoomDistance = value
-    end)
 end)
-
-local fovValue = workspace.CurrentCamera.FieldOfView
 
 Slider(Tab1, "广角设置", 1, 120, fovValue, function(value)
     fovValue = value
