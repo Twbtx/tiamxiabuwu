@@ -606,22 +606,6 @@ Slider(Tab1, "强制移动速度", 1, 100, 16, function(value)
     end
 end)
 
-Toggle(Tab1, "启用强制速度", false, function(state)
-    forceSpeedEnabled = state
-    if state then
-        if speedConnection then
-            speedConnection:Disconnect()
-        end
-        speedConnection = game:GetService("RunService").Heartbeat:Connect(function()
-            if game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("Humanoid") then
-                game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = targetSpeed
-            end
-        end)
-    elseif speedConnection then
-        speedConnection:Disconnect()
-        speedConnection = nil
-    end
-end)
 
 Slider(Tab1, "跳跃高度", 1, 600, game.Players.LocalPlayer.Character.Humanoid.JumpPower, function(a) 
         game.Players.LocalPlayer.Character.Humanoid.JumpPower = a
@@ -633,8 +617,6 @@ end)
 
 Slider(Tab1, "视野缩放距离", 0, 2500, game:GetService("Players").LocalPlayer.CameraMaxZoomDistance, function(value)
     game:GetService("Players").LocalPlayer.CameraMaxZoomDistance = value
-    _G.CameraZoomConnection = game:GetService("RunService").Heartbeat:Connect(function()
-        game:GetService("Players").LocalPlayer.CameraMaxZoomDistance = value
     end)
 end)
 
