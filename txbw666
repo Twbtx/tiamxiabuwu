@@ -595,18 +595,6 @@ Slider(Tab1, "移动速度", 1, 600, game.Players.LocalPlayer.Character.Humanoid
         game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = a
 end)
 
-local forceSpeedEnabled = false
-local speedConnection = nil
-local targetSpeed = 16
-
-Slider(Tab1, "强制移动速度", 1, 100, 16, function(value)
-    targetSpeed = value
-    if game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("Humanoid") then
-        game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = value
-    end
-end)
-
-
 Slider(Tab1, "跳跃高度", 1, 600, game.Players.LocalPlayer.Character.Humanoid.JumpPower, function(a) 
         game.Players.LocalPlayer.Character.Humanoid.JumpPower = a
 end)
@@ -655,7 +643,7 @@ local PhysicsSpeedValue = nil
 local PhysicsEnabled = false
 local PhysicsBV = nil
 
-Input(Tab1, "Physics Speed", "输入物理速度 (最低0，最高无上限)", "", "例如: 150", function(value)
+Input(Tab1, "物理 Speed", "输入物理速度 (最低0，最高无上限)", "", "例如: 150", function(value)
     local numValue = tonumber(value)
     if numValue and numValue >= 0 then
         PhysicsSpeedValue = numValue
@@ -665,7 +653,7 @@ Input(Tab1, "Physics Speed", "输入物理速度 (最低0，最高无上限)", "
     end
 end)
 
-Button(Tab1, "启用Physics Speed", function()
+Button(Tab1, "启用物理 Speed", function()
     if PhysicsSpeedValue == nil then
         WindUI:Notify({Title = "错误", Content = "请先输入Physics速度值"})
         return
@@ -698,7 +686,7 @@ Button(Tab1, "启用Physics Speed", function()
     WindUI:Notify({Title = "Physics Speed", Content = "已启用, 速度: " .. PhysicsSpeedValue})
 end)
 
-Button(Tab1, "禁用Physics Speed", function()
+Button(Tab1, "禁用物理 Speed", function()
     if PhysicsBV then
         PhysicsBV:Destroy()
         PhysicsBV = nil
@@ -710,7 +698,7 @@ end)
 local TeleportSpeedValue = nil
 local TeleportEnabled = false
 
-Input(Tab1, "Teleport Speed", "输入传送距离 (最低0，最高无上限)", "", "例如: 5", function(value)
+Input(Tab1, "传送 Speed", "输入传送距离 (最低0，最高无上限)", "", "例如: 5", function(value)
     local numValue = tonumber(value)
     if numValue and numValue >= 0 then
         TeleportSpeedValue = numValue
@@ -750,7 +738,7 @@ Button(Tab1, "启用Teleport Speed", function()
     WindUI:Notify({Title = "Teleport Speed", Content = "已启用, 距离: " .. TeleportSpeedValue})
 end)
 
-Button(Tab1, "禁用Teleport Speed", function()
+Button(Tab1, "禁用传送 Speed", function()
     TeleportEnabled = false
     WindUI:Notify({Title = "Teleport Speed", Content = "已禁用"})
 end)
@@ -758,7 +746,7 @@ end)
 local JumpPowerValue = nil
 local JumpEnabled = false
 
-Input(Tab1, "Jump Power", "输入跳跃高度 (最低0，最高无上限)", "", "例如: 150", function(value)
+Input(Tab1, "跳跃高度2" , "输入跳跃高度 (最低0，最高无上限)", "", "例如: 150", function(value)
     local numValue = tonumber(value)
     if numValue and numValue >= 0 then
         JumpPowerValue = numValue
@@ -768,7 +756,7 @@ Input(Tab1, "Jump Power", "输入跳跃高度 (最低0，最高无上限)", "", 
     end
 end)
 
-Button(Tab1, "启用Jump Power", function()
+Button(Tab1, "启用跳跃高度2", function()
     if JumpPowerValue == nil then
         WindUI:Notify({Title = "错误", Content = "请先输入跳跃高度"})
         return
@@ -797,7 +785,7 @@ Button(Tab1, "启用Jump Power", function()
     WindUI:Notify({Title = "Jump Power", Content = "已启用, 跳跃高度: " .. JumpPowerValue})
 end)
 
-Button(Tab1, "禁用Jump Power", function()
+Button(Tab1, "禁用跳跃高度2", function()
     JumpEnabled = false
     
     local player = game.Players.LocalPlayer
