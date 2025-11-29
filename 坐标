@@ -1,0 +1,122 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local player = Players.LocalPlayer
+
+local coordSystem = {
+    isEnabled = true,
+    gui = nil,
+    updateConn = nil,
+    currentPos = Vector3.new(0, 0, 0)
+}
+
+local function createCoordUI()
+    local gui = Instance.new("ScreenGui")
+    gui.Name = "Coord"
+    gui.Parent = player.PlayerGui
+
+    local container = Instance.new("Frame")
+    container.Size = UDim2.new(0, 240, 0, 60)
+    container.Position = UDim2.new(1, -250, 0, 10)
+    container.BackgroundTransparency = 1
+    container.Parent = gui
+
+    local coordFrame = Instance.new("Frame")
+    coordFrame.Size = UDim2.new(0, 200, 1, 0)
+    coordFrame.BackgroundColor3 = Color3.new(0, 0, 0)
+    coordFrame.BackgroundTransparency = 0.7
+    coordFrame.BorderSizePixel = 1
+    coordFrame.Parent = container
+
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Size = UDim2.new(1, 0, 1, 0)
+    textLabel.BackgroundTransparency = 1
+    textLabel.TextColor3 = Color3.new(1, 1, 1)
+    textLabel.Font = Enum.Font.SourceSansBold
+    textLabel.TextSize = 14
+    textLabel.Text = "坐标加载别乱动(警告)"
+    textLabel.Parent = coordFrame
+
+    local copyBtn = Instance.new("TextButton")
+    copyBtn.Size = UDim2.new(0, 35, 1, 0)
+    copyBtn.Position = UDim2.new(0, 205, 0, 0)
+    copyBtn.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
+    copyBtn.BackgroundTransparency = 0.5
+    copyBtn.Text = "复制坐标"
+    copyBtn.TextColor3 = Color3.new(1, 1, 1)
+    copyBtn.TextSize = 14
+    copyBtn.BorderSizePixel = 1
+    copyBtn.Parent = container
+
+    copyBtn.MouseButton1Click:Connect(function()
+        if setclipboard and coordSystem.currentPos then
+            local coordStr = string.format("X: %.2f, Y: %.2f, Z: %.2f",
+                coordSystem.currentPos.X,
+                coordSystem.currentPos.Y,
+                coordSystem.currentPos.Z
+            )
+            setclipboard(coordStr)
+        end
+    end)
+
+    local isDragging = false
+    local dragStartPos = nil
+    local containerStartPos = nil
+
+    container.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch then
+            isDragging = true
+            dragStartPos = input.Position
+            containerStartPos = container.Position
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if isDragging and input.UserInputType == Enum.UserInputType.Touch then
+            local delta = input.Position - dragStartPos
+            container.Position = UDim2.new(
+                containerStartPos.X.Scale,
+                containerStartPos.X.Offset + delta.X,
+                containerStartPos.Y.Scale,
+                containerStartPos.Y.Offset + delta.Y
+            )
+        end
+    end)
+
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch and isDragging then
+            isDragging = false
+        end
+    end)
+
+    return { gui = gui, container = container, text = textLabel }
+end
+
+coordSystem.gui = createCoordUI()
+
+local function formatCoord(pos)
+    return string.format("X: %.2f\nY: %.2f\nZ: %.2f", pos.X, pos.Y, pos.Z)
+end
+
+local function updateCoord()
+    local char = player.Character
+    local root = char and char:FindFirstChild("HumanoidRootPart")
+    if root then
+        coordSystem.currentPos = root.Position
+        coordSystem.gui.text.Text = formatCoord(root.Position)
+    else
+        coordSystem.gui.text.Text = "混nb"
+        coordSystem.currentPos = nil
+    end
+end
+
+coordSystem.updateConn = RunService.Heartbeat:Connect(updateCoord)
+updateCoord()
+
+game:GetService("Players").LocalPlayer.PlayerGui.ChildRemoved:Connect(function(child)
+    if child == coordSystem.gui then
+        if coordSystem.updateConn then
+            coordSystem.updateConn:Disconnect()
+        end
+    end
+end)
