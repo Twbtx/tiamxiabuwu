@@ -4852,6 +4852,10 @@ Script = "全自动翻译"
 loadstring(game:HttpGet("https://raw.githubusercontent.com/JsYb666/Item/refs/heads/main/Auto-language"))()
 end)
 
+Button(Tab12, "旧冬被遗弃脚本", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/QiuShan-UX/UnicoX/refs/heads/main/%E6%97%A7%E5%86%ACScript--Forsaken.lua.txt"))()
+end)
+
 Button(Tab12, "Bobby(汉化)", function() 
         loadstring(game:HttpGet("https://raw.githubusercontent.com/ke9460394-dot/ugik/refs/heads/main/爱男娘.lua"))()
 end)
@@ -5206,10 +5210,6 @@ end)
 
 Button(Tab20, "小月脚本", function() 
     loadstring(game:HttpGet("https://raw.githubusercontent.com/MIAN57/-/refs/heads/main/%E5%B0%8F%E6%9C%88%E8%84%9A%E6%9C%AC%E6%BA%90%E7%A0%81"))()
-end)
-
-Button(Tab20, "cyovo脚本", function() 
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/lxmyysd/ranchun666/refs/heads/main/cyovo%E8%84%9A%E6%9C%AC%E4%B8%AD%E5%BF%83.lua"))()
 end)
 
 Button(Tab20, "xc脚本", function() 
