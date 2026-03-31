@@ -212,7 +212,7 @@ local function addSphere(player)
     local sphere = Instance.new("Part")
     sphere.Name = "InfectionSphere"
     sphere.Shape = Enum.PartType.Ball
-    sphere.Size = Vector3.new(35, 35, 35)
+    sphere.Size = Vector3.new(40, 40, 40)
     sphere.Transparency = 0.25
     sphere.CanCollide = true
     sphere.Massless = true
