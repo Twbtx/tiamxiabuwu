@@ -1,0 +1,299 @@
+local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua"))()
+WindUI.TransparencyValue = 0.3
+WindUI:SetTheme("Dark")
+
+local Window = WindUI:CreateWindow({
+    Title = "BABOON TAG X 猴子感染",
+    Icon = "crown",
+    Author = "SU7",
+    Folder = "MonkeyInfection",
+    Size = UDim2.fromOffset(500, 700),
+    Background = "rbxassetid://135259042639677",
+    Theme = "Dark",
+    SideBarWidth = 170,
+    ScrollBarEnabled = true,
+    ToggleKeybind = Enum.KeyCode.C
+})
+
+local SectionPlayer = Window:Section({ Title = "玩家修改", Icon = "user", Opened = true })
+local TabPlayer = SectionPlayer:Tab({ Title = "玩家功能", Icon = "gear" })
+
+local SectionProtect = Window:Section({ Title = "感染防护", Icon = "shield", Opened = false })
+local TabProtect = SectionProtect:Tab({ Title = "防护设置", Icon = "gear" })
+
+local spawnPoint = CFrame.new(12.218321800231934, -0.2429625391960144, 37.385986328125)
+local mapPoint = CFrame.new(17.770666122436523, -2.4900002479553223, -49.68524932861328)
+
+TabPlayer:Button({
+    Title = "传送出生点",
+    TextSize = 16,
+    Callback = function()
+        local player = game.Players.LocalPlayer
+        local char = player.Character
+        if char and char:FindFirstChild("HumanoidRootPart") then
+            char.HumanoidRootPart.CFrame = spawnPoint
+            WindUI:Notify({ Title = "传送", Content = "已传送到出生点", Duration = 2 })
+        end
+    end
+})
+
+TabPlayer:Button({
+    Title = "传送地图",
+    TextSize = 16,
+    Callback = function()
+        local player = game.Players.LocalPlayer
+        local char = player.Character
+        if char and char:FindFirstChild("HumanoidRootPart") then
+            char.HumanoidRootPart.CFrame = mapPoint
+            WindUI:Notify({ Title = "传送", Content = "已传送到地图", Duration = 2 })
+        end
+    end
+})
+
+local speedValue = 16
+TabPlayer:Slider({
+    Title = "移动速度",
+    TextSize = 16,
+    Min = 0,
+    Max = 100,
+    Default = 16,
+    Callback = function(value)
+        if value == nil then return end
+        speedValue = value
+        local player = game.Players.LocalPlayer
+        local char = player.Character
+        if char and char:FindFirstChild("Humanoid") then
+            char.Humanoid.WalkSpeed = speedValue
+        end
+    end
+})
+
+local jumpPowerValue = 50
+TabPlayer:Slider({
+    Title = "跳跃力",
+    TextSize = 16,
+    Min = 0,
+    Max = 200,
+    Default = 50,
+    Callback = function(value)
+        if value == nil then return end
+        jumpPowerValue = value
+        local player = game.Players.LocalPlayer
+        local char = player.Character
+        if char and char:FindFirstChild("Humanoid") then
+            char.Humanoid.JumpPower = jumpPowerValue
+        end
+    end
+})
+
+local gravityValue = 196.2
+TabPlayer:Slider({
+    Title = "重力",
+    TextSize = 16,
+    Min = 0,
+    Max = 500,
+    Default = 196.2,
+    Callback = function(value)
+        if value == nil then return end
+        gravityValue = value
+        game.Workspace.Gravity = gravityValue
+    end
+})
+
+local fovValue = 70
+TabPlayer:Slider({
+    Title = "广角(FOV)",
+    TextSize = 16,
+    Min = 1,
+    Max = 120,
+    Default = 70,
+    Callback = function(value)
+        if value == nil then return end
+        fovValue = value
+        local camera = game.Workspace.CurrentCamera
+        if camera then
+            camera.FieldOfView = fovValue
+        end
+    end
+})
+
+local infectedColor = Color3.fromRGB(255, 89, 89)
+
+local function getPlayerNameColor(character)
+    local nametag = character:FindFirstChild("Nametag")
+    if nametag then
+        local playerName = nametag:FindFirstChild("PlayerName")
+        if playerName and playerName:IsA("TextLabel") then
+            return playerName.TextColor3
+        end
+    end
+    return nil
+end
+
+local function isInfected(character)
+    local color = getPlayerNameColor(character)
+    return color == infectedColor
+end
+
+local randomTeleportActive = false
+local randomTeleportConn = nil
+local randomTeleportRunning = false
+
+local function randomTeleportToNonInfected()
+    if not randomTeleportActive then return end
+    if randomTeleportRunning then return end
+    randomTeleportRunning = true
+
+    local localPlayer = game.Players.LocalPlayer
+    local localChar = localPlayer.Character
+    if not localChar or not localChar:FindFirstChild("HumanoidRootPart") then
+        randomTeleportRunning = false
+        return
+    end
+
+    if not isInfected(localChar) then
+        randomTeleportRunning = false
+        return
+    end
+
+    local nonInfectedList = {}
+    for _, plr in ipairs(game.Players:GetPlayers()) do
+        if plr ~= localPlayer then
+            local char = plr.Character
+            if char and char.Parent then
+                if not isInfected(char) then
+                    table.insert(nonInfectedList, plr)
+                end
+            end
+        end
+    end
+
+    if #nonInfectedList == 0 then
+        randomTeleportRunning = false
+        return
+    end
+
+    local randomIndex = math.random(1, #nonInfectedList)
+    local target = nonInfectedList[randomIndex]
+    local targetChar = target.Character
+    if targetChar and targetChar:FindFirstChild("HumanoidRootPart") then
+        local hrp = localChar.HumanoidRootPart
+        hrp.CFrame = targetChar.HumanoidRootPart.CFrame
+        WindUI:Notify({ Title = "传送", Content = "传送到未感染者 " .. target.Name, Duration = 1 })
+    end
+
+    randomTeleportRunning = false
+end
+
+TabPlayer:Toggle({
+    Title = "随机传送至未感染者（仅自己感染时）",
+    TextSize = 16,
+    Value = false,
+    Callback = function(state)
+        randomTeleportActive = state
+        if state then
+            if randomTeleportConn then randomTeleportConn:Disconnect() end
+            randomTeleportConn = game:GetService("RunService").Heartbeat:Connect(function()
+                if randomTeleportActive and not randomTeleportRunning then
+                    randomTeleportToNonInfected()
+                    task.wait(0.5)
+                end
+            end)
+        else
+            if randomTeleportConn then
+                randomTeleportConn:Disconnect()
+                randomTeleportConn = nil
+            end
+            randomTeleportRunning = false
+        end
+    end
+})
+
+-- 防护系统：球体直接焊接在 HumanoidRootPart 上，确保贴合
+local loopConn = nil
+local spheres = {}
+
+local function addSphere(player)
+    local char = player.Character
+    if not char then return end
+    if spheres[player] then return end
+
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    local sphere = Instance.new("Part")
+    sphere.Name = "InfectionSphere"
+    sphere.Shape = Enum.PartType.Ball
+    sphere.Size = Vector3.new(30, 30, 30)
+    sphere.Transparency = 0.5
+    sphere.CanCollide = true
+    sphere.Massless = true
+    sphere.Anchored = false
+    sphere.CastShadow = false
+    sphere.CanQuery = false
+    sphere.Material = Enum.Material.SmoothPlastic
+    -- 关键：先将球体位置对齐到 hrp
+    sphere.CFrame = hrp.CFrame
+    sphere.Parent = char
+
+    -- 使用 Weld 而非 WeldConstraint，可以精确控制相对位置
+    local weld = Instance.new("Weld")
+    weld.Part0 = hrp
+    weld.Part1 = sphere
+    weld.C0 = hrp.CFrame:Inverse() * sphere.CFrame  -- 计算相对偏移
+    weld.Parent = sphere
+
+    spheres[player] = sphere
+end
+
+local function removeSphere(player)
+    local sphere = spheres[player]
+    if sphere then
+        sphere:Destroy()
+        spheres[player] = nil
+    end
+end
+
+local function updateProtection()
+    local localPlayer = game.Players.LocalPlayer
+    for _, plr in ipairs(game.Players:GetPlayers()) do
+        if plr ~= localPlayer then
+            local char = plr.Character
+            if char and char.Parent then
+                if isInfected(char) then
+                    addSphere(plr)
+                else
+                    removeSphere(plr)
+                end
+            else
+                removeSphere(plr)
+            end
+        end
+    end
+end
+
+TabProtect:Toggle({
+    Title = "开启防护(给感染者装一个球)",
+    TextSize = 16,
+    Value = false,
+    Callback = function(state)
+        if state then
+            updateProtection()
+            loopConn = game:GetService("RunService").Heartbeat:Connect(function()
+                updateProtection()
+                task.wait(0.1)
+            end)
+        else
+            if loopConn then
+                loopConn:Disconnect()
+                loopConn = nil
+            end
+            for _, sphere in pairs(spheres) do
+                if sphere then sphere:Destroy() end
+            end
+            spheres = {}
+        end
+    end
+})
+
+WindUI:Notify({ Title = "加载完成", Content = "所有功能已就绪", Duration = 3 })
