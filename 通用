@@ -1,0 +1,4165 @@
+local vu = game:GetService("VirtualUser")
+game:GetService("Players").LocalPlayer.Idled:connect(function()
+    vu:Button2Down(Vector2.new(0,0),workspace.CurrentCamera.CFrame)
+    wait(1)
+    vu:Button2Up(Vector2.new(0,0),workspace.CurrentCamera.CFrame)
+end)
+
+-- ==================== 修复：自定义通知系统（始终置顶） ====================
+do
+    local Players = game:GetService("Players")
+    local player = Players.LocalPlayer
+    local guiService = game:GetService("GuiService")
+    local TweenService = game:GetService("TweenService")
+    local RunService = game:GetService("RunService")
+    local CoreGui = game:GetService("CoreGui")          -- 改用 CoreGui
+
+    -- 通知样式配置
+    local NOTIF_WIDTH = 250
+    local NOTIF_HEIGHT = 55
+    local BORDER_THICKNESS = 2
+    local BOTTOM_MARGIN = 10
+    local RIGHT_MARGIN = 10
+    local SPACING = 8
+    local ANIMATION_DURATION = 0.25
+    local AUTO_CLOSE_DELAY = 5
+
+    -- 资源ID
+    local LEFT_ICON_ID = "120133762956711"
+    local CLOSE_ICON_ID = "104269942650107"
+    local NOTIFICATION_SOUND_ID = "1508145469"
+
+    -- 颜色方案
+    local BG_COLOR = Color3.fromRGB(25, 25, 25)
+    local TEXT_COLOR = Color3.fromRGB(255, 255, 255)
+    local TEXT_STROKE_COLOR = Color3.fromRGB(0, 0, 0)
+    local BORDER_COLOR = Color3.fromRGB(255, 255, 255)
+
+    local activeNotifications = {}
+    local borderAnimations = {}
+
+    -- 创建置顶 ScreenGui
+    local function createScreenGui()
+        local screenGui = Instance.new("ScreenGui")
+        screenGui.Name = "NotificationManagerGui"
+        screenGui.ResetOnSpawn = false
+        screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global   -- 全局模式
+        screenGui.DisplayOrder = 999                            -- 最高显示顺序
+        screenGui.Parent = CoreGui
+        return screenGui
+    end
+
+    local mainGui = createScreenGui()
+
+    local function tweenToPosition(frame, targetPosition, duration)
+        local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+        local tween = TweenService:Create(frame, tweenInfo, {Position = targetPosition})
+        tween:Play()
+        return tween
+    end
+
+    local function repositionAllNotifications(newNotificationFrame)
+        local count = #activeNotifications
+        for idx, notifRoot in ipairs(activeNotifications) do
+            local orderFromBottom = count - idx
+            local targetYOffset = -BOTTOM_MARGIN - orderFromBottom * (NOTIF_HEIGHT + SPACING)
+            local targetXOffset = -RIGHT_MARGIN
+            local targetPosition = UDim2.new(1, targetXOffset, 1, targetYOffset)
+
+            if newNotificationFrame and notifRoot == newNotificationFrame then
+                local startXOffset = targetXOffset + NOTIF_WIDTH + 20
+                notifRoot.Position = UDim2.new(1, startXOffset, 1, targetYOffset)
+                tweenToPosition(notifRoot, targetPosition, ANIMATION_DURATION)
+            else
+                tweenToPosition(notifRoot, targetPosition, ANIMATION_DURATION)
+            end
+        end
+    end
+
+    local function playNotificationSound()
+        local sound = Instance.new("Sound")
+        sound.SoundId = "rbxassetid://" .. NOTIFICATION_SOUND_ID
+        sound.Volume = 0.5
+        sound.PlayOnRemove = false
+        sound.Parent = mainGui
+        sound:Play()
+        sound.Ended:Connect(function()
+            sound:Destroy()
+        end)
+        task.delay(3, function()
+            if sound and sound.Parent then
+                sound:Destroy()
+            end
+        end)
+    end
+
+    local function applyBlackWhiteFlowingBorder(borderFrame)
+        if not borderFrame or not borderFrame:IsA("Frame") then
+            warn("applyBlackWhiteFlowingBorder: 参数必须是 Frame")
+            return function() end
+        end
+
+        local outerStroke = Instance.new("UIStroke")
+        outerStroke.Name = "Border_OuterStroke"
+        outerStroke.Color = BORDER_COLOR
+        outerStroke.Thickness = BORDER_THICKNESS
+        outerStroke.Transparency = 0
+        outerStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+        outerStroke.Parent = borderFrame
+
+        local gradient = Instance.new("UIGradient")
+        gradient.Name = "Border_Gradient"
+        gradient.Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 0, 0)),
+            ColorSequenceKeypoint.new(0.3, Color3.fromRGB(100, 100, 100)),
+            ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 255, 255)),
+            ColorSequenceKeypoint.new(0.7, Color3.fromRGB(100, 100, 100)),
+            ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 0, 0))
+        })
+        gradient.Transparency = NumberSequence.new(0.3)
+        gradient.Parent = outerStroke
+
+        local running = true
+        local time = 0
+
+        local heartbeatConnection = RunService.Heartbeat:Connect(function(deltaTime)
+            if not running or not borderFrame.Parent then
+                heartbeatConnection:Disconnect()
+                return
+            end
+            time = time + deltaTime
+            gradient.Rotation = (gradient.Rotation + 30 * deltaTime) % 360
+            gradient.Offset = Vector2.new((math.sin(time * 2) * 0.5), 0)
+            gradient.Transparency = NumberSequence.new(0.2 + math.sin(time * 3) * 0.1)
+        end)
+
+        return function()
+            running = false
+            if heartbeatConnection then
+                heartbeatConnection:Disconnect()
+            end
+            if outerStroke then
+                outerStroke:Destroy()
+            end
+        end
+    end
+
+    local function closeNotificationWithSlide(notifRoot, autoCloseFlagRef)
+        if not notifRoot or not notifRoot.Parent then
+            return
+        end
+        if notifRoot:GetAttribute("IsClosing") then
+            return
+        end
+        notifRoot:SetAttribute("IsClosing", true)
+
+        if autoCloseFlagRef then
+            autoCloseFlagRef.isActive = false
+        end
+
+        for i, existingRoot in ipairs(activeNotifications) do
+            if existingRoot == notifRoot then
+                table.remove(activeNotifications, i)
+                break
+            end
+        end
+
+        repositionAllNotifications(nil)
+
+        local currentPos = notifRoot.Position
+        local currentXOffset = currentPos.X.Offset
+        local currentYOffset = currentPos.Y.Offset
+        local slideOutXOffset = currentXOffset + NOTIF_WIDTH + 100
+        local targetPosition = UDim2.new(1, slideOutXOffset, 1, currentYOffset)
+
+        local slideTween = tweenToPosition(notifRoot, targetPosition, ANIMATION_DURATION)
+        slideTween.Completed:Connect(function()
+            if borderAnimations[notifRoot] then
+                borderAnimations[notifRoot]()
+                borderAnimations[notifRoot] = nil
+            end
+            notifRoot:Destroy()
+        end)
+    end
+
+    local function createNotificationFrame(textContent)
+        local borderFrame = Instance.new("Frame")
+        borderFrame.BackgroundTransparency = 1
+        borderFrame.BorderSizePixel = 0
+        borderFrame.Size = UDim2.new(0, NOTIF_WIDTH, 0, NOTIF_HEIGHT)
+        borderFrame.AnchorPoint = Vector2.new(1, 1)
+        borderFrame.ClipsDescendants = true
+        borderFrame.Name = "NotificationBorder"
+        borderFrame.ZIndex = 100
+
+        local cleanupAnimation = applyBlackWhiteFlowingBorder(borderFrame)
+        borderAnimations[borderFrame] = cleanupAnimation
+
+        local contentFrame = Instance.new("Frame")
+        contentFrame.Name = "Content"
+        contentFrame.BackgroundColor3 = BG_COLOR
+        contentFrame.BackgroundTransparency = 0
+        contentFrame.BorderSizePixel = 0
+        contentFrame.Size = UDim2.new(1, 0, 1, 0)
+        contentFrame.Position = UDim2.new(0, 0, 0, 0)
+        contentFrame.ZIndex = 101
+        contentFrame.Parent = borderFrame
+
+        local leftIcon = Instance.new("ImageLabel")
+        leftIcon.Size = UDim2.new(0, 40, 0, 40)
+        leftIcon.Position = UDim2.new(0, 6, 0.5, -20)
+        leftIcon.BackgroundTransparency = 1
+        leftIcon.Image = "rbxassetid://" .. LEFT_ICON_ID
+        leftIcon.ScaleType = Enum.ScaleType.Fit
+        leftIcon.ZIndex = 102
+        leftIcon.Parent = contentFrame
+
+        local textLabel = Instance.new("TextLabel")
+        textLabel.BackgroundTransparency = 1
+        textLabel.TextColor3 = TEXT_COLOR
+        textLabel.TextXAlignment = Enum.TextXAlignment.Left
+        textLabel.TextYAlignment = Enum.TextYAlignment.Center
+        textLabel.Font = Enum.Font.GothamBold
+        textLabel.TextSize = 18
+        textLabel.Text = textContent
+        textLabel.TextWrapped = true
+        textLabel.TextScaled = false
+        textLabel.TextStrokeTransparency = 0
+        textLabel.TextStrokeColor3 = TEXT_STROKE_COLOR
+        textLabel.Size = UDim2.new(1, -75, 1, -8)
+        textLabel.Position = UDim2.new(0, 52, 0, 4)
+        textLabel.ZIndex = 102
+        textLabel.Parent = contentFrame
+
+        local closeBtn = Instance.new("ImageButton")
+        closeBtn.Size = UDim2.new(0, 20, 0, 20)
+        closeBtn.Position = UDim2.new(1, -24, 0, 6)
+        closeBtn.BackgroundTransparency = 1
+        closeBtn.Image = "rbxassetid://" .. CLOSE_ICON_ID
+        closeBtn.ScaleType = Enum.ScaleType.Fit
+        closeBtn.AutoButtonColor = true
+        closeBtn.ZIndex = 103
+        closeBtn.Parent = contentFrame
+
+        local autoCloseFlag = { isActive = true }
+
+        closeBtn.MouseButton1Click:Connect(function()
+            if borderFrame:GetAttribute("IsClosing") then
+                return
+            end
+            closeNotificationWithSlide(borderFrame, autoCloseFlag)
+        end)
+
+        task.delay(AUTO_CLOSE_DELAY, function()
+            if not autoCloseFlag.isActive then
+                return
+            end
+            if not borderFrame.Parent then
+                return
+            end
+            if borderFrame:GetAttribute("IsClosing") then
+                return
+            end
+            closeNotificationWithSlide(borderFrame, autoCloseFlag)
+        end)
+
+        return borderFrame
+    end
+
+    local function ShowNotification(messageText)
+        playNotificationSound()
+        local newRoot = createNotificationFrame(messageText)
+        newRoot.Parent = mainGui
+        table.insert(activeNotifications, newRoot)
+        repositionAllNotifications(newRoot)
+    end
+
+    task.wait(1)
+    ShowNotification("欢迎使用STAR，反挂机已自动开启")
+    task.wait(2)
+    ShowNotification("作者su7，QQ1693323219")
+    task.wait(2)
+    ShowNotification("脚本加载完整需要一定时间请耐心等待")
+
+    _G.ShowToast = ShowNotification
+end
+
+local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
+
+local Window = WindUI:CreateWindow({
+    Title = "STAR脚本",
+    Icon = "gem",
+    Author = "su7 制作",
+    Folder = "CloudHub",
+    Size = UDim2.fromOffset(630, 378),
+    Transparent = true,
+    Theme = "Dark",
+    Background = "rbxassetid://120133762956711",
+    User = {
+        Enabled = true,
+        Callback = function() 
+            print("clicked") 
+        end,
+        Anonymous = false
+    },
+})
+
+Window:EditOpenButton(
+    {
+        Title = "打开STAR脚本",
+        Icon = "star",
+        CornerRadius = UDim.new(0, 6),
+        StrokeThickness = 4,
+        Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0, Color3.fromRGB(20, 20, 20)),
+            ColorSequenceKeypoint.new(0.3, Color3.fromRGB(100, 100, 100)),
+            ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 255, 255)),
+            ColorSequenceKeypoint.new(0.7, Color3.fromRGB(100, 100, 100)),
+            ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 20, 20))
+        }),
+        Draggable = true
+    }
+)
+
+task.spawn(function()
+    task.wait(0.8)
+    local TweenService = game:GetService("TweenService")
+    local RunService = game:GetService("RunService")
+    local Players = game:GetService("Players")
+    
+    local openButton = nil
+    local cloudHub = game:GetService("CoreGui"):FindFirstChild("CloudHub")
+    
+    if cloudHub then
+        for _, obj in pairs(cloudHub:GetDescendants()) do
+            if (obj:IsA("TextButton") or obj:IsA("ImageButton")) then
+                local stroke = obj:FindFirstChild("UIStroke")
+                local icon = obj:FindFirstChild("Icon") or obj:FindFirstChild("ImageLabel")
+                if stroke and (obj.Name:find("Open") or obj.Name:find("Toggle") or (icon and icon:IsA("ImageLabel"))) then
+                    openButton = obj
+                    break
+                end
+            end
+        end
+    end
+    
+    if openButton then
+        local stroke = openButton:FindFirstChild("UIStroke")
+        if stroke then
+            local mainGradient = Instance.new("UIGradient")
+            mainGradient.Name = "FlowingBW_Main"
+            mainGradient.Color = ColorSequence.new({
+                ColorSequenceKeypoint.new(0.0, Color3.fromRGB(0, 0, 0)),
+                ColorSequenceKeypoint.new(0.25, Color3.fromRGB(60, 60, 60)),
+                ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 255, 255)),
+                ColorSequenceKeypoint.new(0.75, Color3.fromRGB(60, 60, 60)),
+                ColorSequenceKeypoint.new(1.0, Color3.fromRGB(0, 0, 0))
+            })
+            mainGradient.Rotation = 0
+            mainGradient.Parent = stroke
+            
+            local innerStroke = Instance.new("UIStroke")
+            innerStroke.Name = "FlowingBW_Inner"
+            innerStroke.Color = Color3.fromRGB(255, 255, 255)
+            innerStroke.Thickness = 1
+            innerStroke.Transparency = 0.6
+            innerStroke.Parent = openButton
+            
+            local innerGradient = Instance.new("UIGradient")
+            innerGradient.Name = "FlowingBW_InnerGrad"
+            innerGradient.Color = ColorSequence.new({
+                ColorSequenceKeypoint.new(0, Color3.fromRGB(150, 150, 150)),
+                ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 255, 255)),
+                ColorSequenceKeypoint.new(1, Color3.fromRGB(150, 150, 150))
+            })
+            innerGradient.Rotation = 180
+            innerGradient.Parent = innerStroke
+            
+            local rotation = 0
+            local pulseTime = 0
+            local connection
+            
+            connection = RunService.Heartbeat:Connect(function(deltaTime)
+                if not mainGradient.Parent then
+                    connection:Disconnect()
+                    return
+                end
+                rotation = (rotation + 90 * deltaTime) % 360
+                mainGradient.Rotation = rotation
+                if innerGradient.Parent then
+                    innerGradient.Rotation = (rotation * -0.5) % 360
+                end
+                pulseTime = pulseTime + 4 * deltaTime
+                local pulse = math.sin(pulseTime) * 0.15
+                stroke.Transparency = 0.1 + pulse
+                if innerStroke then
+                    innerStroke.Transparency = 0.5 - pulse * 0.5
+                end
+            end)
+            
+            openButton.Destroying:Connect(function()
+                if connection then
+                    connection:Disconnect()
+                end
+            end)
+        end
+    end
+end)
+
+function Tab(a)
+    return Window:Tab({Title = a, Icon = "medal"})
+end
+
+function Button(a, b, c)
+    return a:Button({Title = b, Callback = c})
+end
+
+function Toggle(a, b, c, d)
+    return a:Toggle({Title = b, Value = c, Callback = d})
+end
+
+function Slider(a, b, c, d, e, f)
+    return a:Slider({Title = b, Step = 1, Value = {Min = c, Max = d, Default = e}, Callback = f})
+end
+
+function Dropdown(a, b, c, d, e)
+    return a:Dropdown({Title = b, Values = c, Value = d, Callback = e})
+end
+
+function Input(a, b, c, d, e, f)
+    return a:Input({
+        Title = b,
+        Desc = c or "",
+        Value = d or "",
+        Placeholder = e or "",
+        Callback = f
+    })
+end
+
+local function addTextStroke(obj)
+    if obj:IsA("TextLabel") or obj:IsA("TextButton") or obj:IsA("TextBox") then
+        obj.TextStrokeTransparency = 0
+        obj.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+    end
+end
+
+local function addStrokeToAllText(container)
+    if not container then return end
+    for _, obj in ipairs(container:GetDescendants()) do
+        addTextStroke(obj)
+    end
+end
+
+local function setupStrokeWatcher()
+    local function onDescendantAdded(descendant)
+        addTextStroke(descendant)
+    end
+    
+    local coreGui = game:GetService("CoreGui")
+    coreGui.DescendantAdded:Connect(onDescendantAdded)
+    
+    local playerGui = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+    playerGui.DescendantAdded:Connect(onDescendantAdded)
+    
+    addStrokeToAllText(coreGui)
+    addStrokeToAllText(playerGui)
+end
+
+task.spawn(function()
+    task.wait(0.5)
+    setupStrokeWatcher()
+    
+    local winduiGui = game.CoreGui:FindFirstChild("CloudHub")
+    if winduiGui then
+        addStrokeToAllText(winduiGui)
+    end
+end)
+
+local originalButton = Button
+Button = function(a, b, c)
+    local btn = originalButton(a, b, c)
+    task.wait(0.1)
+    if btn and btn.GuiObject then
+        addStrokeToAllText(btn.GuiObject)
+    end
+    return btn
+end
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local CoreGui = game:GetService("CoreGui")
+local Workspace = game:GetService("Workspace")
+local CurrentCamera = Workspace.CurrentCamera
+
+local XrayController = {}
+
+XrayController.FillColor = Color3.fromRGB(255, 255, 255)
+XrayController.DepthMode = "AlwaysOnTop"
+XrayController.FillTransparency = 0.3
+XrayController.OutlineColor = Color3.fromRGB(255, 255, 255)
+XrayController.OutlineTransparency = 0
+
+XrayController.NameColor = Color3.fromRGB(0, 0, 0)
+XrayController.NameOutlineColor = Color3.fromRGB(255, 255, 255)
+XrayController.NameSize = 14
+
+XrayController.BoxColor = Color3.fromRGB(255, 255, 255)
+XrayController.BoxOutlineColor = Color3.fromRGB(0, 0, 0)
+XrayController.BoxThickness = 2
+XrayController.MinBoxSize = 20
+XrayController.MaxBoxSize = 500
+
+XrayController.HealthBarWidth = 40
+XrayController.HealthBarHeight = 4
+XrayController.HealthBarOffsetY = -10
+XrayController.HealthBarMinScale = 0.7
+XrayController.HealthBarMaxDistance = 500
+XrayController.HealthBarFullScaleDistance = 50
+XrayController.HealthBarBgColor = Color3.fromRGB(40, 40, 40)
+XrayController.HealthBarFillColor = Color3.fromRGB(255, 50, 50)
+
+XrayController.HighlightEnabled = false
+XrayController.NameEnabled = false
+XrayController.BoxEnabled = false
+XrayController.HealthBarEnabled = false
+
+XrayController.Storage = nil
+XrayController.HighlightInstances = {}
+XrayController.BillboardInstances = {}
+XrayController.BoxInstances = {}
+XrayController.HealthBarInstances = {}
+XrayController.Connections = {}
+XrayController.LocalPlayer = Players.LocalPlayer
+XrayController.ScreenGui = nil
+
+function XrayController:EnsureStorage()
+    if not self.Storage or not self.Storage.Parent then
+        self.Storage = Instance.new("Folder")
+        self.Storage.Name = "XrayStorage"
+        self.Storage.Parent = CoreGui
+    end
+    
+    if not self.ScreenGui or not self.ScreenGui.Parent then
+        self.ScreenGui = Instance.new("ScreenGui")
+        self.ScreenGui.Name = "XrayBoxESP"
+        self.ScreenGui.Parent = CoreGui
+        self.ScreenGui.ResetOnSpawn = false
+        self.ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+        self.ScreenGui.IgnoreGuiInset = true
+    end
+end
+
+function XrayController:CreateHighlight(plr)
+    if plr == self.LocalPlayer then return end
+    
+    if self.HighlightInstances[plr] then
+        self.HighlightInstances[plr]:Destroy()
+    end
+    
+    local highlight = Instance.new("Highlight")
+    highlight.Name = plr.Name .. "_Highlight"
+    highlight.FillColor = self.FillColor
+    highlight.DepthMode = Enum.HighlightDepthMode[self.DepthMode]
+    highlight.FillTransparency = self.FillTransparency
+    highlight.OutlineColor = self.OutlineColor
+    highlight.OutlineTransparency = self.OutlineTransparency
+    highlight.Parent = self.Storage
+    
+    self.HighlightInstances[plr] = highlight
+    return highlight
+end
+
+function XrayController:CreateNameTag(plr)
+    if plr == self.LocalPlayer then return end
+    
+    if self.BillboardInstances[plr] then
+        self.BillboardInstances[plr]:Destroy()
+    end
+    
+    local billboard = Instance.new("BillboardGui")
+    billboard.Name = plr.Name .. "_NameTag"
+    billboard.Size = UDim2.new(0, 200, 0, 50)
+    billboard.ExtentsOffset = Vector3.new(0, 3, 0)
+    billboard.AlwaysOnTop = true
+    billboard.MaxDistance = 10000
+    
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Name = "NameText"
+    textLabel.Size = UDim2.new(1, 0, 1, 0)
+    textLabel.BackgroundTransparency = 1
+    textLabel.Text = plr.Name
+    textLabel.TextColor3 = self.NameColor
+    textLabel.TextSize = self.NameSize
+    textLabel.Font = Enum.Font.GothamBold
+    textLabel.TextStrokeColor3 = self.NameOutlineColor
+    textLabel.TextStrokeTransparency = 0
+    
+    for i = 1, 4 do
+        local outline = Instance.new("TextLabel")
+        outline.Name = "Outline" .. i
+        outline.Size = UDim2.new(1, 2, 1, 2)
+        outline.BackgroundTransparency = 1
+        outline.Text = plr.Name
+        outline.TextColor3 = self.NameOutlineColor
+        outline.TextSize = self.NameSize
+        outline.Font = Enum.Font.GothamBold
+        outline.TextStrokeTransparency = 1
+        outline.ZIndex = textLabel.ZIndex - 1
+        
+        local offsetX = (i == 1 or i == 3) and -1 or 1
+        local offsetY = (i == 1 or i == 2) and -1 or 1
+        outline.Position = UDim2.new(0, offsetX, 0, offsetY)
+        outline.Parent = billboard
+    end
+    
+    textLabel.Parent = billboard
+    billboard.Parent = self.Storage
+    
+    self.BillboardInstances[plr] = billboard
+    return billboard
+end
+
+function XrayController:CreateBoxESP(plr)
+    if plr == self.LocalPlayer then return end
+    
+    if self.BoxInstances[plr] then
+        self.BoxInstances[plr].Frame:Destroy()
+    end
+    
+    local boxFrame = Instance.new("Frame")
+    boxFrame.Name = plr.Name .. "_Box"
+    boxFrame.BackgroundTransparency = 1
+    boxFrame.BorderSizePixel = 0
+    boxFrame.Parent = self.ScreenGui
+    
+    local lines = {}
+    local lineNames = {"Top", "Bottom", "Left", "Right"}
+    
+    for _, name in ipairs(lineNames) do
+        local line = Instance.new("Frame")
+        line.Name = name
+        line.BackgroundColor3 = self.BoxColor
+        line.BorderSizePixel = 0
+        line.Parent = boxFrame
+        table.insert(lines, line)
+    end
+    
+    local outlines = {}
+    for _, name in ipairs(lineNames) do
+        local outline = Instance.new("Frame")
+        outline.Name = name .. "_Outline"
+        outline.BackgroundColor3 = self.BoxOutlineColor
+        outline.BorderSizePixel = 0
+        outline.ZIndex = -1
+        outline.Parent = boxFrame
+        table.insert(outlines, outline)
+    end
+    
+    self.BoxInstances[plr] = {
+        Frame = boxFrame,
+        Lines = lines,
+        Outlines = outlines,
+        Player = plr
+    }
+    
+    return self.BoxInstances[plr]
+end
+
+function XrayController:UpdateBoxESP(plr)
+    local boxData = self.BoxInstances[plr]
+    if not boxData then return end
+    
+    local character = plr.Character
+    if not character then 
+        boxData.Frame.Visible = false
+        return 
+    end
+    
+    local humanoid = character:FindFirstChild("Humanoid")
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    
+    if not hrp or not humanoid or humanoid.Health <= 0 then
+        boxData.Frame.Visible = false
+        return
+    end
+    
+    local minX, minY, minZ = math.huge, math.huge, math.huge
+    local maxX, maxY, maxZ = -math.huge, -math.huge, -math.huge
+    local validParts = 0
+    
+    for _, part in ipairs(character:GetDescendants()) do
+        if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
+            local pos = part.Position
+            local size = part.Size / 2
+            
+            minX = math.min(minX, pos.X - size.X)
+            minY = math.min(minY, pos.Y - size.Y)
+            minZ = math.min(minZ, pos.Z - size.Z)
+            maxX = math.max(maxX, pos.X + size.X)
+            maxY = math.max(maxY, pos.Y + size.Y)
+            maxZ = math.max(maxZ, pos.Z + size.Z)
+            validParts = validParts + 1
+        end
+    end
+    
+    if validParts == 0 or minX == math.huge then
+        boxData.Frame.Visible = false
+        return
+    end
+    
+    local corners = {
+        Vector3.new(minX, minY, minZ),
+        Vector3.new(minX, minY, maxZ),
+        Vector3.new(minX, maxY, minZ),
+        Vector3.new(minX, maxY, maxZ),
+        Vector3.new(maxX, minY, minZ),
+        Vector3.new(maxX, minY, maxZ),
+        Vector3.new(maxX, maxY, minZ),
+        Vector3.new(maxX, maxY, maxZ)
+    }
+    
+    local minScreenX, minScreenY = math.huge, math.huge
+    local maxScreenX, maxScreenY = -math.huge, -math.huge
+    local validPoints = 0
+    
+    for _, corner in ipairs(corners) do
+        local screenPos, onScreen = CurrentCamera:WorldToViewportPoint(corner)
+        
+        if screenPos.Z > 0 then
+            minScreenX = math.min(minScreenX, screenPos.X)
+            minScreenY = math.min(minScreenY, screenPos.Y)
+            maxScreenX = math.max(maxScreenX, screenPos.X)
+            maxScreenY = math.max(maxScreenY, screenPos.Y)
+            validPoints = validPoints + 1
+        end
+    end
+    
+    if validPoints == 0 then
+        boxData.Frame.Visible = false
+        return
+    end
+    
+    local viewportSize = CurrentCamera.ViewportSize
+    local margin = 100
+    
+    if maxScreenX < -margin or minScreenX > viewportSize.X + margin or 
+       maxScreenY < -margin or minScreenY > viewportSize.Y + margin then
+        boxData.Frame.Visible = false
+        return
+    end
+    
+    local width = maxScreenX - minScreenX
+    local height = maxScreenY - minScreenY
+    
+    if width > self.MaxBoxSize or height > self.MaxBoxSize then
+        local centerX = (minScreenX + maxScreenX) / 2
+        local centerY = (minScreenY + maxScreenY) / 2
+        width = math.min(width, self.MaxBoxSize)
+        height = math.min(height, self.MaxBoxSize)
+        minScreenX = centerX - width / 2
+        minScreenY = centerY - height / 2
+    end
+    
+    if width < self.MinBoxSize then
+        local centerX = (minScreenX + maxScreenX) / 2
+        minScreenX = centerX - self.MinBoxSize / 2
+        maxScreenX = centerX + self.MinBoxSize / 2
+        width = self.MinBoxSize
+    end
+    
+    if height < self.MinBoxSize then
+        local centerY = (minScreenY + maxScreenY) / 2
+        minScreenY = centerY - self.MinBoxSize / 2
+        maxScreenY = centerY + self.MinBoxSize / 2
+        height = self.MinBoxSize
+    end
+    
+    boxData.Frame.Visible = true
+    boxData.Frame.Position = UDim2.new(0, minScreenX, 0, minScreenY)
+    boxData.Frame.Size = UDim2.new(0, width, 0, height)
+    
+    local thickness = self.BoxThickness
+    local outlineThickness = thickness + 2
+    
+    local lines = boxData.Lines
+    local outlines = boxData.Outlines
+    
+    lines[1].Position = UDim2.new(0, 0, 0, 0)
+    lines[1].Size = UDim2.new(1, 0, 0, thickness)
+    lines[2].Position = UDim2.new(0, 0, 1, -thickness)
+    lines[2].Size = UDim2.new(1, 0, 0, thickness)
+    lines[3].Position = UDim2.new(0, 0, 0, 0)
+    lines[3].Size = UDim2.new(0, thickness, 1, 0)
+    lines[4].Position = UDim2.new(1, -thickness, 0, 0)
+    lines[4].Size = UDim2.new(0, thickness, 1, 0)
+    
+    outlines[1].Position = UDim2.new(0, -1, 0, -1)
+    outlines[1].Size = UDim2.new(1, 2, 0, outlineThickness)
+    outlines[2].Position = UDim2.new(0, -1, 1, -outlineThickness + 1)
+    outlines[2].Size = UDim2.new(1, 2, 0, outlineThickness)
+    outlines[3].Position = UDim2.new(0, -1, 0, -1)
+    outlines[3].Size = UDim2.new(0, outlineThickness, 1, 2)
+    outlines[4].Position = UDim2.new(1, -outlineThickness + 1, 0, -1)
+    outlines[4].Size = UDim2.new(0, outlineThickness, 1, 2)
+end
+
+function XrayController:CreateHealthBar(plr)
+    if plr == self.LocalPlayer then return end
+    
+    if self.HealthBarInstances[plr] then
+        self:DestroyHealthBar(plr)
+    end
+    
+    self:EnsureStorage()
+    
+    local container = Instance.new("Frame")
+    container.Name = plr.Name .. "_HealthBar"
+    container.Size = UDim2.new(0, self.HealthBarWidth, 0, self.HealthBarHeight)
+    container.BackgroundColor3 = self.HealthBarBgColor
+    container.BackgroundTransparency = 0.5
+    container.BorderSizePixel = 1
+    container.BorderColor3 = Color3.fromRGB(0, 0, 0)
+    container.Visible = true
+    container.ZIndex = 2
+    container.Parent = self.ScreenGui
+    
+    local fill = Instance.new("Frame")
+    fill.Name = "Fill"
+    fill.Size = UDim2.new(1, 0, 1, 0)
+    fill.BackgroundColor3 = self.HealthBarFillColor
+    fill.BorderSizePixel = 0
+    fill.BackgroundTransparency = 0
+    fill.Parent = container
+    
+    self.HealthBarInstances[plr] = {
+        Container = container,
+        Fill = fill
+    }
+    
+    return container
+end
+
+function XrayController:DestroyHealthBar(plr)
+    if self.HealthBarInstances[plr] then
+        if self.HealthBarInstances[plr].Container then
+            self.HealthBarInstances[plr].Container:Destroy()
+        end
+        self.HealthBarInstances[plr] = nil
+    end
+end
+
+function XrayController:UpdateHealthBar(plr)
+    local healthData = self.HealthBarInstances[plr]
+    if not healthData then return end
+
+    local character = plr.Character
+    if not character then
+        healthData.Container.Visible = false
+        return
+    end
+
+    local humanoid = character:FindFirstChild("Humanoid")
+    if not humanoid or humanoid.Health <= 0 then
+        healthData.Container.Visible = false
+        return
+    end
+
+    local head = character:FindFirstChild("Head")
+    if not head then
+        head = character:FindFirstChild("HumanoidRootPart")
+        if not head then
+            healthData.Container.Visible = false
+            return
+        end
+    end
+
+    local headPos = head.Position + Vector3.new(0, 2.5, 0)
+    local screenPos, onScreen = CurrentCamera:WorldToViewportPoint(headPos)
+
+    if screenPos.Z <= 0 or screenPos.X < -200 or screenPos.X > CurrentCamera.ViewportSize.X + 200 or
+       screenPos.Y < -200 or screenPos.Y > CurrentCamera.ViewportSize.Y + 200 then
+        healthData.Container.Visible = false
+        return
+    end
+
+    local localPlayer = Players.LocalPlayer
+    local localCharacter = localPlayer.Character
+    local distance = 0
+
+    if localCharacter and localCharacter:FindFirstChild("HumanoidRootPart") then
+        distance = (head.Position - localCharacter.HumanoidRootPart.Position).Magnitude
+    end
+
+    local scale = 1
+    if distance > self.HealthBarFullScaleDistance then
+        if distance >= self.HealthBarMaxDistance then
+            scale = self.HealthBarMinScale
+        else
+            local t = (distance - self.HealthBarFullScaleDistance) / (self.HealthBarMaxDistance - self.HealthBarFullScaleDistance)
+            scale = 1 - t * (1 - self.HealthBarMinScale)
+        end
+    end
+
+    local scaledWidth = math.floor(self.HealthBarWidth * scale)
+    local scaledHeight = math.floor(self.HealthBarHeight * scale)
+    local scaledOffsetY = math.floor(self.HealthBarOffsetY * scale)
+
+    healthData.Container.Visible = true
+    healthData.Container.Position = UDim2.new(0, screenPos.X - scaledWidth / 2, 0, screenPos.Y + scaledOffsetY)
+    healthData.Container.Size = UDim2.new(0, scaledWidth, 0, scaledHeight)
+
+    local healthPercent = math.clamp(humanoid.Health / humanoid.MaxHealth, 0, 1)
+    healthData.Fill.Size = UDim2.new(healthPercent, 0, 1, 0)
+
+    if healthPercent <= 0.3 then
+        healthData.Fill.BackgroundColor3 = Color3.fromRGB(180, 30, 30)
+    elseif healthPercent <= 0.6 then
+        healthData.Fill.BackgroundColor3 = Color3.fromRGB(255, 150, 50)
+    else
+        healthData.Fill.BackgroundColor3 = self.HealthBarFillColor
+    end
+end
+
+function XrayController:UpdateAllHealthBars()
+    if not self.HealthBarEnabled then return end
+    for plr, _ in pairs(self.HealthBarInstances) do
+        if plr and plr.Parent then
+            self:UpdateHealthBar(plr)
+        else
+            self:DestroyHealthBar(plr)
+        end
+    end
+end
+
+function XrayController:CreateESPForPlayer(plr)
+    if plr == self.LocalPlayer then return end
+    
+    self:EnsureStorage()
+    
+    if self.HighlightEnabled then
+        local highlight = self:CreateHighlight(plr)
+        if highlight and plr.Character then
+            highlight.Adornee = plr.Character
+        end
+    end
+    
+    if self.NameEnabled then
+        self:CreateNameTag(plr)
+        if self.BillboardInstances[plr] and plr.Character then
+            local head = plr.Character:FindFirstChild("Head") or plr.Character:FindFirstChild("HumanoidRootPart")
+            if head then
+                self.BillboardInstances[plr].Adornee = head
+                self.BillboardInstances[plr].Enabled = true
+            end
+        end
+    end
+    
+    if self.BoxEnabled then
+        self:CreateBoxESP(plr)
+    end
+    
+    if self.HealthBarEnabled then
+        self:CreateHealthBar(plr)
+    end
+    
+    if not self.Connections[plr] then
+        self.Connections[plr] = {}
+    end
+    
+    if self.Connections[plr].charAdded then
+        self.Connections[plr].charAdded:Disconnect()
+    end
+    if self.Connections[plr].charRemoving then
+        self.Connections[plr].charRemoving:Disconnect()
+    end
+    
+    self.Connections[plr].charAdded = plr.CharacterAdded:Connect(function(char)
+        wait(0.5)
+        
+        if self.HighlightEnabled and self.HighlightInstances[plr] then
+            self.HighlightInstances[plr].Adornee = char
+        end
+        
+        if self.NameEnabled then
+            local head = char:FindFirstChild("Head") or char:FindFirstChild("HumanoidRootPart")
+            if head and self.BillboardInstances[plr] then
+                self.BillboardInstances[plr].Adornee = head
+                self.BillboardInstances[plr].Enabled = true
+            end
+        end
+        
+        if self.BoxEnabled then
+            if not self.BoxInstances[plr] then
+                self:CreateBoxESP(plr)
+            else
+                self:UpdateBoxESP(plr)
+            end
+        end
+        
+        if self.HealthBarEnabled then
+            if not self.HealthBarInstances[plr] then
+                self:CreateHealthBar(plr)
+            end
+        end
+    end)
+    
+    self.Connections[plr].charRemoving = plr.CharacterRemoving:Connect(function()
+        if self.HighlightInstances[plr] then
+            self.HighlightInstances[plr].Adornee = nil
+        end
+        if self.BillboardInstances[plr] then
+            self.BillboardInstances[plr].Enabled = false
+        end
+        if self.BoxInstances[plr] then
+            self.BoxInstances[plr].Frame.Visible = false
+        end
+        if self.HealthBarInstances[plr] then
+            self.HealthBarInstances[plr].Container.Visible = false
+        end
+    end)
+end
+
+function XrayController:UpdateAllESP()
+    if self.HighlightEnabled then
+        for plr, highlight in pairs(self.HighlightInstances) do
+            if plr and plr.Parent and highlight then
+                local char = plr.Character
+                if char and highlight.Adornee ~= char then
+                    highlight.Adornee = char
+                end
+            end
+        end
+    end
+    
+    if self.NameEnabled then
+        for plr, billboard in pairs(self.BillboardInstances) do
+            if plr and plr.Parent and billboard then
+                local char = plr.Character
+                if char then
+                    local head = char:FindFirstChild("Head") or char:FindFirstChild("HumanoidRootPart")
+                    if head and billboard.Adornee ~= head then
+                        billboard.Adornee = head
+                        billboard.Enabled = true
+                    end
+                else
+                    billboard.Enabled = false
+                end
+            end
+        end
+    end
+    
+    if self.BoxEnabled then
+        for plr, boxData in pairs(self.BoxInstances) do
+            if plr and plr.Parent then
+                self:UpdateBoxESP(plr)
+            end
+        end
+    end
+    
+    if self.HealthBarEnabled then
+        self:UpdateAllHealthBars()
+    end
+end
+
+function XrayController:CleanupPlayerESP(plr)
+    if self.HighlightInstances[plr] then
+        self.HighlightInstances[plr]:Destroy()
+        self.HighlightInstances[plr] = nil
+    end
+    
+    if self.BillboardInstances[plr] then
+        self.BillboardInstances[plr]:Destroy()
+        self.BillboardInstances[plr] = nil
+    end
+    
+    if self.BoxInstances[plr] then
+        self.BoxInstances[plr].Frame:Destroy()
+        self.BoxInstances[plr] = nil
+    end
+    
+    if self.HealthBarInstances[plr] then
+        self:DestroyHealthBar(plr)
+    end
+    
+    if self.Connections[plr] then
+        for _, conn in pairs(self.Connections[plr]) do
+            if conn and typeof(conn) == "RBXScriptConnection" then
+                conn:Disconnect()
+            end
+        end
+        self.Connections[plr] = nil
+    end
+end
+
+function XrayController:EnableHighlight()
+    self.HighlightEnabled = true
+    self:EnsureStorage()
+    
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= self.LocalPlayer then
+            self:CreateESPForPlayer(plr)
+        end
+    end
+end
+
+function XrayController:DisableHighlight()
+    self.HighlightEnabled = false
+    for _, highlight in pairs(self.HighlightInstances) do
+        if highlight then highlight:Destroy() end
+    end
+    self.HighlightInstances = {}
+end
+
+function XrayController:EnableName()
+    self.NameEnabled = true
+    self:EnsureStorage()
+    
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= self.LocalPlayer then
+            self:CreateESPForPlayer(plr)
+        end
+    end
+end
+
+function XrayController:DisableName()
+    self.NameEnabled = false
+    for _, billboard in pairs(self.BillboardInstances) do
+        if billboard then billboard:Destroy() end
+    end
+    self.BillboardInstances = {}
+end
+
+function XrayController:EnableBox()
+    self.BoxEnabled = true
+    self:EnsureStorage()
+    
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= self.LocalPlayer then
+            self:CreateESPForPlayer(plr)
+        end
+    end
+end
+
+function XrayController:DisableBox()
+    self.BoxEnabled = false
+    for _, boxData in pairs(self.BoxInstances) do
+        if boxData and boxData.Frame then
+            boxData.Frame:Destroy()
+        end
+    end
+    self.BoxInstances = {}
+end
+
+function XrayController:EnableHealthBar()
+    self.HealthBarEnabled = true
+    self:EnsureStorage()
+    
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= self.LocalPlayer then
+            self:CreateESPForPlayer(plr)
+        end
+    end
+end
+
+function XrayController:DisableHealthBar()
+    self.HealthBarEnabled = false
+    for plr, _ in pairs(self.HealthBarInstances) do
+        self:DestroyHealthBar(plr)
+    end
+    self.HealthBarInstances = {}
+end
+
+function XrayController:Initialize()
+    self.Connections.playerAdded = Players.PlayerAdded:Connect(function(plr)
+        if plr ~= self.LocalPlayer then
+            wait(1)
+            if self.HighlightEnabled or self.NameEnabled or self.BoxEnabled or self.HealthBarEnabled then
+                self:CreateESPForPlayer(plr)
+            end
+        end
+    end)
+    
+    self.Connections.playerRemoving = Players.PlayerRemoving:Connect(function(plr)
+        self:CleanupPlayerESP(plr)
+    end)
+    
+    RunService.RenderStepped:Connect(function()
+        if self.HighlightEnabled or self.NameEnabled or self.BoxEnabled or self.HealthBarEnabled then
+            self:UpdateAllESP()
+        end
+    end)
+end
+
+function XrayController:Cleanup()
+    self:DisableHighlight()
+    self:DisableName()
+    self:DisableBox()
+    self:DisableHealthBar()
+    
+    for _, conns in pairs(self.Connections) do
+        if type(conns) == "table" then
+            for _, conn in pairs(conns) do
+                if conn and typeof(conn) == "RBXScriptConnection" then
+                    conn:Disconnect()
+                end
+            end
+        elseif typeof(conns) == "RBXScriptConnection" then
+            conns:Disconnect()
+        end
+    end
+    
+    if self.Storage then
+        self.Storage:Destroy()
+    end
+    if self.ScreenGui then
+        self.ScreenGui:Destroy()
+    end
+end
+
+XrayController:Initialize()
+_G.XrayController = XrayController
+
+local HttpService = game:GetService("HttpService")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = game:GetService("Players").LocalPlayer
+
+local SavedCoordinates = {}
+local FilePath = "CYTFA_SavedCoordinates.json"
+
+local function ReadFile(path)
+    local success, data = pcall(function()
+        if readfile then
+            return readfile(path)
+        elseif syn and syn.readfile then
+            return syn.readfile(path)
+        else
+            return nil
+        end
+    end)
+    return success and data or nil
+end
+
+local function WriteFile(path, content)
+    local success, result = pcall(function()
+        if writefile then
+            writefile(path, content)
+            return true
+        elseif syn and syn.writefile then
+            syn.writefile(path, content)
+            return true
+        else
+            return false
+        end
+    end)
+    return success and result or false
+end
+
+local function LoadCoordinates()
+    local data = ReadFile(FilePath)
+    if data then
+        local success, decoded = pcall(function()
+            return HttpService:JSONDecode(data)
+        end)
+        if success and type(decoded) == "table" then
+            SavedCoordinates = decoded
+            return true
+        end
+    end
+    return false
+end
+
+local function SaveCoordinates()
+    local success = pcall(function()
+        local encoded = HttpService:JSONEncode(SavedCoordinates)
+        return WriteFile(FilePath, encoded)
+    end)
+    return success
+end
+
+local function CreateCoordinateSelectionUI(title, actionCallback, isDelete)
+    if #SavedCoordinates == 0 then
+        WindUI:Notify({Title = "坐标管理", Content = "没有保存的坐标", Duration = 2})
+        return
+    end
+
+    local SelectionGui = Instance.new("ScreenGui")
+    SelectionGui.Name = "CoordinateSelectionUI"
+    SelectionGui.Parent = game:GetService("CoreGui")
+    SelectionGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
+    SelectionGui.ResetOnSpawn = false
+
+    local MainFrame = Instance.new("Frame")
+    MainFrame.Parent = SelectionGui
+    MainFrame.Size = UDim2.new(0, 320, 0, 250)
+    MainFrame.Position = UDim2.new(0.5, -160, 0.5, -125)
+    MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    MainFrame.BorderSizePixel = 0
+    MainFrame.Active = true
+    MainFrame.Draggable = true
+
+    local Corner = Instance.new("UICorner")
+    Corner.CornerRadius = UDim.new(0, 12)
+    Corner.Parent = MainFrame
+
+    local Stroke = Instance.new("UIStroke")
+    Stroke.Color = Color3.fromRGB(255, 255, 255)
+    Stroke.Thickness = 2
+    Stroke.Parent = MainFrame
+
+    local Header = Instance.new("Frame")
+    Header.Parent = MainFrame
+    Header.Size = UDim2.new(1, 0, 0, 40)
+    Header.Position = UDim2.new(0, 0, 0, 0)
+    Header.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+    Header.BorderSizePixel = 0
+
+    local HeaderCorner = Instance.new("UICorner")
+    HeaderCorner.CornerRadius = UDim.new(0, 12)
+    HeaderCorner.Parent = Header
+
+    local TitleLabel = Instance.new("TextLabel")
+    TitleLabel.Parent = Header
+    TitleLabel.Size = UDim2.new(1, -20, 1, 0)
+    TitleLabel.Position = UDim2.new(0, 10, 0, 0)
+    TitleLabel.BackgroundTransparency = 1
+    TitleLabel.Text = title
+    TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    TitleLabel.TextSize = 16
+    TitleLabel.Font = Enum.Font.GothamBold
+    TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+    local CloseButton = Instance.new("TextButton")
+    CloseButton.Parent = Header
+    CloseButton.Size = UDim2.new(0, 30, 0, 30)
+    CloseButton.Position = UDim2.new(1, -35, 0.5, -15)
+    CloseButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    CloseButton.Text = "×"
+    CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    CloseButton.TextSize = 18
+    CloseButton.Font = Enum.Font.GothamBold
+    CloseButton.BorderSizePixel = 0
+
+    local CloseCorner = Instance.new("UICorner")
+    CloseCorner.CornerRadius = UDim.new(0, 6)
+    CloseCorner.Parent = CloseButton
+
+    local ScrollFrame = Instance.new("ScrollingFrame")
+    ScrollFrame.Parent = MainFrame
+    ScrollFrame.Size = UDim2.new(1, -20, 1, -90)
+    ScrollFrame.Position = UDim2.new(0, 10, 0, 50)
+    ScrollFrame.BackgroundTransparency = 1
+    ScrollFrame.ScrollBarThickness = 4
+    ScrollFrame.ScrollBarImageColor3 = Color3.fromRGB(200, 200, 200)
+    ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, #SavedCoordinates * 50)
+    ScrollFrame.BorderSizePixel = 0
+
+    local ButtonContainer = Instance.new("Frame")
+    ButtonContainer.Parent = MainFrame
+    ButtonContainer.Size = UDim2.new(1, -20, 0, 40)
+    ButtonContainer.Position = UDim2.new(0, 10, 1, -50)
+    ButtonContainer.BackgroundTransparency = 1
+
+    for i, coord in ipairs(SavedCoordinates) do
+        local CoordButton = Instance.new("TextButton")
+        CoordButton.Size = UDim2.new(1, 0, 0, 45)
+        CoordButton.Position = UDim2.new(0, 0, 0, (i-1)*50)
+        CoordButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+        CoordButton.Text = ""
+        CoordButton.BorderSizePixel = 0
+        CoordButton.Parent = ScrollFrame
+
+        local ButtonCorner = Instance.new("UICorner")
+        ButtonCorner.CornerRadius = UDim.new(0, 8)
+        ButtonCorner.Parent = CoordButton
+
+        local ButtonStroke = Instance.new("UIStroke")
+        ButtonStroke.Color = Color3.fromRGB(255, 255, 255)
+        ButtonStroke.Thickness = 1
+        ButtonStroke.Parent = CoordButton
+
+        local NameLabel = Instance.new("TextLabel")
+        NameLabel.Parent = CoordButton
+        NameLabel.Size = UDim2.new(1, -10, 0, 18)
+        NameLabel.Position = UDim2.new(0, 10, 0, 5)
+        NameLabel.BackgroundTransparency = 1
+        NameLabel.Text = coord.name
+        NameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+        NameLabel.TextSize = 14
+        NameLabel.Font = Enum.Font.GothamBold
+        NameLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+        local PosLabel = Instance.new("TextLabel")
+        PosLabel.Parent = CoordButton
+        PosLabel.Size = UDim2.new(1, -10, 0, 16)
+        PosLabel.Position = UDim2.new(0, 10, 0, 25)
+        PosLabel.BackgroundTransparency = 1
+        PosLabel.Text = string.format("X: %.1f, Y: %.1f, Z: %.1f", coord.x, coord.y, coord.z)
+        PosLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
+        PosLabel.TextSize = 11
+        PosLabel.Font = Enum.Font.Gotham
+        PosLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+        CoordButton.MouseEnter:Connect(function()
+            TweenService:Create(CoordButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(50, 50, 50)}):Play()
+        end)
+
+        CoordButton.MouseLeave:Connect(function()
+            TweenService:Create(CoordButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(30, 30, 30)}):Play()
+        end)
+
+        CoordButton.MouseButton1Click:Connect(function()
+            actionCallback(coord, i)
+            SelectionGui:Destroy()
+        end)
+    end
+
+    CloseButton.MouseButton1Click:Connect(function()
+        SelectionGui:Destroy()
+    end)
+
+    local InputConnection
+    InputConnection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+        if input.KeyCode == Enum.KeyCode.Escape then
+            SelectionGui:Destroy()
+            InputConnection:Disconnect()
+        end
+    end)
+
+    SelectionGui.Destroying:Connect(function()
+        if InputConnection then
+            InputConnection:Disconnect()
+        end
+    end)
+end
+
+local function SaveCurrentCoordinate()
+    local character = LocalPlayer.Character
+    if not character then
+        WindUI:Notify({Title = "保存坐标", Content = "角色未找到", Duration = 2})
+        return
+    end
+
+    local rootPart = character:FindFirstChild("HumanoidRootPart")
+    if not rootPart then
+        WindUI:Notify({Title = "保存坐标", Content = "未找到HumanoidRootPart", Duration = 2})
+        return
+    end
+
+    local InputGui = Instance.new("ScreenGui")
+    InputGui.Name = "CoordinateInputUI"
+    InputGui.Parent = game:GetService("CoreGui")
+    InputGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
+    InputGui.ResetOnSpawn = false
+
+    local MainFrame = Instance.new("Frame")
+    MainFrame.Parent = InputGui
+    MainFrame.Size = UDim2.new(0, 300, 0, 180)
+    MainFrame.Position = UDim2.new(0.5, -150, 0.5, -90)
+    MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    MainFrame.BorderSizePixel = 0
+    MainFrame.Active = true
+    MainFrame.Draggable = true
+
+    local Corner = Instance.new("UICorner")
+    Corner.CornerRadius = UDim.new(0, 12)
+    Corner.Parent = MainFrame
+
+    local Stroke = Instance.new("UIStroke")
+    Stroke.Color = Color3.fromRGB(255, 255, 255)
+    Stroke.Thickness = 2
+    Stroke.Parent = MainFrame
+
+    local TitleLabel = Instance.new("TextLabel")
+    TitleLabel.Parent = MainFrame
+    TitleLabel.Size = UDim2.new(1, 0, 0, 40)
+    TitleLabel.Position = UDim2.new(0, 0, 0, 0)
+    TitleLabel.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+    TitleLabel.Text = "保存坐标"
+    TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    TitleLabel.TextSize = 16
+    TitleLabel.Font = Enum.Font.GothamBold
+    TitleLabel.BorderSizePixel = 0
+
+    local TitleCorner = Instance.new("UICorner")
+    TitleCorner.CornerRadius = UDim.new(0, 12)
+    TitleCorner.Parent = TitleLabel
+
+    local InputBox = Instance.new("TextBox")
+    InputBox.Parent = MainFrame
+    InputBox.Size = UDim2.new(1, -40, 0, 35)
+    InputBox.Position = UDim2.new(0, 20, 0, 60)
+    InputBox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    InputBox.Text = ""
+    InputBox.PlaceholderText = "输入坐标名称..."
+    InputBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+    InputBox.PlaceholderColor3 = Color3.fromRGB(120, 120, 120)
+    InputBox.TextSize = 14
+    InputBox.Font = Enum.Font.Gotham
+    InputBox.ClearTextOnFocus = false
+
+    local InputCorner = Instance.new("UICorner")
+    InputCorner.CornerRadius = UDim.new(0, 6)
+    InputCorner.Parent = InputBox
+
+    local InputStroke = Instance.new("UIStroke")
+    InputStroke.Color = Color3.fromRGB(200, 200, 200)
+    InputStroke.Thickness = 1
+    InputStroke.Parent = InputBox
+
+    local ButtonContainer = Instance.new("Frame")
+    ButtonContainer.Parent = MainFrame
+    ButtonContainer.Size = UDim2.new(1, -40, 0, 35)
+    ButtonContainer.Position = UDim2.new(0, 20, 1, -50)
+    ButtonContainer.BackgroundTransparency = 1
+
+    local ConfirmButton = Instance.new("TextButton")
+    ConfirmButton.Parent = ButtonContainer
+    ConfirmButton.Size = UDim2.new(0.5, -5, 1, 0)
+    ConfirmButton.Position = UDim2.new(0, 0, 0, 0)
+    ConfirmButton.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+    ConfirmButton.Text = "保存"
+    ConfirmButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    ConfirmButton.TextSize = 14
+    ConfirmButton.Font = Enum.Font.GothamBold
+    ConfirmButton.BorderSizePixel = 0
+
+    local ConfirmCorner = Instance.new("UICorner")
+    ConfirmCorner.CornerRadius = UDim.new(0, 6)
+    ConfirmCorner.Parent = ConfirmButton
+
+    local CancelButton = Instance.new("TextButton")
+    CancelButton.Parent = ButtonContainer
+    CancelButton.Size = UDim2.new(0.5, -5, 1, 0)
+    CancelButton.Position = UDim2.new(0.5, 5, 0, 0)
+    CancelButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    CancelButton.Text = "取消"
+    CancelButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    CancelButton.TextSize = 14
+    CancelButton.Font = Enum.Font.GothamBold
+    CancelButton.BorderSizePixel = 0
+
+    local CancelCorner = Instance.new("UICorner")
+    CancelCorner.CornerRadius = UDim.new(0, 6)
+    CancelCorner.Parent = CancelButton
+
+    InputBox:CaptureFocus()
+
+    ConfirmButton.MouseButton1Click:Connect(function()
+        local coordinateName = InputBox.Text
+        if coordinateName and coordinateName ~= "" then
+            local position = rootPart.Position
+            local coord = {
+                name = coordinateName,
+                x = math.round(position.X * 100) / 100,
+                y = math.round(position.Y * 100) / 100,
+                z = math.round(position.Z * 100) / 100,
+                timestamp = os.time()
+            }
+            table.insert(SavedCoordinates, coord)
+            SaveCoordinates()
+            WindUI:Notify({Title = "保存坐标", Content = "坐标已保存: " .. coordinateName, Duration = 2})
+        else
+            WindUI:Notify({Title = "保存坐标", Content = "请输入坐标名称", Duration = 2})
+        end
+        InputGui:Destroy()
+    end)
+
+    CancelButton.MouseButton1Click:Connect(function()
+        InputGui:Destroy()
+    end)
+
+    InputBox.FocusLost:Connect(function(enterPressed)
+        if enterPressed then
+            local coordinateName = InputBox.Text
+            if coordinateName and coordinateName ~= "" then
+                local position = rootPart.Position
+                local coord = {
+                    name = coordinateName,
+                    x = math.round(position.X * 100) / 100,
+                    y = math.round(position.Y * 100) / 100,
+                    z = math.round(position.Z * 100) / 100,
+                    timestamp = os.time()
+                }
+                table.insert(SavedCoordinates, coord)
+                SaveCoordinates()
+                WindUI:Notify({Title = "保存坐标", Content = "坐标已保存: " .. coordinateName, Duration = 2})
+            else
+                WindUI:Notify({Title = "保存坐标", Content = "请输入坐标名称", Duration = 2})
+            end
+            InputGui:Destroy()
+        end
+    end)
+
+    local InputConnection
+    InputConnection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+        if input.KeyCode == Enum.KeyCode.Escape then
+            InputGui:Destroy()
+            InputConnection:Disconnect()
+        end
+    end)
+
+    InputGui.Destroying:Connect(function()
+        if InputConnection then
+            InputConnection:Disconnect()
+        end
+    end)
+end
+
+local function TeleportToCoordinate()
+    CreateCoordinateSelectionUI("选择要传送的坐标", function(coord)
+        local character = LocalPlayer.Character
+        if not character then
+            WindUI:Notify({Title = "传送坐标", Content = "角色未找到", Duration = 2})
+            return
+        end
+
+        local rootPart = character:FindFirstChild("HumanoidRootPart")
+        if not rootPart then
+            WindUI:Notify({Title = "传送坐标", Content = "未找到HumanoidRootPart", Duration = 2})
+            return
+        end
+
+        rootPart.CFrame = CFrame.new(coord.x, coord.y, coord.z)
+        WindUI:Notify({Title = "传送坐标", Content = "已传送到: " .. coord.name, Duration = 2})
+    end)
+end
+
+local function DeleteCoordinate()
+    CreateCoordinateSelectionUI("选择要删除的坐标", function(coord, index)
+        table.remove(SavedCoordinates, index)
+        SaveCoordinates()
+        WindUI:Notify({Title = "删除坐标", Content = "已删除坐标: " .. coord.name, Duration = 2})
+    end, true)
+end
+
+LoadCoordinates()
+
+local Tab1 = Tab("信息")
+local Tab2 = Tab("玩家")
+local Tab3 = Tab("实用")
+local Tab4 = Tab("娱乐")
+local Tab5 = Tab("透视")
+local Tab6 = Tab("工具")
+local Tab7 = Tab("摄像机")
+local Tab8 = Tab("传送与甩飞")
+local Tab9 = Tab("动画")
+local Tab10 = Tab("声音")
+local Tab11 = Tab("翻译")
+local Tab12 = Tab("战斗")
+local Tab13 = Tab("脚本中心")
+
+Button(Tab1, "此脚本永久免费，禁止贩卖(点击复制)", function() 
+    setclipboard("此脚本永久免费，禁止贩卖")
+end)
+
+Button(Tab1, "STAR制作者su7QQ号", function() 
+    setclipboard("1693323219")
+end)
+
+Button(Tab1, "复制用户ID", function()
+    setclipboard(game:GetService("Players").LocalPlayer.UserId)
+end)
+
+Button(Tab1, "复制服务器名称", function()
+    setclipboard(game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name)
+end)
+
+Button(Tab1, "复制注册时间", function()
+    setclipboard(game:GetService("Players").LocalPlayer.AccountAge)
+end)
+
+Button(Tab1, "测试注入器UNC(聊天框输入：/console 查看)", function()
+    Window:Dialog({
+        Title = "STARHUB",
+        Content = "请勿多次点击，否则会造成游戏卡顿!",
+        Buttons = {{
+            Title = "确定",
+            Variant = "Primary",
+            Callback = function()
+                loadstring(game:HttpGet "https://raw.githubusercontent.com/Yungengxin/roblox/refs/heads/main/unc")()
+                WindUI:Notify({
+                    Title = "STARHUB",
+                    Content = "已成功执行，请在控制台查看UNC！",
+                    Duration = 5
+                })
+            end
+        }}
+    })
+end)
+
+Button(Tab1, "显示北京时间", function() 
+    local LBLG = Instance.new("ScreenGui", getParent)
+    local LBL = Instance.new("TextLabel", getParent)
+    local player = game.Players.LocalPlayer
+
+    LBLG.Name = "LBLG"
+    LBLG.Parent = game.CoreGui
+    LBLG.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    LBLG.Enabled = true
+    LBL.Name = "LBL"
+    LBL.Parent = LBLG
+    LBL.BackgroundColor3 = Color3.new(0, 3, 1)
+    LBL.BackgroundTransparency = 1
+    LBL.BorderColor3 = Color3.new(0, 3, 1)
+    LBL.Position = UDim2.new(0.75,0,0.010,0)
+    LBL.Size = UDim2.new(0, 133, 0, 30)
+    LBL.Font = Enum.Font.GothamSemibold
+    LBL.Text = "TextLabel"
+    LBL.TextColor3 = Color3.new(0, 3, 3)
+    LBL.TextScaled = true
+    LBL.TextSize = 14
+    LBL.TextWrapped = true
+    LBL.Visible = true
+    LBL.TextStrokeTransparency = 0
+    LBL.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+
+    local FpsLabel = LBL
+    local Heartbeat = game:GetService("RunService").Heartbeat
+    local LastIteration, Start
+    local FrameUpdateTable = { }
+
+    local function HeartbeatUpdate()
+        LastIteration = tick()
+        for Index = #FrameUpdateTable, 1, -1 do
+            FrameUpdateTable[Index + 1] = (FrameUpdateTable[Index] >= LastIteration - 1) and FrameUpdateTable[Index] or nil
+        end
+        FrameUpdateTable[1] = LastIteration
+        local CurrentFPS = (tick() - Start >= 1 and #FrameUpdateTable) or (#FrameUpdateTable / (tick() - Start))
+        CurrentFPS = CurrentFPS - CurrentFPS % 1
+        FpsLabel.Text = ("当前时间:"..os.date("%H").."时"..os.date("%M").."分"..os.date("%S"))
+    end
+    Start = tick()
+    Heartbeat:Connect(HeartbeatUpdate)
+end)
+
+Button(Tab1, "汉化spy", function() 
+    getgenv().Spy="汉化Spy" 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/xiaopi77/xiaopi77/refs/heads/main/spy%E6%B1%89%E5%8C%96%20(1).txt"))()
+end)
+
+Button(Tab1, "Infinite Yield", function() 
+    loadstring(game:HttpGet('https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source'))()
+end)
+
+Button(Tab1, "汉化Dex v3", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/Twbtx/tiamxiabuwu/main/txbw%20dex.v3.lua"))()
+end)
+
+Button(Tab1, "Dark Dex V3", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/Babyhamsta/RBLX_Scripts/main/Universal/BypassedDarkDexV3.lua"))()
+end)
+
+Button(Tab1, "CMD-X", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/CMD-X/CMD-X/master/Source", true))()
+end)
+
+Button(Tab1, "动画spy", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/ke9460394-dot/ugik/refs/heads/main/%E5%8A%A8%E7%94%BSpy.lua.txt"))()
+end)
+
+Button(Tab1, "音频spy", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/ke9460394-dot/ugik/refs/heads/main/Alrthisfordetection.txt"))()
+end)
+
+Button(Tab1, "spy合集", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/ke9460394-dot/ugik/refs/heads/main/Simple_Spy_Utility.txt"))()
+end)
+
+Button(Tab1, "简洁spy", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/fuckg1thub/RizzSpy/refs/heads/main/alright"))()
+end)
+
+Button(Tab1, "小spy", function() 
+    loadstring(game:HttpGet("https://pastebin.com/raw/EHvjE2sT"))()
+end)
+
+Button(Tab1, "贴花spy", function() 
+    loadstring(game:HttpGet('https://pastefy.app/gkqzwu88/raw'))()
+end)
+
+Button(Tab1, "汉化dex++", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/Twbtx/tiamxiabuwu/main/txbw%20dex%2B%2B%20huan%20huan%20HUN%20NB%21"))()
+end)
+
+Button(Tab1, "dex++", function() 
+    loadstring(game:HttpGet("https://github.com/AZYsGithub/DexPlusPlus/releases/latest/download/out.lua"))()
+end)
+
+Button(Tab1, "氯胺酮spy", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/InfernusScripts/Ketamine/refs/heads/main/Ketamine.lua"))()
+end)
+
+Button(Tab1, "http嗅探器", function() 
+    loadstring(game:HttpGet("https://ripskids.lol/official/HttpSpy/loader.lua"))()
+end)
+
+Button(Tab1, "乌托邦spy", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/Klinac/scripts/main/utopia_spy.lua", true))()
+end)
+
+Button(Tab1, "Cobaltspy", function() 
+    loadstring(game:HttpGet("https://github.com/notpoiu/cobalt/releases/latest/download/Cobalt.luau"))()
+end)
+
+Button(Tab1, "夜spyv3", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/Angelo17123/NightSpyV3/refs/heads/main/NightSpy%20V4"))()
+end)
+
+Button(Tab1, "httpsSPY", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/Hm5011/hussain/refs/heads/main/Links%20Spy"))()
+end)
+
+Button(Tab1, "Webhook拦截器webhookspy", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/offperms/emplicswebhookspy/main/release"))()
+end)
+
+Button(Tab1, "RedCodespy", function() 
+    loadstring(game:HttpGet(('https://raw.githubusercontent.com/RedCodeCheat/Roblox/refs/heads/main/RedCode_Remote_Spy.lua')))() 
+end)
+
+Button(Tab1, "HTTPspy", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/293jOse0ejd8du/HttpSpy/refs/heads/main/main.lua"))() 
+end)
+
+Button(Tab1, "库尔斯克斯RSPY", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/nizartitwaniii/Register-Roblox-/refs/heads/main/Protected_2944435597543940.txt"))() 
+end)
+
+Button(Tab1, "SpyOS", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/RENBex6969/SpyOS/refs/heads/main/SpyOS_a2.lua"))() 
+end)
+
+Button(Tab1, "杰森SPY", function() 
+    loadstring(game:HttpGet("https://pastebin.com/raw/wjF5j5YD"))() 
+end)
+
+Button(Tab1, "Hydroxide", function() 
+    loadstring(game:HttpGet('https://raw.githubusercontent.com/iK4oS/backdoor.exe/v8/src/main.lua'))()
+end)
+
+Button(Tab1, "SimpleAdmin", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/exxtremestuffs/SimpleAdmin/main/SimpleAdmin.lua"))()
+end)
+
+Button(Tab1, "Remote Spy", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/470n1/RemoteSpy/main/Main.lua"))()
+end)
+
+Button(Tab1, "Owl Hub", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/CriShoux/OwlHub/master/OwlHub.txt"))()
+end)
+
+Button(Tab1, "Fluxus", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/FluxusByte/Fluxus.Public/main/Fluxus"))()
+end)
+
+Button(Tab1, "Script Dumper", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/FilteringEnabled/ScriptDumper/main/ScriptDumper.lua"))()
+end)
+
+Button(Tab1, "Elysian", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/ElysianManager/Elysian/main/Loader.lua"))()
+end)
+
+Button(Tab1, "ProtoSmasher Compat", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/ProtoSmasher/Scripts/main/Loader"))()
+end)
+
+Button(Tab1, "Anti AFK", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/FilteringEnabled/FE-AntiAFK/main/src.lua"))()
+end)
+
+Button(Tab1, "坐标提取器", function() 
+    local ScreenGui = Instance.new("ScreenGui")
+    local MainFrame = Instance.new("Frame")
+    local TitleBar = Instance.new("Frame")
+    local TitleLabel = Instance.new("TextLabel")
+    local MinimizeButton = Instance.new("TextButton")
+    local CloseButton = Instance.new("TextButton")
+    local ContentFrame = Instance.new("Frame")
+    local CurrentPosLabel = Instance.new("TextLabel")
+    local PosDisplay = Instance.new("TextBox")
+    local ButtonsFrame = Instance.new("Frame")
+    local RefreshButton = Instance.new("TextButton")
+    local CopyButton = Instance.new("TextButton")
+    local TeleportFrame = Instance.new("Frame")
+    local TeleportLabel = Instance.new("TextLabel")
+    local TeleportInput = Instance.new("TextBox")
+    local TeleportButton = Instance.new("TextButton")
+    local StatusLabel = Instance.new("TextLabel")
+
+    ScreenGui.Name = "CoordinateExtractor"
+    ScreenGui.Parent = game.CoreGui
+    ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+    MainFrame.Name = "MainFrame"
+    MainFrame.Parent = ScreenGui
+    MainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    MainFrame.BorderSizePixel = 0
+    MainFrame.Position = UDim2.new(0.3, 0, 0.3, 0)
+    MainFrame.Size = UDim2.new(0, 400, 0, 300)
+    MainFrame.Active = true
+
+    TitleBar.Name = "TitleBar"
+    TitleBar.Parent = MainFrame
+    TitleBar.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    TitleBar.BorderSizePixel = 0
+    TitleBar.Size = UDim2.new(1, 0, 0, 40)
+
+    TitleLabel.Name = "TitleLabel"
+    TitleLabel.Parent = TitleBar
+    TitleLabel.BackgroundTransparency = 1
+    TitleLabel.Size = UDim2.new(0.7, 0, 1, 0)
+    TitleLabel.Font = Enum.Font.GothamBold
+    TitleLabel.Text = "坐标提取器 v2.0"
+    TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    TitleLabel.TextSize = 18
+    TitleLabel.TextStrokeTransparency = 0
+    TitleLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+
+    MinimizeButton.Name = "MinimizeButton"
+    MinimizeButton.Parent = TitleBar
+    MinimizeButton.BackgroundColor3 = Color3.fromRGB(60, 150, 200)
+    MinimizeButton.BorderSizePixel = 0
+    MinimizeButton.Position = UDim2.new(0.8, 0, 0.1, 0)
+    MinimizeButton.Size = UDim2.new(0, 30, 0, 30)
+    MinimizeButton.Font = Enum.Font.GothamBold
+    MinimizeButton.Text = "_"
+    MinimizeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    MinimizeButton.TextSize = 16
+    MinimizeButton.TextStrokeTransparency = 0
+    MinimizeButton.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+
+    CloseButton.Name = "CloseButton"
+    CloseButton.Parent = TitleBar
+    CloseButton.BackgroundColor3 = Color3.fromRGB(200, 60, 60)
+    CloseButton.BorderSizePixel = 0
+    CloseButton.Position = UDim2.new(0.9, 0, 0.1, 0)
+    CloseButton.Size = UDim2.new(0, 30, 0, 30)
+    CloseButton.Font = Enum.Font.GothamBold
+    CloseButton.Text = "X"
+    CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    CloseButton.TextSize = 16
+    CloseButton.TextStrokeTransparency = 0
+    CloseButton.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+
+    ContentFrame.Name = "ContentFrame"
+    ContentFrame.Parent = MainFrame
+    ContentFrame.BackgroundTransparency = 1
+    ContentFrame.Position = UDim2.new(0, 0, 0, 40)
+    ContentFrame.Size = UDim2.new(1, 0, 1, -40)
+
+    CurrentPosLabel.Name = "CurrentPosLabel"
+    CurrentPosLabel.Parent = ContentFrame
+    CurrentPosLabel.BackgroundTransparency = 1
+    CurrentPosLabel.Position = UDim2.new(0.05, 0, 0.05, 0)
+    CurrentPosLabel.Size = UDim2.new(0.9, 0, 0, 25)
+    CurrentPosLabel.Font = Enum.Font.Gotham
+    CurrentPosLabel.Text = "当前位置:"
+    CurrentPosLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    CurrentPosLabel.TextSize = 16
+    CurrentPosLabel.TextXAlignment = Enum.TextXAlignment.Left
+    CurrentPosLabel.TextStrokeTransparency = 0
+    CurrentPosLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+
+    PosDisplay.Name = "PosDisplay"
+    PosDisplay.Parent = ContentFrame
+    PosDisplay.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    PosDisplay.BorderSizePixel = 0
+    PosDisplay.Position = UDim2.new(0.05, 0, 0.15, 0)
+    PosDisplay.Size = UDim2.new(0.9, 0, 0, 60)
+    PosDisplay.Font = Enum.Font.Gotham
+    PosDisplay.PlaceholderText = "点击刷新获取当前位置..."
+    PosDisplay.Text = ""
+    PosDisplay.TextColor3 = Color3.fromRGB(255, 255, 255)
+    PosDisplay.TextSize = 14
+    PosDisplay.TextWrapped = true
+    PosDisplay.TextXAlignment = Enum.TextXAlignment.Left
+    PosDisplay.TextYAlignment = Enum.TextYAlignment.Top
+    PosDisplay.TextStrokeTransparency = 0
+    PosDisplay.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+
+    ButtonsFrame.Name = "ButtonsFrame"
+    ButtonsFrame.Parent = ContentFrame
+    ButtonsFrame.BackgroundTransparency = 1
+    ButtonsFrame.Position = UDim2.new(0.05, 0, 0.4, 0)
+    ButtonsFrame.Size = UDim2.new(0.9, 0, 0, 40)
+
+    RefreshButton.Name = "RefreshButton"
+    RefreshButton.Parent = ButtonsFrame
+    RefreshButton.BackgroundColor3 = Color3.fromRGB(70, 130, 200)
+    RefreshButton.BorderSizePixel = 0
+    RefreshButton.Size = UDim2.new(0.48, 0, 1, 0)
+    RefreshButton.Font = Enum.Font.GothamBold
+    RefreshButton.Text = "刷新位置"
+    RefreshButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    RefreshButton.TextSize = 16
+    RefreshButton.TextStrokeTransparency = 0
+    RefreshButton.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+
+    CopyButton.Name = "CopyButton"
+    CopyButton.Parent = ButtonsFrame
+    CopyButton.BackgroundColor3 = Color3.fromRGB(60, 180, 100)
+    CopyButton.BorderSizePixel = 0
+    CopyButton.Position = UDim2.new(0.52, 0, 0, 0)
+    CopyButton.Size = UDim2.new(0.48, 0, 1, 0)
+    CopyButton.Font = Enum.Font.GothamBold
+    CopyButton.Text = "复制坐标"
+    CopyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    CopyButton.TextSize = 16
+    CopyButton.TextStrokeTransparency = 0
+    CopyButton.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+
+    TeleportFrame.Name = "TeleportFrame"
+    TeleportFrame.Parent = ContentFrame
+    TeleportFrame.BackgroundTransparency = 1
+    TeleportFrame.Position = UDim2.new(0.05, 0, 0.6, 0)
+    TeleportFrame.Size = UDim2.new(0.9, 0, 0, 80)
+
+    TeleportLabel.Name = "TeleportLabel"
+    TeleportLabel.Parent = TeleportFrame
+    TeleportLabel.BackgroundTransparency = 1
+    TeleportLabel.Size = UDim2.new(1, 0, 0, 25)
+    TeleportLabel.Font = Enum.Font.Gotham
+    TeleportLabel.Text = "输入坐标传送到指定位置 (格式: X,Y,Z):"
+    TeleportLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    TeleportLabel.TextSize = 14
+    TeleportLabel.TextXAlignment = Enum.TextXAlignment.Left
+    TeleportLabel.TextStrokeTransparency = 0
+    TeleportLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+
+    TeleportInput.Name = "TeleportInput"
+    TeleportInput.Parent = TeleportFrame
+    TeleportInput.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    TeleportInput.BorderSizePixel = 0
+    TeleportInput.Position = UDim2.new(0, 0, 0.3, 0)
+    TeleportInput.Size = UDim2.new(0.7, 0, 0, 35)
+    TeleportInput.Font = Enum.Font.Gotham
+    TeleportInput.PlaceholderText = "例如: 100,50,200"
+    TeleportInput.Text = ""
+    TeleportInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+    TeleportInput.TextSize = 14
+    TeleportInput.TextStrokeTransparency = 0
+    TeleportInput.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+
+    TeleportButton.Name = "TeleportButton"
+    TeleportButton.Parent = TeleportFrame
+    TeleportButton.BackgroundColor3 = Color3.fromRGB(200, 120, 60)
+    TeleportButton.BorderSizePixel = 0
+    TeleportButton.Position = UDim2.new(0.72, 0, 0.3, 0)
+    TeleportButton.Size = UDim2.new(0.28, 0, 0, 35)
+    TeleportButton.Font = Enum.Font.GothamBold
+    TeleportButton.Text = "传送"
+    TeleportButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    TeleportButton.TextSize = 16
+    TeleportButton.TextStrokeTransparency = 0
+    TeleportButton.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+
+    StatusLabel.Name = "StatusLabel"
+    StatusLabel.Parent = ContentFrame
+    StatusLabel.BackgroundTransparency = 1
+    StatusLabel.Position = UDim2.new(0.05, 0, 0.9, 0)
+    StatusLabel.Size = UDim2.new(0.9, 0, 0, 20)
+    StatusLabel.Font = Enum.Font.Gotham
+    StatusLabel.Text = "就绪"
+    StatusLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+    StatusLabel.TextSize = 12
+    StatusLabel.TextXAlignment = Enum.TextXAlignment.Left
+    StatusLabel.TextStrokeTransparency = 0
+    StatusLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+
+    local function updatePosition()
+        local character = game.Players.LocalPlayer.Character
+        if character and character:FindFirstChild("HumanoidRootPart") then
+            local position = character.HumanoidRootPart.Position
+            PosDisplay.Text = string.format("X: %.2f\nY: %.2f\nZ: %.2f", position.X, position.Y, position.Z)
+            StatusLabel.Text = "位置已更新"
+            StatusLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
+        else
+            StatusLabel.Text = "错误: 无法找到角色"
+            StatusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+        end
+    end
+
+    local function copyToClipboard()
+        if PosDisplay.Text ~= "" then
+            setclipboard(PosDisplay.Text)
+            StatusLabel.Text = "坐标已复制到剪贴板"
+            StatusLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
+        else
+            StatusLabel.Text = "错误: 没有坐标可复制"
+            StatusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+        end
+    end
+
+    local function teleportToPosition()
+        local inputText = TeleportInput.Text
+        local coords = {}
+
+        for coord in string.gmatch(inputText, "[%d%.%-]+") do
+            table.insert(coords, tonumber(coord))
+        end
+
+        if #coords == 3 then
+            local character = game.Players.LocalPlayer.Character
+            if character and character:FindFirstChild("HumanoidRootPart") then
+                character.HumanoidRootPart.CFrame = CFrame.new(coords[1], coords[2], coords[3])
+                StatusLabel.Text = "传送成功"
+                StatusLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
+                updatePosition()
+            else
+                StatusLabel.Text = "错误: 无法找到角色"
+                StatusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+            end
+        else
+            StatusLabel.Text = "错误: 坐标格式不正确"
+            StatusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+        end
+    end
+
+    local UIS = game:GetService("UserInputService")
+    local dragging
+    local dragInput
+    local dragStart
+    local startPos
+
+    local function update(input)
+        local delta = input.Position - dragStart
+        MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+
+    TitleBar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = MainFrame.Position
+
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+
+    TitleBar.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement then
+            dragInput = input
+        end
+    end)
+
+    UIS.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            update(input)
+        end
+    end)
+
+    local isMinimized = false
+    local originalSize = MainFrame.Size
+
+    MinimizeButton.MouseButton1Click:Connect(function()
+        if isMinimized then
+            MainFrame.Size = originalSize
+            ContentFrame.Visible = true
+            MinimizeButton.Text = "_"
+            isMinimized = false
+        else
+            originalSize = MainFrame.Size
+            MainFrame.Size = UDim2.new(originalSize.X.Scale, originalSize.X.Offset, 0, 40)
+            ContentFrame.Visible = false
+            MinimizeButton.Text = "□"
+            isMinimized = true
+        end
+    end)
+
+    RefreshButton.MouseButton1Click:Connect(updatePosition)
+    CopyButton.MouseButton1Click:Connect(copyToClipboard)
+    TeleportButton.MouseButton1Click:Connect(teleportToPosition)
+    CloseButton.MouseButton1Click:Connect(function()
+        ScreenGui:Destroy()
+    end)
+
+    updatePosition()
+
+    TeleportInput.FocusLost:Connect(function(enterPressed)
+        if enterPressed then
+            teleportToPosition()
+        end
+    end)
+end)
+
+Button(Tab1, "复制坐标脚本(无法关闭)", function() 
+    local Players = game:GetService("Players")
+    local RunService = game:GetService("RunService")
+    local UserInputService = game:GetService("UserInputService")
+    local player = Players.LocalPlayer
+
+    local coordSystem = {
+        isEnabled = true,
+        gui = nil,
+        updateConn = nil,
+        currentPos = Vector3.new(0, 0, 0)
+    }
+
+    local function createCoordUI()
+        local gui = Instance.new("ScreenGui")
+        gui.Name = "Coord"
+        gui.Parent = player.PlayerGui
+
+        local container = Instance.new("Frame")
+        container.Size = UDim2.new(0, 240, 0, 60)
+        container.Position = UDim2.new(1, -250, 0, 10)
+        container.BackgroundTransparency = 1
+        container.Parent = gui
+
+        local coordFrame = Instance.new("Frame")
+        coordFrame.Size = UDim2.new(0, 200, 1, 0)
+        coordFrame.BackgroundColor3 = Color3.new(0, 0, 0)
+        coordFrame.BackgroundTransparency = 0.7
+        coordFrame.BorderSizePixel = 1
+        coordFrame.Parent = container
+
+        local textLabel = Instance.new("TextLabel")
+        textLabel.Size = UDim2.new(1, 0, 1, 0)
+        textLabel.BackgroundTransparency = 1
+        textLabel.TextColor3 = Color3.new(1, 1, 1)
+        textLabel.Font = Enum.Font.SourceSansBold
+        textLabel.TextSize = 14
+        textLabel.Text = "坐标加载别乱动(警告)"
+        textLabel.TextStrokeTransparency = 0
+        textLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+        textLabel.Parent = coordFrame
+
+        local copyBtn = Instance.new("TextButton")
+        copyBtn.Size = UDim2.new(0, 35, 1, 0)
+        copyBtn.Position = UDim2.new(0, 205, 0, 0)
+        copyBtn.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
+        copyBtn.BackgroundTransparency = 0.5
+        copyBtn.Text = "复制坐标"
+        copyBtn.TextColor3 = Color3.new(1, 1, 1)
+        copyBtn.TextSize = 14
+        copyBtn.BorderSizePixel = 1
+        copyBtn.TextStrokeTransparency = 0
+        copyBtn.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+        copyBtn.Parent = container
+
+        copyBtn.MouseButton1Click:Connect(function()
+            if setclipboard and coordSystem.currentPos then
+                local coordStr = string.format("X: %.2f, Y: %.2f, Z: %.2f",
+                    coordSystem.currentPos.X,
+                    coordSystem.currentPos.Y,
+                    coordSystem.currentPos.Z
+                )
+                setclipboard(coordStr)
+            end
+        end)
+
+        local isDragging = false
+        local dragStartPos = nil
+        local containerStartPos = nil
+
+        container.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.Touch then
+                isDragging = true
+                dragStartPos = input.Position
+                containerStartPos = container.Position
+            end
+        end)
+
+        UserInputService.InputChanged:Connect(function(input)
+            if isDragging and input.UserInputType == Enum.UserInputType.Touch then
+                local delta = input.Position - dragStartPos
+                container.Position = UDim2.new(
+                    containerStartPos.X.Scale,
+                    containerStartPos.X.Offset + delta.X,
+                    containerStartPos.Y.Scale,
+                    containerStartPos.Y.Offset + delta.Y
+                )
+            end
+        end)
+
+        UserInputService.InputEnded:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.Touch and isDragging then
+                isDragging = false
+            end
+        end)
+
+        return { gui = gui, container = container, text = textLabel }
+    end
+
+    coordSystem.gui = createCoordUI()
+
+    local function formatCoord(pos)
+        return string.format("X: %.2f\nY: %.2f\nZ: %.2f", pos.X, pos.Y, pos.Z)
+    end
+
+    local function updateCoord()
+        local char = player.Character
+        local root = char and char:FindFirstChild("HumanoidRootPart")
+        if root then
+            coordSystem.currentPos = root.Position
+            coordSystem.gui.text.Text = formatCoord(root.Position)
+        else
+            coordSystem.gui.text.Text = "STARnb"
+            coordSystem.currentPos = nil
+        end
+    end
+
+    coordSystem.updateConn = RunService.Heartbeat:Connect(updateCoord)
+    updateCoord()
+
+    game:GetService("Players").LocalPlayer.PlayerGui.ChildRemoved:Connect(function(child)
+        if child == coordSystem.gui then
+            if coordSystem.updateConn then
+                coordSystem.updateConn:Disconnect()
+            end
+        end
+    end)
+end)
+
+local WalkSpeed = 16
+
+local function SetWalkSpeed(speed)
+    WalkSpeed = speed
+    local character = game.Players.LocalPlayer.Character
+    if character then
+        local humanoid = character:FindFirstChild("Humanoid")
+        if humanoid then
+            humanoid.WalkSpeed = speed
+        end
+    end
+end
+
+Slider(Tab2, "移动速度", 1, 200, 16, function(value)
+    SetWalkSpeed(value)
+end)
+
+game.Players.LocalPlayer.CharacterAdded:Connect(function(character)
+    character:WaitForChild("Humanoid")
+    wait(0.5)
+    local humanoid = character:FindFirstChild("Humanoid")
+    if humanoid then
+        humanoid.WalkSpeed = WalkSpeed
+    end
+end)
+
+if game.Players.LocalPlayer.Character then
+    wait(1)
+    SetWalkSpeed(WalkSpeed)
+end
+
+local function safeGetJumpPower()
+    local char = game.Players.LocalPlayer.Character
+    if char and char:FindFirstChild("Humanoid") then
+        return char.Humanoid.JumpPower
+    end
+    return 50
+end
+
+Slider(Tab2, "跳跃高度", 1, 600, safeGetJumpPower(), function(a) 
+    local char = game.Players.LocalPlayer.Character
+    if char and char:FindFirstChild("Humanoid") then
+        char.Humanoid.JumpPower = a
+    end
+end)
+
+Slider(Tab2, "重力设置", 1, 500, workspace.Gravity, function(a) 
+    workspace.Gravity = a
+end)
+
+Slider(Tab2, "视野缩放距离", 0, 2500, game:GetService("Players").LocalPlayer.CameraMaxZoomDistance, function(value)
+    game:GetService("Players").LocalPlayer.CameraMaxZoomDistance = value
+    _G.CameraZoomConnection = game:GetService("RunService").Heartbeat:Connect(function()
+        game:GetService("Players").LocalPlayer.CameraMaxZoomDistance = value
+    end)
+end)
+
+local fovValue = workspace.CurrentCamera.FieldOfView
+
+Slider(Tab2, "广角设置", 1, 120, fovValue, function(value)
+    fovValue = value
+    workspace.CurrentCamera.FieldOfView = value
+end)
+
+Input(Tab2, "设置血量", "输入血量值 (0-999999999)", "", "例如: 100", function(value)
+    if value == nil or value == "" then return end
+    local numValue = tonumber(value)
+    if numValue and numValue >= 0 then
+        local character = game.Players.LocalPlayer.Character
+        if character and character:FindFirstChild("Humanoid") then
+            character.Humanoid.Health = numValue
+            WindUI:Notify({Title = "血量设置", Content = "血量已设置为: " .. numValue})
+        else
+            WindUI:Notify({Title = "错误", Content = "角色或Humanoid不存在"})
+        end
+    else
+        WindUI:Notify({Title = "错误", Content = "请输入有效的数字 (≥ 0)"})
+    end
+end)
+
+Button(Tab2, "恢复视野", function() 
+    Workspace.CurrentCamera.FieldOfView = 70
+end)
+
+Button(Tab2, "最大视野缩放", function() 
+    game:GetService("Players").LocalPlayer.CameraMaxZoomDistance = 200000
+end)
+
+Button(Tab2, "视野缩放128", function() 
+    game:GetService("Players").LocalPlayer.CameraMaxZoomDistance = 128
+end)
+
+local PhysicsSpeedValue = nil
+local PhysicsEnabled = false
+local PhysicsBV = nil
+
+Input(Tab2, "Physics Speed", "输入物理速度 (最低0，最高无上限)", "", "例如: 150", function(value)
+    if value == nil or value == "" then return end
+    local numValue = tonumber(value)
+    if numValue and numValue >= 0 then
+        PhysicsSpeedValue = numValue
+        WindUI:Notify({Title = "速度设置", Content = "Physics速度已设置为: " .. numValue})
+    else
+        WindUI:Notify({Title = "错误", Content = "请输入有效的数字 (≥ 0)"})
+    end
+end)
+
+Button(Tab2, "启用Physics Speed", function()
+    if PhysicsSpeedValue == nil then
+        WindUI:Notify({Title = "错误", Content = "请先输入Physics速度值"})
+        return
+    end
+    
+    if PhysicsEnabled then
+        WindUI:Notify({Title = "提示", Content = "Physics速度已在运行"})
+        return
+    end
+    
+    local player = game.Players.LocalPlayer
+    local character = player.Character or player.CharacterAdded:Wait()
+    local root = character:WaitForChild("HumanoidRootPart")
+    
+    PhysicsBV = Instance.new("BodyVelocity")
+    PhysicsBV.Velocity = Vector3.new(0, 0, 0)
+    PhysicsBV.MaxForce = Vector3.new(math.huge, 0, math.huge)
+    PhysicsBV.Parent = root
+    
+    PhysicsEnabled = true
+    
+    game:GetService("RunService").Heartbeat:Connect(function()
+        if not PhysicsEnabled then return end
+        if character:FindFirstChild("Humanoid") then
+            local moveDirection = character.Humanoid.MoveDirection
+            PhysicsBV.Velocity = moveDirection * PhysicsSpeedValue
+        end
+    end)
+    
+    WindUI:Notify({Title = "Physics Speed", Content = "已启用, 速度: " .. PhysicsSpeedValue})
+end)
+
+Button(Tab2, "禁用Physics Speed", function()
+    if PhysicsBV then
+        PhysicsBV:Destroy()
+        PhysicsBV = nil
+    end
+    PhysicsEnabled = false
+    WindUI:Notify({Title = "Physics Speed", Content = "已禁用"})
+end)
+
+local TeleportSpeedValue = nil
+local TeleportEnabled = false
+
+Input(Tab2, "Teleport Speed", "输入传送距离 (最低0，最高无上限)", "", "例如: 5", function(value)
+    if value == nil or value == "" then return end
+    local numValue = tonumber(value)
+    if numValue and numValue >= 0 then
+        TeleportSpeedValue = numValue
+        WindUI:Notify({Title = "距离设置", Content = "Teleport距离已设置为: " .. numValue})
+    else
+        WindUI:Notify({Title = "错误", Content = "请输入有效的数字 (≥ 0)"})
+    end
+end)
+
+Button(Tab2, "启用Teleport Speed", function()
+    if TeleportSpeedValue == nil then
+        WindUI:Notify({Title = "错误", Content = "请先输入Teleport距离值"})
+        return
+    end
+    
+    if TeleportEnabled then
+        WindUI:Notify({Title = "提示", Content = "Teleport速度已在运行"})
+        return
+    end
+    
+    local player = game.Players.LocalPlayer
+    local character = player.Character or player.CharacterAdded:Wait()
+    local root = character:WaitForChild("HumanoidRootPart")
+    
+    TeleportEnabled = true
+    
+    game:GetService("RunService").Heartbeat:Connect(function()
+        if not TeleportEnabled then return end
+        if character:FindFirstChild("Humanoid") then
+            local moveDirection = character.Humanoid.MoveDirection
+            if moveDirection.Magnitude > 0 then
+                root.CFrame = root.CFrame + (moveDirection * TeleportSpeedValue)
+            end
+        end
+    end)
+    
+    WindUI:Notify({Title = "Teleport Speed", Content = "已启用, 距离: " .. TeleportSpeedValue})
+end)
+
+Button(Tab2, "禁用Teleport Speed", function()
+    TeleportEnabled = false
+    WindUI:Notify({Title = "Teleport Speed", Content = "已禁用"})
+end)
+
+local JumpPowerValue = nil
+local JumpEnabled = false
+
+Input(Tab2, "Jump Power", "输入跳跃高度 (最低0，最高无上限)", "", "例如: 150", function(value)
+    if value == nil or value == "" then return end
+    local numValue = tonumber(value)
+    if numValue and numValue >= 0 then
+        JumpPowerValue = numValue
+        WindUI:Notify({Title = "高度设置", Content = "跳跃高度已设置为: " .. numValue})
+    else
+        WindUI:Notify({Title = "错误", Content = "请输入有效的数字 (≥ 0)"})
+    end
+end)
+
+Button(Tab2, "启用Jump Power", function()
+    if JumpPowerValue == nil then
+        WindUI:Notify({Title = "错误", Content = "请先输入跳跃高度"})
+        return
+    end
+    
+    if JumpEnabled then
+        WindUI:Notify({Title = "提示", Content = "跳跃高度已在运行"})
+        return
+    end
+    
+    local player = game.Players.LocalPlayer
+    local character = player.Character or player.CharacterAdded:Wait()
+    local humanoid = character:WaitForChild("Humanoid")
+    
+    humanoid.JumpPower = JumpPowerValue
+    
+    JumpEnabled = true
+    
+    game:GetService("RunService").Heartbeat:Connect(function()
+        if not JumpEnabled then return end
+        if humanoid.JumpPower ~= JumpPowerValue then
+            humanoid.JumpPower = JumpPowerValue
+        end
+    end)
+    
+    WindUI:Notify({Title = "Jump Power", Content = "已启用, 跳跃高度: " .. JumpPowerValue})
+end)
+
+Button(Tab2, "禁用Jump Power", function()
+    JumpEnabled = false
+    
+    local player = game.Players.LocalPlayer
+    if player.Character and player.Character:FindFirstChild("Humanoid") then
+        player.Character.Humanoid.JumpPower = 50
+    end
+    
+    WindUI:Notify({Title = "Jump Power", Content = "已禁用"})
+end)
+
+getgenv().HitboxSize = 15
+getgenv().HitboxTransparency = 0.9
+getgenv().HitboxStatus = false
+getgenv().TeamCheck = false
+
+Toggle(Tab2, "开启/关闭范围", false, function(enabled)
+    getgenv().HitboxStatus = enabled
+    game:GetService("RunService").RenderStepped:connect(function()
+        if HitboxStatus == true and TeamCheck == false then
+            for _, player in next, game:GetService("Players"):GetPlayers() do
+                if player.Name ~= game:GetService("Players").LocalPlayer.Name then
+                    pcall(function()
+                        player.Character.HumanoidRootPart.Size = Vector3.new(HitboxSize, HitboxSize, HitboxSize)
+                        player.Character.HumanoidRootPart.Transparency = HitboxTransparency
+                        player.Character.HumanoidRootPart.BrickColor = BrickColor.new("Really red")
+                        player.Character.HumanoidRootPart.Material = "Neon"
+                        player.Character.HumanoidRootPart.CanCollide = false
+                    end)
+                end
+            end
+        elseif HitboxStatus == true and TeamCheck == true then
+            for _, player in next, game:GetService("Players"):GetPlayers() do
+                if game:GetService("Players").LocalPlayer.Team ~= player.Team then
+                    pcall(function()
+                        player.Character.HumanoidRootPart.Size = Vector3.new(HitboxSize, HitboxSize, HitboxSize)
+                        player.Character.HumanoidRootPart.Transparency = HitboxTransparency
+                        player.Character.HumanoidRootPart.BrickColor = BrickColor.new("Really red")
+                        player.Character.HumanoidRootPart.Material = "Neon"
+                        player.Character.HumanoidRootPart.CanCollide = false
+                    end)
+                end
+            end
+        else
+            for _, player in next, game:GetService("Players"):GetPlayers() do
+                if player.Name ~= game:GetService("Players").LocalPlayer.Name then
+                    pcall(function()
+                        player.Character.HumanoidRootPart.Size = Vector3.new(2, 2, 1)
+                        player.Character.HumanoidRootPart.Transparency = 1
+                        player.Character.HumanoidRootPart.BrickColor = BrickColor.new("Medium stone grey")
+                        player.Character.HumanoidRootPart.Material = "Plastic"
+                        player.Character.HumanoidRootPart.CanCollide = false
+                    end)
+                end
+            end
+        end
+    end)
+end)
+
+Input(Tab2, "范围大小设置", "输入范围大小", "15", "例如: 15", function(size)
+    if size == nil or size == "" then return end
+    getgenv().HitboxSize = tonumber(size) or 15
+end)
+
+Toggle(Tab2, "队伍检测", false, function(enabled)
+    getgenv().TeamCheck = enabled
+end)
+
+Input(Tab2, "范围透明度设置", "调0更好区分队伍", "0.9", "0-1之间", function(transparency)
+    if transparency == nil or transparency == "" then return end
+    getgenv().HitboxTransparency = tonumber(transparency) or 0.9
+end)
+
+Dropdown(Tab2, "选择范围颜色", {
+    "Really blue",
+    "Really black", 
+    "Really red",
+    "Really pink",
+    "Really brown",
+    "Really yellow",
+    "Really green",
+    "Really orange",
+    "Really purple",
+    "Really light gray"
+}, "Really red", function(color)
+    
+end)
+
+Button(Tab2, "重置人物", function() 
+    game.Players.LocalPlayer.Character.Humanoid.Health = 0
+end)
+
+Toggle(Tab2, "无限跳(可开关)", false, function(Value)
+    Jump = Value
+    game:GetService("UserInputService").JumpRequest:Connect(function()
+        if Jump then
+            game.Players.LocalPlayer.Character.Humanoid:ChangeState("Jumping")
+        end
+    end)
+end)
+
+Button(Tab2, "无限跳(关不了)", function() 
+    loadstring(game:HttpGet("https://pastebin.com/raw/V5PQy3y0", true))()
+end)
+
+Toggle(Tab2, "夜视", false, function(a)
+    if a then
+        game.Lighting.Ambient = Color3.new(1, 1, 1)
+    else
+        game.Lighting.Ambient = Color3.new(0, 0, 0)
+    end
+end)
+
+Button(Tab2, "秒互动(无法关闭)", function() 
+    game.ProximityPromptService.PromptButtonHoldBegan:Connect(function(v)
+        v.HoldDuration = 0
+    end)
+end)
+
+local autoInteract = false
+
+Toggle(Tab2, "自动互动", false, function(state)
+    if state then
+        autoInteract = true
+        while autoInteract do
+            for _, descendant in pairs(workspace:GetDescendants()) do
+                if descendant:IsA("ProximityPrompt") then
+                    fireproximityprompt(descendant)
+                end
+            end
+            task.wait(0.2)
+        end
+    else
+        autoInteract = false
+    end
+end)
+
+Toggle(Tab2, "穿墙模式", false, function(state)
+    _G.noclip = state
+    
+    if state then
+        if not game:GetService('Players').LocalPlayer.Character:FindFirstChild("LowerTorso") then
+            local connection = game:GetService("RunService").Stepped:Connect(function()
+                if not _G.noclip then connection:Disconnect() return end
+                game.Players.LocalPlayer.Character.Head.CanCollide = false
+                game.Players.LocalPlayer.Character.Torso.CanCollide = false
+            end)
+        else
+            if _G.InitNC ~= true then
+                _G.NCFunc = function(part)
+                    local pos = game:GetService('Players').LocalPlayer.Character.LowerTorso.Position.Y
+                    if _G.noclip and part.Position.Y > pos then
+                        part.CanCollide = false
+                    end
+                end
+                _G.InitNC = true
+            end
+            game:GetService('Players').LocalPlayer.Character.Humanoid.Touched:Connect(_G.NCFunc)
+        end
+    else
+        if game.Players.LocalPlayer.Character then
+            for _, part in pairs(game.Players.LocalPlayer.Character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = true
+                end
+            end
+        end
+    end
+end)
+
+Button(Tab3, "STAR飞行", function()
+    local main = Instance.new("ScreenGui")
+    local Frame = Instance.new("Frame")
+    local up = Instance.new("TextButton")
+    local down = Instance.new("TextButton")
+    local onof = Instance.new("TextButton")
+    local TextLabel = Instance.new("TextLabel")
+    local plus = Instance.new("TextButton")
+    local speed = Instance.new("TextLabel")
+    local mine = Instance.new("TextButton")
+    local closebutton = Instance.new("TextButton")
+    local mini = Instance.new("TextButton")
+    local mini2 = Instance.new("TextButton")
+
+    main.Name = "main"
+    main.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+    main.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    main.ResetOnSpawn = false
+
+    Frame.Parent = main
+    Frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    Frame.BorderColor3 = Color3.fromRGB(103, 221, 213)
+    Frame.Position = UDim2.new(0.100320168, 0, 0.379746825, 0)
+    Frame.Size = UDim2.new(0, 190, 0, 57)
+
+    up.Name = "up"
+    up.Parent = Frame
+    up.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    up.TextColor3 = Color3.fromRGB(255, 255, 255)
+    up.Size = UDim2.new(0, 44, 0, 28)
+    up.Font = Enum.Font.SourceSans
+    up.Text = "上升"
+    up.TextSize = 14.000
+    up.TextStrokeTransparency = 0
+    up.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+
+    down.Name = "down"
+    down.Parent = Frame
+    down.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    down.TextColor3 = Color3.fromRGB(255, 255, 255)
+    down.Position = UDim2.new(0, 0, 0.491228074, 0)
+    down.Size = UDim2.new(0, 44, 0, 28)
+    down.Font = Enum.Font.SourceSans
+    down.Text = "下降"
+    down.TextSize = 14.000
+    down.TextStrokeTransparency = 0
+    down.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+
+    onof.Name = "onof"
+    onof.Parent = Frame
+    onof.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    onof.TextColor3 = Color3.fromRGB(255, 255, 255)
+    onof.Position = UDim2.new(0.702823281, 0, 0.491228074, 0)
+    onof.Size = UDim2.new(0, 56, 0, 28)
+    onof.Font = Enum.Font.SourceSans
+    onof.Text = "STAR飞行"
+    onof.TextSize = 14.000
+    onof.TextStrokeTransparency = 0
+    onof.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+
+    TextLabel.Parent = Frame
+    TextLabel.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    TextLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    TextLabel.Position = UDim2.new(0.469327301, 0, 0, 0)
+    TextLabel.Size = UDim2.new(0, 100, 0, 28)
+    TextLabel.Font = Enum.Font.SourceSans
+    TextLabel.Text = "STAR飞行"
+    TextLabel.TextScaled = true
+    TextLabel.TextSize = 14.000
+    TextLabel.TextWrapped = true
+    TextLabel.TextStrokeTransparency = 0
+    TextLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+
+    plus.Name = "plus"
+    plus.Parent = Frame
+    plus.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    plus.TextColor3 = Color3.fromRGB(255, 255, 255)
+    plus.Position = UDim2.new(0.231578946, 0, 0, 0)
+    plus.Size = UDim2.new(0, 45, 0, 28)
+    plus.Font = Enum.Font.SourceSans
+    plus.Text = "+"
+    plus.TextScaled = true
+    plus.TextSize = 14.000
+    plus.TextWrapped = true
+    plus.TextStrokeTransparency = 0
+    plus.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+
+    speed.Name = "speed"
+    speed.Parent = Frame
+    speed.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    speed.TextColor3 = Color3.fromRGB(255, 255, 255)
+    speed.Position = UDim2.new(0.468421042, 0, 0.491228074, 0)
+    speed.Size = UDim2.new(0, 44, 0, 28)
+    speed.Font = Enum.Font.SourceSans
+    speed.Text = "1"
+    speed.TextScaled = true
+    speed.TextSize = 14.000
+    speed.TextWrapped = true
+    speed.TextStrokeTransparency = 0
+    speed.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+
+    mine.Name = "mine"
+    mine.Parent = Frame
+    mine.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    mine.TextColor3 = Color3.fromRGB(255, 255, 255)
+    mine.Position = UDim2.new(0.231578946, 0, 0.491228074, 0)
+    mine.Size = UDim2.new(0, 45, 0, 29)
+    mine.Font = Enum.Font.SourceSans
+    mine.Text = "-"
+    mine.TextScaled = true
+    mine.TextSize = 14.000
+    mine.TextWrapped = true
+    mine.TextStrokeTransparency = 0
+    mine.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+
+    closebutton.Name = "Close"
+    closebutton.Parent = main.Frame
+    closebutton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    closebutton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    closebutton.Font = "SourceSans"
+    closebutton.Size = UDim2.new(0, 45, 0, 28)
+    closebutton.Text = "×"
+    closebutton.TextSize = 30
+    closebutton.Position = UDim2.new(0, 0, -1, 27)
+    closebutton.TextStrokeTransparency = 0
+    closebutton.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+
+    mini.Name = "minimize"
+    mini.Parent = main.Frame
+    mini.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    mini.TextColor3 = Color3.fromRGB(255, 255, 255)
+    mini.Font = "SourceSans"
+    mini.Size = UDim2.new(0, 45, 0, 28)
+    mini.Text = "-"
+    mini.TextSize = 40
+    mini.Position = UDim2.new(0, 44, -1, 27)
+    mini.TextStrokeTransparency = 0
+    mini.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+
+    mini2.Name = "minimize2"
+    mini2.Parent = main.Frame
+    mini2.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    mini2.TextColor3 = Color3.fromRGB(255, 255, 255)
+    mini2.Font = "SourceSans"
+    mini2.Size = UDim2.new(0, 45, 0, 28)
+    mini2.Text = "+"
+    mini2.TextSize = 40
+    mini2.Position = UDim2.new(0, 44, -1, 57)
+    mini2.Visible = false
+    mini2.TextStrokeTransparency = 0
+    mini2.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+
+    speeds = 1
+    local speaker = game:GetService("Players").LocalPlayer
+    local chr = game.Players.LocalPlayer.Character
+    local hum = chr and chr:FindFirstChildWhichIsA("Humanoid")
+    nowe = false
+    Frame.Active = true
+    Frame.Draggable = true
+
+    local particleRunning = false
+    local particleConnection = nil
+    local rotatingParticles = {}
+    local rotationAngle = 0
+    local particleRadius = 22
+    local particleCount = 12
+    local particleSpeed = 0.02
+    local tweenService = game:GetService("TweenService")
+
+    local function createRotatingParticles()
+        for _, particle in ipairs(rotatingParticles) do
+            if particle and particle.instance and particle.instance.Parent then
+                particle.instance:Destroy()
+            end
+        end
+        rotatingParticles = {}
+        
+        local btnAbsPos = onof.AbsolutePosition
+        local btnSize = onof.AbsoluteSize
+        local centerX = btnAbsPos.X + btnSize.X / 2
+        local centerY = btnAbsPos.Y + btnSize.Y / 2
+        
+        for i = 1, particleCount do
+            local angle = (i - 1) * (2 * math.pi / particleCount)
+            local particle = Instance.new("ImageLabel")
+            particle.Size = UDim2.new(0, 14, 0, 14)
+            particle.BackgroundTransparency = 1
+            particle.Image = "rbxassetid://104269942650107"
+            particle.ImageTransparency = 1
+            particle.Visible = true
+            particle.Parent = main
+            
+            local offsetX = math.cos(angle) * particleRadius
+            local offsetY = math.sin(angle) * particleRadius
+            particle.Position = UDim2.new(0, centerX + offsetX - 7, 0, centerY + offsetY - 7)
+            
+            rotatingParticles[i] = {
+                instance = particle,
+                angle = angle
+            }
+        end
+    end
+
+    local function updateRotatingParticles()
+        if not nowe then return end
+        
+        local btnAbsPos = onof.AbsolutePosition
+        local btnSize = onof.AbsoluteSize
+        local centerX = btnAbsPos.X + btnSize.X / 2
+        local centerY = btnAbsPos.Y + btnSize.Y / 2
+        
+        for _, data in ipairs(rotatingParticles) do
+            if data.instance and data.instance.Parent then
+                data.angle = data.angle + particleSpeed
+                if data.angle > 2 * math.pi then
+                    data.angle = data.angle - 2 * math.pi
+                end
+                local offsetX = math.cos(data.angle) * particleRadius
+                local offsetY = math.sin(data.angle) * particleRadius
+                data.instance.Position = UDim2.new(0, centerX + offsetX - 7, 0, centerY + offsetY - 7)
+            end
+        end
+    end
+
+    local function hideParticlesInstant()
+        if particleConnection then
+            particleConnection:Disconnect()
+            particleConnection = nil
+        end
+        for _, data in ipairs(rotatingParticles) do
+            if data.instance and data.instance.Parent then
+                data.instance.ImageTransparency = 1
+            end
+        end
+        particleRunning = false
+    end
+
+    local function showParticlesInstant()
+        if not nowe then return end
+        if particleConnection then return end
+        
+        if #rotatingParticles == 0 then
+            createRotatingParticles()
+        end
+        
+        for _, data in ipairs(rotatingParticles) do
+            if data.instance and data.instance.Parent then
+                data.instance.ImageTransparency = 0
+            end
+        end
+        
+        particleConnection = game:GetService("RunService").Heartbeat:Connect(function()
+            if not nowe then return end
+            if not main or not main.Parent then
+                if particleConnection then particleConnection:Disconnect() end
+                particleConnection = nil
+                return
+            end
+            updateRotatingParticles()
+        end)
+        particleRunning = true
+    end
+
+    local function fadeOutParticles()
+        if particleConnection then
+            particleConnection:Disconnect()
+            particleConnection = nil
+        end
+        for _, data in ipairs(rotatingParticles) do
+            if data.instance and data.instance.Parent then
+                data.instance.ImageTransparency = 1
+            end
+        end
+        particleRunning = false
+    end
+
+    onof.MouseButton1Down:connect(function()
+        if nowe == true then
+            nowe = false
+            speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Climbing,true)
+            speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown,true)
+            speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Flying,true)
+            speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall,true)
+            speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.GettingUp,true)
+            speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping,true)
+            speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Landed,true)
+            speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Physics,true)
+            speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.PlatformStanding,true)
+            speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Ragdoll,true)
+            speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Running,true)
+            speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.RunningNoPhysics,true)
+            speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated,true)
+            speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.StrafingNoPhysics,true)
+            speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Swimming,true)
+            speaker.Character.Humanoid:ChangeState(Enum.HumanoidStateType.RunningNoPhysics)
+            fadeOutParticles()
+        else
+            nowe = true
+            for i = 1, speeds do
+                spawn(function()
+                    local hb = game:GetService("RunService").Heartbeat	
+                    tpwalking = true
+                    local chr = game.Players.LocalPlayer.Character
+                    local hum = chr and chr:FindFirstChildWhichIsA("Humanoid")
+                    while tpwalking and hb:Wait() and chr and hum and hum.Parent do
+                        if hum.MoveDirection.Magnitude > 0 then
+                            chr:TranslateBy(hum.MoveDirection)
+                        end
+                    end
+                end)
+            end
+            game.Players.LocalPlayer.Character.Animate.Disabled = true
+            local Char = game.Players.LocalPlayer.Character
+            local Hum = Char:FindFirstChildOfClass("Humanoid") or Char:FindFirstChildOfClass("AnimationController")
+            for i,v in next, Hum:GetPlayingAnimationTracks() do
+                v:AdjustSpeed(0)
+            end
+            speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Climbing,false)
+            speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown,false)
+            speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Flying,false)
+            speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall,false)
+            speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.GettingUp,false)
+            speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping,false)
+            speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Landed,false)
+            speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Physics,false)
+            speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.PlatformStanding,false)
+            speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Ragdoll,false)
+            speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Running,false)
+            speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.RunningNoPhysics,false)
+            speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated,false)
+            speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.StrafingNoPhysics,false)
+            speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Swimming,false)
+            speaker.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Swimming)
+            if #rotatingParticles == 0 then
+                createRotatingParticles()
+            end
+            showParticlesInstant()
+        end
+        if game:GetService("Players").LocalPlayer.Character:FindFirstChildOfClass("Humanoid").RigType == Enum.HumanoidRigType.R6 then
+            local plr = game.Players.LocalPlayer
+            local torso = plr.Character.Torso
+            local flying = true
+            local deb = true
+            local ctrl = {f = 0, b = 0, l = 0, r = 0}
+            local lastctrl = {f = 0, b = 0, l = 0, r = 0}
+            local maxspeed = 50
+            local speed = 0
+            local bg = Instance.new("BodyGyro", torso)
+            bg.P = 9e4
+            bg.maxTorque = Vector3.new(9e9, 9e9, 9e9)
+            bg.cframe = torso.CFrame
+            local bv = Instance.new("BodyVelocity", torso)
+            bv.velocity = Vector3.new(0,0.1,0)
+            bv.maxForce = Vector3.new(9e9, 9e9, 9e9)
+            if nowe == true then
+                plr.Character.Humanoid.PlatformStand = true
+            end
+            while nowe == true or game:GetService("Players").LocalPlayer.Character.Humanoid.Health == 0 do
+                game:GetService("RunService").RenderStepped:Wait()
+                if ctrl.l + ctrl.r ~= 0 or ctrl.f + ctrl.b ~= 0 then
+                    speed = speed+.5+(speed/maxspeed)
+                    if speed > maxspeed then
+                        speed = maxspeed
+                    end
+                elseif not (ctrl.l + ctrl.r ~= 0 or ctrl.f + ctrl.b ~= 0) and speed ~= 0 then
+                    speed = speed-1
+                    if speed < 0 then
+                        speed = 0
+                    end
+                end
+                if (ctrl.l + ctrl.r) ~= 0 or (ctrl.f + ctrl.b) ~= 0 then
+                    bv.velocity = ((game.Workspace.CurrentCamera.CoordinateFrame.lookVector * (ctrl.f+ctrl.b)) + ((game.Workspace.CurrentCamera.CoordinateFrame * CFrame.new(ctrl.l+ctrl.r,(ctrl.f+ctrl.b)*.2,0).p) - game.Workspace.CurrentCamera.CoordinateFrame.p))*speed
+                    lastctrl = {f = ctrl.f, b = ctrl.b, l = ctrl.l, r = ctrl.r}
+                elseif (ctrl.l + ctrl.r) == 0 and (ctrl.f + ctrl.b) == 0 and speed ~= 0 then
+                    bv.velocity = ((game.Workspace.CurrentCamera.CoordinateFrame.lookVector * (lastctrl.f+lastctrl.b)) + ((game.Workspace.CurrentCamera.CoordinateFrame * CFrame.new(lastctrl.l+lastctrl.r,(lastctrl.f+lastctrl.b)*.2,0).p) - game.Workspace.CurrentCamera.CoordinateFrame.p))*speed
+                else
+                    bv.velocity = Vector3.new(0,0,0)
+                end
+                bg.cframe = game.Workspace.CurrentCamera.CoordinateFrame * CFrame.Angles(-math.rad((ctrl.f+ctrl.b)*50*speed/maxspeed),0,0)
+            end
+            ctrl = {f = 0, b = 0, l = 0, r = 0}
+            lastctrl = {f = 0, b = 0, l = 0, r = 0}
+            speed = 0
+            bg:Destroy()
+            bv:Destroy()
+            plr.Character.Humanoid.PlatformStand = false
+            game.Players.LocalPlayer.Character.Animate.Disabled = false
+            tpwalking = false
+        else
+            local plr = game.Players.LocalPlayer
+            local UpperTorso = plr.Character.UpperTorso
+            local flying = true
+            local deb = true
+            local ctrl = {f = 0, b = 0, l = 0, r = 0}
+            local lastctrl = {f = 0, b = 0, l = 0, r = 0}
+            local maxspeed = 50
+            local speed = 0
+            local bg = Instance.new("BodyGyro", UpperTorso)
+            bg.P = 9e4
+            bg.maxTorque = Vector3.new(9e9, 9e9, 9e9)
+            bg.cframe = UpperTorso.CFrame
+            local bv = Instance.new("BodyVelocity", UpperTorso)
+            bv.velocity = Vector3.new(0,0.1,0)
+            bv.maxForce = Vector3.new(9e9, 9e9, 9e9)
+            if nowe == true then
+                plr.Character.Humanoid.PlatformStand = true
+            end
+            while nowe == true or game:GetService("Players").LocalPlayer.Character.Humanoid.Health == 0 do
+                wait()
+                if ctrl.l + ctrl.r ~= 0 or ctrl.f + ctrl.b ~= 0 then
+                    speed = speed+.5+(speed/maxspeed)
+                    if speed > maxspeed then
+                        speed = maxspeed
+                    end
+                elseif not (ctrl.l + ctrl.r ~= 0 or ctrl.f + ctrl.b ~= 0) and speed ~= 0 then
+                    speed = speed-1
+                    if speed < 0 then
+                        speed = 0
+                    end
+                end
+                if (ctrl.l + ctrl.r) ~= 0 or (ctrl.f + ctrl.b) ~= 0 then
+                    bv.velocity = ((game.Workspace.CurrentCamera.CoordinateFrame.lookVector * (ctrl.f+ctrl.b)) + ((game.Workspace.CurrentCamera.CoordinateFrame * CFrame.new(ctrl.l+ctrl.r,(ctrl.f+ctrl.b)*.2,0).p) - game.Workspace.CurrentCamera.CoordinateFrame.p))*speed
+                    lastctrl = {f = ctrl.f, b = ctrl.b, l = ctrl.l, r = ctrl.r}
+                elseif (ctrl.l + ctrl.r) == 0 and (ctrl.f + ctrl.b) == 0 and speed ~= 0 then
+                    bv.velocity = ((game.Workspace.CurrentCamera.CoordinateFrame.lookVector * (lastctrl.f+lastctrl.b)) + ((game.Workspace.CurrentCamera.CoordinateFrame * CFrame.new(lastctrl.l+lastctrl.r,(lastctrl.f+lastctrl.b)*.2,0).p) - game.Workspace.CurrentCamera.CoordinateFrame.p))*speed
+                else
+                    bv.velocity = Vector3.new(0,0,0)
+                end
+                bg.cframe = game.Workspace.CurrentCamera.CoordinateFrame * CFrame.Angles(-math.rad((ctrl.f+ctrl.b)*50*speed/maxspeed),0,0)
+            end
+            ctrl = {f = 0, b = 0, l = 0, r = 0}
+            lastctrl = {f = 0, b = 0, l = 0, r = 0}
+            speed = 0
+            bg:Destroy()
+            bv:Destroy()
+            plr.Character.Humanoid.PlatformStand = false
+            game.Players.LocalPlayer.Character.Animate.Disabled = false
+            tpwalking = false
+        end
+    end)
+
+    local tis
+    up.MouseButton1Down:connect(function()
+        tis = up.MouseEnter:connect(function()
+            while tis do
+                wait()
+                game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame * CFrame.new(0,1,0)
+            end
+        end)
+    end)
+    up.MouseLeave:connect(function()
+        if tis then
+            tis:Disconnect()
+            tis = nil
+        end
+    end)
+
+    local dis
+    down.MouseButton1Down:connect(function()
+        dis = down.MouseEnter:connect(function()
+            while dis do
+                wait()
+                game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame * CFrame.new(0,-1,0)
+            end
+        end)
+    end)
+    down.MouseLeave:connect(function()
+        if dis then
+            dis:Disconnect()
+            dis = nil
+        end
+    end)
+
+    game:GetService("Players").LocalPlayer.CharacterAdded:Connect(function(char)
+        wait(0.7)
+        game.Players.LocalPlayer.Character.Humanoid.PlatformStand = false
+        game.Players.LocalPlayer.Character.Animate.Disabled = false
+    end)
+
+    plus.MouseButton1Down:connect(function()
+        speeds = speeds + 1
+        speed.Text = speeds
+        if nowe == true then
+            tpwalking = false
+            for i = 1, speeds do
+                spawn(function()
+                    local hb = game:GetService("RunService").Heartbeat	
+                    tpwalking = true
+                    local chr = game.Players.LocalPlayer.Character
+                    local hum = chr and chr:FindFirstChildWhichIsA("Humanoid")
+                    while tpwalking and hb:Wait() and chr and hum and hum.Parent do
+                        if hum.MoveDirection.Magnitude > 0 then
+                            chr:TranslateBy(hum.MoveDirection)
+                        end
+                    end
+                end)
+            end
+        end
+    end)
+
+    mine.MouseButton1Down:connect(function()
+        if speeds == 1 then
+            speed.Text = '不能小于1'
+            wait(1)
+            speed.Text = speeds
+        else
+            speeds = speeds - 1
+            speed.Text = speeds
+            if nowe == true then
+                tpwalking = false
+                for i = 1, speeds do
+                    spawn(function()
+                        local hb = game:GetService("RunService").Heartbeat	
+                        tpwalking = true
+                        local chr = game.Players.LocalPlayer.Character
+                        local hum = chr and chr:FindFirstChildWhichIsA("Humanoid")
+                        while tpwalking and hb:Wait() and chr and hum and hum.Parent do
+                            if hum.MoveDirection.Magnitude > 0 then
+                                chr:TranslateBy(hum.MoveDirection)
+                            end
+                        end
+                    end)
+                end
+            end
+        end
+    end)
+
+    closebutton.MouseButton1Click:Connect(function()
+        hideParticlesInstant()
+        main:Destroy()
+    end)
+
+    mini.MouseButton1Click:Connect(function()
+        up.Visible = false
+        down.Visible = false
+        onof.Visible = false
+        plus.Visible = false
+        speed.Visible = false
+        mine.Visible = false
+        mini.Visible = false
+        mini2.Visible = true
+        main.Frame.BackgroundTransparency = 1
+        closebutton.Position = UDim2.new(0, 0, -1, 57)
+        hideParticlesInstant()
+    end)
+
+    mini2.MouseButton1Click:Connect(function()
+        up.Visible = true
+        down.Visible = true
+        onof.Visible = true
+        plus.Visible = true
+        speed.Visible = true
+        mine.Visible = true
+        mini.Visible = true
+        mini2.Visible = false
+        main.Frame.BackgroundTransparency = 0
+        closebutton.Position = UDim2.new(0, 0, -1, 27)
+        if nowe then
+            showParticlesInstant()
+        end
+    end)
+end)
+
+Button(Tab3, "飞行(by天下布武)", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/Twbtx/tiamxiabuwu/main/t%20x%20b%20w%20fly"))()
+end)
+
+Button(Tab3, "司空同款飞行", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/XNEOFF/FlyGuiV3/main/FlyGuiV3.txt"))()
+end)
+
+Button(Tab3, "ARCEUS X v2 飞行 (by SHUOHUOQIANG)", function() 
+    loadstring("\108\111\97\100\115\116\114\105\110\103\40\103\97\109\101\58\72\116\116\112\71\101\116\40\40\39\104\116\116\112\115\58\47\47\103\105\115\116\46\103\105\116\104\117\98\117\115\101\114\99\111\110\116\101\110\116\46\99\111\109\47\109\101\111\122\111\110\101\89\84\47\98\102\48\51\55\100\102\102\57\102\48\97\55\48\48\49\55\51\48\52\100\100\100\54\55\102\100\99\100\51\55\48\47\114\97\119\47\101\49\52\101\55\52\102\52\50\53\98\48\54\48\100\102\53\50\51\51\52\51\99\102\51\48\98\55\56\55\48\55\52\101\98\51\99\53\100\50\47\97\114\99\101\117\115\37\50\53\50\48\120\37\50\53\50\48\102\108\121\37\50\53\50\48\50\37\50\53\50\48\111\98\102\108\117\99\97\116\111\114\39\41\44\116\114\117\101\41\41\40\41\10\10")()
+end)
+
+Button(Tab3, "飞行(by橘子)", function() 
+    loadstring("\108\111\97\100\115\116\114\105\110\103\40\103\97\109\101\58\72\116\116\112\71\101\116\34\104\116\116\112\115\58\47\47\112\97\115\116\101\98\105\110\46\99\111\109\47\114\97\119\47\83\76\120\100\97\75\112\119\34\41\40\41\10")()
+end)
+
+Button(Tab3, "无敌少侠", function() 
+    loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-Invinicible-Flight-R15-45414"))()
+end)
+
+Button(Tab3, "飞车(by皮空)", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/smalldesikon/eyidfki/main/%E9%A3%9E%E8%BD%A6(%E6%BA%90%E7%A0%81).lua"))()
+end)
+
+Button(Tab3, "司空同款飞行", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/XNEOFF/FlyGuiV3/main/FlyGuiV3.txt"))()
+end)
+
+Button(Tab3, "飞行v1", function() 
+    loadstring("\108\111\97\100\115\116\114\105\110\103\40\103\97\109\101\58\72\116\116\112\71\101\116\40\34\104\116\116\112\115\58\47\47\112\97\115\116\101\98\105\110\46\99\111\109\47\114\97\119\47\90\66\122\99\84\109\49\102\34\41\41\40\41\10")()
+end)
+
+Button(Tab3, "冷飞行", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/odhdshhe/-V3.0/refs/heads/main/%E9%A3%9E%E8%A1%8C%E8%84%9A%E6%9C%ACV3(%E5%85%A8%E6%B8%B8%E6%88%8F%E9%80%9A%E7%94%A8)%20(1).txt"))()
+end)
+
+Button(Tab3, "反挂机v2", function() 
+    loadstring(game:HttpGet("https://pastebin.com/raw/9fFu43FF"))()
+end)
+
+Button(Tab3, "踏空行走", function() 
+    loadstring(game:HttpGet('https://raw.githubusercontent.com/GhostPlayer352/Test4/main/Float'))()
+end)
+
+Button(Tab3, "玩家进入游戏 退出游戏通知", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/boyscp/scriscriptsc/main/bbn.lua"))()
+end)
+
+Button(Tab3, "好用隐身", function() 
+    loadstring(game:HttpGet("https://pastebin.com/raw/3Rnd9rHf"))()
+end)
+
+Button(Tab3, "提升fps", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/smalldesikon/hun/ee906e570c0f5b22e580a20decaba23757533569/fps"))()
+end)
+
+local downloadInput = Input(Tab3, "下载文件URL", "输入文件下载链接", "", "例如: https://raw.githubusercontent.com/xxxxx(其他的链接也可以)", function(url)
+    
+end)
+
+Button(Tab3, "下载文件", function()
+    local url = downloadInput.Value
+    if url == "" or url == nil then
+        WindUI:Notify({
+            Title = "下载失败",
+            Content = "请输入有效的URL",
+            Duration = 5
+        })
+        return
+    end
+    
+    if string.find(url:lower(), "loadstring") and string.find(url:lower(), "game:httpget") then
+        WindUI:Notify({
+            Title = "下载失败",
+            Content = "URL格式错误",
+            Duration = 5
+        })
+        return
+    end
+    
+    local success, content = pcall(function()
+        return game:HttpGet(url)
+    end)
+    
+    if success and content then
+        local filename = "downloaded_file(您下载的文件).txt"
+        local lastSlash = string.match(url, "([^/]+)$")
+        if lastSlash then
+            filename = lastSlash
+            filename = string.gsub(filename, "%?.*", "")
+        end
+        
+        local writeSuccess, writeError = pcall(function()
+            writefile(filename, content)
+        end)
+        
+        if writeSuccess then
+            WindUI:Notify({
+                Title = "下载成功",
+                Content = "文件已保存: " .. filename,
+                Duration = 5
+            })
+            
+            wait(3)
+            
+            WindUI:Notify({
+                Title = "文件位置提示",
+                Content = "文件保存在脚本工作目录下的: " .. filename .. "\n请查看执行器的文件管理器",
+                Duration = 8
+            })
+        else
+            WindUI:Notify({
+                Title = "下载失败",
+                Content = "文件保存失败: " .. tostring(writeError),
+                Duration = 5
+            })
+        end
+    else
+        WindUI:Notify({
+            Title = "下载失败",
+            Content = "无法从URL获取内容: " .. tostring(content),
+            Duration = 5
+        })
+    end
+end)
+
+Button(Tab3, "重进服务器", function() 
+    game:GetService("TeleportService"):TeleportToPlaceInstance(
+        game.PlaceId,
+        game.JobId,
+        game:GetService("Players").LocalPlayer
+    )
+end)
+
+Button(Tab3, "离开服务器", function() 
+    game:Shutdown()
+end)
+
+Button(Tab3, "移动锁", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/Twbtx/tiamxiabuwu/main/%E7%A7%BB%E5%8A%A8%E9%94%81"))()
+end)
+
+Button(Tab3, "死亡笔记", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/dingding123hhh/tt/main/%E6%AD%BB%E4%BA%A1%E7%AC%94%E8%AE%B0%20(1).txt"))()
+end)
+
+Button(Tab3, "爬墙跳脚本(装逼用)", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/ScpGuest666/Random-Roblox-script/refs/heads/main/Roblox%20WallHop%20V4%20script"))()
+end)
+
+Button(Tab3, "电脑键盘", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/advxzivhsjjdhxhsidifvsh/mobkeyboard/main/main.txt", true))()
+end)
+
+Button(Tab3, "改fps", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/gclich/FPS-X-GUI/main/FPS_X.lua"))()
+end)
+
+Button(Tab3, "反踢出",function()
+    local vu = game:GetService("VirtualUser")
+    game:GetService("Players").LocalPlayer.Idled:connect(function()
+        vu:Button2Down(Vector2.new(0,0),workspace.CurrentCamera.CFrame)
+        wait(1)
+        vu:Button2Up(Vector2.new(0,0),workspace.CurrentCamera.CFrame)
+    end)
+end)
+
+Button(Tab3, "fpsBooster(很猛的提升fps)", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/JoshzzAlteregooo/JoshzzFpsBoosterVersion3/refs/heads/main/JoshzzNewFpsBooster"))()
+end)
+
+Button(Tab3, "fps显示", function() 
+    loadstring(game:HttpGet("https://pastefy.app/d9j82YJr/raw",true))()
+end)
+
+Button(Tab3, "自动弹钢琴", function() 
+    loadstring(game:HttpGet("https://rawscripts.net/raw/Tac's-Piano-Stuff-Talentless-script-made-by-hellohellohell012321-44088"))()
+end)
+
+Button(Tab3, "解帧", function() 
+    loadstring(game:HttpGet("https://scriptblox.com/raw/Universal-Script-FpsBoost-9260"))()
+end)
+
+Button(Tab3, "飞檐走壁", function() 
+    loadstring(game:HttpGet("https://pastebin.com/raw/zXk4Rq2r"))()
+end)
+
+Button(Tab3, "夜视仪", function() 
+    _G.OnShop = true
+    loadstring(game:HttpGet('https://raw.githubusercontent.com/DeividComSono/Scripts/main/Scanner.lua'))()
+end)
+
+Button(Tab3, "反挂机", function() 
+    loadstring(game:HttpGet("https://pastebin.com/raw/9fFu43FF"))()
+end)
+
+Button(Tab3, "转圈", function() 
+    loadstring(game:HttpGet('https://pastebin.com/raw/r97d7dS0', true))()
+end)
+
+Button(Tab3, "操人脚本", function() 
+    loadstring(game:HttpGet("https://pastebin.com/raw/bzmhRgKL"))();
+end)
+
+Button(Tab3, "甩人", function() 
+    loadstring(game:HttpGet("https://pastebin.com/raw/zqyDSUWX"))()
+end)
+
+Button(Tab3, "替身", function() 
+    loadstring(game:HttpGet(('https://raw.githubusercontent.com/SkrillexMe/SkrillexLoader/main/SkrillexLoadMain')))()
+end)
+
+Button(Tab3, "爬墙", function() 
+    loadstring(game:HttpGet("https://pastebin.com/raw/zXk4Rq2r"))()
+end)
+
+Button(Tab3, "工具挂", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/Bebo-Mods/BeboScripts/main/StandAwekening.lua"))()
+end)
+
+Button(Tab3, "铁拳", function() 
+    loadstring(game:HttpGet('https://raw.githubusercontent.com/0Ben1/fe/main/obf_rf6iQURzu1fqrytcnLBAvW34C9N55kS9g9G3CKz086rC47M6632sEd4ZZYB0AYgV.lua.txt'))()
+end)
+
+Button(Tab4, "打飞机r6", function() 
+    loadstring(game:HttpGet("https://pastefy.app/wa3v2Vgm/raw"))()
+end)
+
+Button(Tab4, "打飞机r15", function() 
+    loadstring(game:HttpGet("https://pastefy.app/YZoglOyJ/raw"))()
+end)
+
+Button(Tab4, "无头断腿美化", function() 
+    loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-Permanent-Headless-And-korblox-Script-4140"))()
+end)
+
+Button(Tab4, "死亡笔记", function() 
+    loadstring(game:HttpGet([[https://raw.githubusercontent.com/xiaopi77/xiaopi77/main/1_1.txt_2024-08-08_153358.OTed.lua]]))()
+end)
+
+Button(Tab4, "egro假延迟", function() 
+    loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-roblox-egor-script-53041"))()
+end)
+
+Toggle(Tab5, "白色角色高亮", false, function(state)
+    if state then
+        _G.XrayController:EnableHighlight()
+    else
+        _G.XrayController:DisableHighlight()
+    end
+end)
+
+Toggle(Tab5, "黑白色名字透视", false, function(state)
+    if state then
+        _G.XrayController:EnableName()
+    else
+        _G.XrayController:DisableName()
+    end
+end)
+
+Toggle(Tab5, "方框透视", false, function(state)
+    if state then
+        _G.XrayController:EnableBox()
+    else
+        _G.XrayController:DisableBox()
+    end
+end)
+
+Toggle(Tab5, "血条透视", false, function(state)
+    if state then
+        _G.XrayController:EnableHealthBar()
+    else
+        _G.XrayController:DisableHealthBar()
+    end
+end)
+
+Button(Tab6, "一键偷所有人所有的东西", function() 
+    for i,v in pairs (game.Players:GetChildren()) do
+        wait()
+        for i,b in pairs (v.Backpack:GetChildren()) do
+            b.Parent = game.Players.LocalPlayer.Backpack
+        end
+    end
+end)
+
+Button(Tab6, "获取当前道具", function() 
+    loadstring(game:HttpGet("https://pastefy.app/3FU05Dyt/raw"))()
+end)
+
+Button(Tab6, "装备全部道具", function() 
+    loadstring(game:HttpGet("https://pastefy.app/uBqVR9JC/raw"))()
+end)
+
+Button(Tab6, "删除所有道具", function() 
+    loadstring(game:HttpGet("https://pastefy.app/8HB71Lbj/raw"))()
+end)
+
+Button(Tab6, "删除道具", function() 
+    loadstring(game:HttpGet("https://pastefy.app/r4LHK4p0/raw"))()
+end)
+
+Button(Tab6, "点击传送工具", function() 
+    mouse = game.Players.LocalPlayer:GetMouse()
+    tool = Instance.new("Tool")
+    tool.RequiresHandle = false
+    tool.Name = "Click Teleport"
+    tool.Activated:connect(function()
+        local pos = mouse.Hit+Vector3.new(0,2.5,0)
+        pos = CFrame.new(pos.X,pos.Y,pos.Z)
+        game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = pos
+    end)
+    tool.Parent = game.Players.LocalPlayer.Backpack
+end)
+
+Dropdown(Tab7, "选择相机方式", {
+    "自定义",
+    "附加", 
+    "固定",
+    "跟随",
+    "动态观察",
+    "可脚本化",
+    "跟踪",
+    "观看"
+}, "自定义", function(cameraType)
+    if cameraType == "自定义" then
+        game.Workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
+    elseif cameraType == "附加" then
+        game.Workspace.CurrentCamera.CameraType = Enum.CameraType.Attach
+    elseif cameraType == "固定" then
+        game.Workspace.CurrentCamera.CameraType = Enum.CameraType.Fixed
+    elseif cameraType == "跟随" then
+        game.Workspace.CurrentCamera.CameraType = Enum.CameraType.Follow
+    elseif cameraType == "动态观察" then
+        game.Workspace.CurrentCamera.CameraType = Enum.CameraType.Orbital
+    elseif cameraType == "可脚本化" then
+        game.Workspace.CurrentCamera.CameraType = Enum.CameraType.Scriptable
+    elseif cameraType == "跟踪" then
+        game.Workspace.CurrentCamera.CameraType = Enum.CameraType.Track
+    elseif cameraType == "观看" then
+        game.Workspace.CurrentCamera.CameraType = Enum.CameraType.Watch
+    end
+end)
+
+Toggle(Tab7, "切板摄像机的遮挡模式", false, function(state)
+    if state then
+        game:GetService("Players").LocalPlayer.DevCameraOcclusionMode = "Invisicam"
+    else
+        game:GetService("Players").LocalPlayer.DevCameraOcclusionMode = "Zoom"
+    end
+end)
+
+Dropdown(Tab7, "相机模式", {
+    "经典",
+    "第一人称"
+}, "经典", function(cameraMode)
+    if cameraMode == "经典" then
+        game:GetService("Players").LocalPlayer.CameraMode = Enum.CameraMode.Classic
+    elseif cameraMode == "第一人称" then
+        game:GetService("Players").LocalPlayer.CameraMode = Enum.CameraMode.LockFirstPerson
+    end
+end)
+
+Button(Tab7, "动态模糊", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/Twbtx/tiamxiabuwu/main/%E5%8A%A8%E6%80%81%E6%A8%A1%E7%B3%8A"))()
+end)
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+function tp(p)
+    LocalPlayer.Character:PivotTo(p)
+end
+
+local playerList = {}
+local selectedPlayer = nil
+
+function refreshPlayerList(includeSelf)
+    playerList = {}
+    for _, player in pairs(Players:GetPlayers()) do
+        if includeSelf or player ~= LocalPlayer then
+            table.insert(playerList, player.Name)
+        end
+    end
+end
+
+refreshPlayerList(true)
+
+local dropdown
+dropdown = Tab8:Dropdown({
+    Title = "选择玩家名称",
+    Values = playerList,
+    Callback = function(value)
+        selectedPlayer = value
+    end
+})
+
+Button(Tab8, "刷新列表", function()
+    refreshPlayerList(true)
+    if dropdown and dropdown.Refresh then
+        dropdown:Refresh(playerList)
+    else
+        local oldDropdown = dropdown
+        dropdown = Tab8:Dropdown({
+            Title = "选择玩家名称",
+            Values = playerList,
+            Callback = function(value)
+                selectedPlayer = value
+            end
+        })
+        if oldDropdown and oldDropdown.Destroy then
+            oldDropdown:Destroy()
+        end
+    end
+end)
+
+Button(Tab8, "传送到玩家旁边", function()
+    if selectedPlayer and Players:FindFirstChild(selectedPlayer) then
+        local targetPlayer = Players[selectedPlayer]
+        if targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            tp(targetPlayer.Character.HumanoidRootPart.CFrame + Vector3.new(0, 3, 0))
+        end
+    end
+end)
+
+Button(Tab8, "保存当前坐标", SaveCurrentCoordinate)
+Button(Tab8, "传送保存坐标", TeleportToCoordinate)
+Button(Tab8, "删除保存坐标", DeleteCoordinate)
+
+Button(Tab8, "摔落无伤害(可创飞人)", function() 
+    loadstring(game:HttpGet("http://rawscripts.net/raw/Universal-Script-Touch-fling-script-22447"))()
+end)
+
+Button(Tab8, "普通范围", function() 
+    loadstring(game:HttpGet("https://pastebin.com/raw/jiNwDbCN"))()
+end)
+
+Button(Tab8, "中等范围", function() 
+    loadstring(game:HttpGet("https://pastebin.com/raw/jiNwDbCN"))()
+end)
+
+Button(Tab8, "全图范围", function() 
+    loadstring(game:HttpGet("https://pastebin.com/raw/KKY9EpZU"))()
+end)
+
+Button(Tab8, "终极范围", function() 
+    loadstring(game:HttpGet("https://pastebin.com/raw/CAQ9x4A7"))()
+end)
+
+Button(Tab8, "fenny甩飞gui", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/ke9460394-dot/ugik/refs/heads/main/fe-flinger-gui-works-anywhere_1756291955889_SwfaGHMWsT.txt"))()
+end)
+
+local AntiFlingEnabled = false
+local AntiFlingConnections = {}
+
+Toggle(Tab8, "防甩飞", false, function(Value)
+    AntiFlingEnabled = Value
+    
+    if Value then
+        local Services = setmetatable({}, {__index = function(Self, Index)
+            local NewService = game.GetService(game, Index)
+            if NewService then
+                Self[Index] = NewService
+            end
+            return NewService
+        end})
+
+        local LocalPlayer = Services.Players.LocalPlayer
+
+        local function PlayerAdded(Player)
+            local Detected = false
+            local Character
+            local PrimaryPart
+
+            local function CharacterAdded(NewCharacter)
+                Character = NewCharacter
+                repeat
+                    wait()
+                    PrimaryPart = NewCharacter:FindFirstChild("HumanoidRootPart")
+                until PrimaryPart
+                Detected = false
+            end
+
+            CharacterAdded(Player.Character or Player.CharacterAdded:Wait())
+            local charAddedConn = Player.CharacterAdded:Connect(CharacterAdded)
+            
+            local heartbeatConn = Services.RunService.Heartbeat:Connect(function()
+                if not AntiFlingEnabled then return end
+                
+                if (Character and Character:IsDescendantOf(workspace)) and (PrimaryPart and PrimaryPart:IsDescendantOf(Character)) then
+                    if PrimaryPart.AssemblyAngularVelocity.Magnitude > 50 or PrimaryPart.AssemblyLinearVelocity.Magnitude > 100 then
+                        Detected = true
+                        for i,v in ipairs(Character:GetDescendants()) do
+                            if v:IsA("BasePart") then
+                                v.CanCollide = false
+                                v.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+                                v.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+                                v.CustomPhysicalProperties = PhysicalProperties.new(0, 0, 0)
+                            end
+                        end
+                        PrimaryPart.CanCollide = false
+                        PrimaryPart.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+                        PrimaryPart.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+                        PrimaryPart.CustomPhysicalProperties = PhysicalProperties.new(0, 0, 0)
+                    end
+                end
+            end)
+            
+            AntiFlingConnections[Player] = {
+                CharacterAdded = charAddedConn,
+                Heartbeat = heartbeatConn
+            }
+        end
+
+        for i,v in ipairs(Services.Players:GetPlayers()) do
+            if v ~= LocalPlayer then
+                PlayerAdded(v)
+            end
+        end
+        
+        local playerAddedConn = Services.Players.PlayerAdded:Connect(PlayerAdded)
+        AntiFlingConnections.Global = {PlayerAdded = playerAddedConn}
+        
+    else
+        for player, connections in pairs(AntiFlingConnections) do
+            if player == "Global" then
+                if connections.PlayerAdded then
+                    connections.PlayerAdded:Disconnect()
+                end
+            else
+                if connections.CharacterAdded then
+                    connections.CharacterAdded:Disconnect()
+                end
+                if connections.Heartbeat then
+                    connections.Heartbeat:Disconnect()
+                end
+            end
+        end
+        AntiFlingConnections = {}
+    end
+end)
+
+Button(Tab8, "防甩飞", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/ChinaQY/Scripts/Main/AntiFling.lua"))()
+end)
+
+Button(Tab8, "可选人甩飞", function() 
+    loadstring(game:HttpGet("https://pastefy.app/A8Kfs9KV/raw", true))()
+end)
+
+Button(Tab8, "触摸甩飞", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/LiarRise/FLN-X/refs/heads/main/README.md"))()
+end)
+
+Button(Tab8, "kenny甩飞", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/ke9460394-dot/ugik/refs/heads/main/DHJB%E7%94%A9%E9%A3%9E.txt"))()
+end)
+
+Button(Tab8, "一键甩飞所有人", function() 
+    loadstring(game:HttpGet("https://pastebin.com/raw/zqyDSUWX"))()
+end)
+
+Button(Tab8, "甩飞中心", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/3LD4D0/OP-FLING-GUI/c1fd15bf3114e6c9e4b76951b7d516c123836efe/OP%20FLING%20GUI%20R6%20AND%20R15"))()
+end)
+
+Button(Tab9, "动画中心1", function() 
+    loadstring(game:HttpGet([[https://raw.githubusercontent.com/GamingScripter/Animation-Hub/main/Animation%20Gui]], true))()
+end)    
+    
+Button(Tab9, "动画中心2", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/ocfi/aquamatrix-source-open/refs/heads/main/source%20open"))()
+end)
+
+Button(Tab12, "HB 子追", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/HB-ksdb/-4/main/%E5%AD%90%E8%BF%BD%E8%84%9A%E6%9C%AC%E7%A9%BF%E5%A2%99.lua"))()
+end)
+
+Button(Tab12, "阿尔子追", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/dingding123hhh/sgbs/main/%E4%B8%81%E4%B8%81%20%E6%B1%89%E5%8C%96%E8%87%AA%E7%9E%84.txt"))()
+end)
+
+Button(Tab10, "播放义勇军进行曲", function() 
+    local sound = Instance.new("Sound")
+    sound.SoundId = "rbxassetid://1845918434"
+    sound.Parent = game.Workspace
+    sound:Play()
+end)
+
+Button(Tab10, "播放植物大战僵尸歌曲", function() 
+    local sound = Instance.new("Sound") 
+    sound.SoundId = "rbxassetid://158260415" 
+    sound.Parent = game.Workspace 
+    sound:Play()
+end)
+
+Button(Tab10, "忘了叫啥名(应该好听)", function() 
+    local sound = Instance.new("Sound") 
+    sound.SoundId = "rbxassetid://1844125168" 
+    sound.Parent = game.Workspace 
+    sound:Play()
+end)
+
+Button(Tab10, "播放Tuber93说话声音", function() 
+    local sound = Instance.new("Sound", workspace)
+    sound.SoundId = "rbxassetid://7153945201"
+    sound:Play()
+end)
+
+Button(Tab10, "钢管落地(全损音效)", function() 
+    local sound = Instance.new("Sound") 
+    sound.SoundId = "rbxassetid://6729922069" 
+    sound.Parent = game.Workspace 
+    sound:Play()
+end)
+
+Button(Tab10, "窜稀(全损音效)", function() 
+    local sound = Instance.new("Sound") 
+    sound.SoundId = "rbxassetid://6445594239" 
+    sound.Parent = game.Workspace 
+    sound:Play() 
+end)
+
+Button(Tab10, "mc受击声音", function() 
+    local sound = Instance.new("Sound") 
+    sound.SoundId = "rbxassetid://6361963422" 
+    sound.Parent = game.Workspace 
+    sound:Play() 
+end)
+
+Button(Tab10, "mc吃东西", function() 
+    local sound = Instance.new("Sound") 
+    sound.SoundId = "rbxassetid://6748255118" 
+    sound.Parent = game.Workspace 
+    sound:Play() 
+end)
+
+Button(Tab10, "mc切换UI声", function() 
+    local sound = Instance.new("Sound") 
+    sound.SoundId = "rbxassetid://535716488" 
+    sound.Parent = game.Workspace 
+    sound:Play() 
+end)
+
+Button(Tab10, "among us", function() 
+    local sound = Instance.new("Sound") 
+    sound.SoundId = "rbxassetid://5677820357" 
+    sound.Parent = game.Workspace 
+    sound:Play() 
+end)
+
+Button(Tab10, "班迪老师的尺子", function() 
+    local sound = Instance.new("Sound") 
+    sound.SoundId = "rbxassetid://3129346583" 
+    sound.Parent = game.Workspace 
+    sound:Play() 
+end)
+
+Button(Tab10, "mc门关上", function() 
+    local sound = Instance.new("Sound") 
+    sound.SoundId = "rbxassetid://180090455" 
+    sound.Parent = game.Workspace 
+    sound:Play() 
+end)
+
+Button(Tab10, "悲伤的小曲", function() 
+    local sound = Instance.new("Sound") 
+    sound.SoundId = "rbxassetid://135308045" 
+    sound.Parent = game.Workspace 
+    sound:Play() 
+end)
+
+Button(Tab10, "投弹兵", function() 
+    local sound = Instance.new("Sound") 
+    sound.SoundId = "rbxassetid://1840172845" 
+    sound.Parent = game.Workspace 
+    sound:Play() 
+end)
+
+Button(Tab10, "九尾狐", function() 
+    local sound = Instance.new("Sound") 
+    sound.SoundId = "rbxassetid://856598599" 
+    sound.Parent = game.Workspace 
+    sound:Play() 
+end)
+
+Button(Tab10, "阿尔法核弹爆炸", function() 
+    local sound = Instance.new("Sound") 
+    sound.SoundId = "rbxassetid://2752357471" 
+    sound.Parent = game.Workspace 
+    sound:Play() 
+end)
+
+Button(Tab10, "核弹爆炸倒计时", function() 
+    local sound = Instance.new("Sound") 
+    sound.SoundId = "rbxassetid://6456981311" 
+    sound.Parent = game.Workspace 
+    sound:Play() 
+end)
+
+Button(Tab10, "警报", function() 
+    local sound = Instance.new("Sound") 
+    sound.SoundId = "rbxassetid://675587093" 
+    sound.Parent = game.Workspace 
+    sound:Play() 
+end)
+
+Button(Tab10, "史蒂夫趋势", function() 
+    local sound = Instance.new("Sound") 
+    sound.SoundId = "rbxassetid://2607544190" 
+    sound.Parent = game.Workspace 
+    sound:Play() 
+end)
+
+Button(Tab10, "小孩乱叫", function() 
+    local sound = Instance.new("Sound") 
+    sound.SoundId = "rbxassetid://2618158728" 
+    sound.Parent = game.Workspace 
+    sound:Play() 
+end)
+
+Button(Tab10, "音乐", function() 
+    local sound = Instance.new("Sound") 
+    sound.SoundId = "rbxassetid://1843497734" 
+    sound.Parent = game.Workspace 
+    sound:Play() 
+end)
+
+Button(Tab10, "生蛋歌", function() 
+    local sound = Instance.new("Sound") 
+    sound.SoundId = "rbxassetid://1839945715" 
+    sound.Parent = game.Workspace 
+    sound:Play() 
+end)
+
+Button(Tab10, "鹦语歌", function() 
+    local sound = Instance.new("Sound") 
+    sound.SoundId = "rbxassetid://5410082097" 
+    sound.Parent = game.Workspace 
+    sound:Play() 
+end)
+
+Button(Tab10, "全损音质", function() 
+    local sound = Instance.new("Sound") 
+    sound.SoundId = "rbxassetid://6797864253" 
+    sound.Parent = game.Workspace 
+    sound:Play() 
+end)
+
+Button(Tab10, "社区送温暖", function() 
+    local sound = Instance.new("Sound") 
+    sound.SoundId = "rbxassetid://5216610038" 
+    sound.Parent = game.Workspace 
+    sound:Play() 
+end)
+
+Button(Tab10, "ouch", function() 
+    local sound = Instance.new("Sound") 
+    sound.SoundId = "rbxassetid://12222058" 
+    sound.Parent = game.Workspace 
+    sound:Play() 
+end)
+
+Button(Tab10, "Lo-fi Chill A", function() 
+    local sound = Instance.new("Sound") 
+    sound.SoundId = "rbxassetid://9043887091" 
+    sound.Parent = game.Workspace 
+    sound:Play() 
+end)
+
+Button(Tab10, "omg", function() 
+    local sound = Instance.new("Sound") 
+    sound.SoundId = "rbxassetid://7632147717" 
+    sound.Parent = game.Workspace 
+    sound:Play() 
+end)
+
+Button(Tab10, "Robotic Dance C", function() 
+    local sound = Instance.new("Sound") 
+    sound.SoundId = "rbxassetid://1847853099" 
+    sound.Parent = game.Workspace 
+    sound:Play() 
+end)
+
+Button(Tab10, "Dion Timmer - Shiawase", function() 
+    local sound = Instance.new("Sound") 
+    sound.SoundId = "rbxassetid://5409360995" 
+    sound.Parent = game.Workspace 
+    sound:Play() 
+end)
+
+Button(Tab10, "FBI 混乱版", function() 
+    local sound = Instance.new("Sound") 
+    sound.SoundId = "rbxassetid://6757388286" 
+    sound.Parent = game.Workspace 
+    sound:Play() 
+end)
+
+Button(Tab10, "彩虹喵", function() 
+    local sound = Instance.new("Sound") 
+    sound.SoundId = "rbxassetid://9067256917" 
+    sound.Parent = game.Workspace 
+    sound:Play() 
+end)
+
+Button(Tab10, "鬼畜猫", function() 
+    local sound = Instance.new("Sound") 
+    sound.SoundId = "rbxassetid://5531491636" 
+    sound.Parent = game.Workspace 
+    sound:Play() 
+end)
+
+Button(Tab10, "傻逼狗", function() 
+    local sound = Instance.new("Sound") 
+    sound.SoundId = "rbxassetid://8449305114" 
+    sound.Parent = game.Workspace 
+    sound:Play() 
+end)
+
+Button(Tab10, "what the dog doin [LOUD] ", function() 
+    local sound = Instance.new("Sound") 
+    sound.SoundId = "rbxassetid://7111183238" 
+    sound.Parent = game.Workspace 
+    sound:Play()
+end)
+
+Button(Tab11, "API翻译(by皮空)", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/smalldesikon/eyidfki/ecca7e04b83299b86c5ce8af98762071cc5f346f/api%E7%BF%BB%E8%AF%91"))()
+end)
+
+Button(Tab11, "bs汉化", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/BS58dL/BS/refs/heads/main/双APl翻译.txt"))()
+end)
+
+Button(Tab11, "TX全自动翻译", function() 
+    TX = "TX Script"
+    Script = "全自动翻译"
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/JsYb666/Item/refs/heads/main/Auto-language"))()
+end)
+
+Button(Tab13, "皮脚本", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/xiaopi77/xiaopi77/main/QQ1002100032-Roblox-Pi-script.lua"))()
+end)
+
+Button(Tab13, "叶脚本", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/roblox-ye/QQ515966991/refs/heads/main/ROBLOX-CNVIP-XIAOYE.lua"))()
+end)
+
+Button(Tab13, "ROB脚本", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/Zyb150933/ROB/refs/heads/main/ROB.V2"))()
+end)
+
+Button(Tab13, "BS脚本", function() 
+    loadstring(game:HttpGet("https://gitee.com/BS_script/script/raw/master/BS_Script.Luau"))()
+end)
+
+Button(Tab13, "XK脚本", function() 
+    loadstring(game:HttpGet(('https://github.com/devslopo/DVES/raw/main/XK%20Hub')))()
+end)
+
+Button(Tab13, "大司马脚本", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/whenheer/dasimav6/refs/heads/main/dasimaV6.txt"))()
+end)
+
+Button(Tab13, "RB脚本", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/Yungengxin/roblox/refs/heads/main/Rb-Hub"))()
+end)
+
+Button(Tab13, "德与中山免费版", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/dream77239/Deyu-Zhongshan/refs/heads/main/%E5%BE%B7%E4%B8%8E%E4%B8%AD%E5%B1%B1.txt"))()
+end)
