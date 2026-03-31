@@ -1,4 +1,4 @@
-local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua"))()
+local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
 WindUI.TransparencyValue = 0.3
 WindUI:SetTheme("Dark")
 
@@ -7,7 +7,7 @@ local Window = WindUI:CreateWindow({
     Icon = "crown",
     Author = "SU7",
     Folder = "MonkeyInfection",
-    Size = UDim2.fromOffset(500, 700),
+    Size = UDim2.fromOffset(630, 378),
     Background = "rbxassetid://135259042639677",
     Theme = "Dark",
     SideBarWidth = 170,
@@ -26,7 +26,6 @@ local mapPoint = CFrame.new(17.770666122436523, -2.4900002479553223, -49.6852493
 
 TabPlayer:Button({
     Title = "传送出生点",
-    TextSize = 16,
     Callback = function()
         local player = game.Players.LocalPlayer
         local char = player.Character
@@ -39,7 +38,6 @@ TabPlayer:Button({
 
 TabPlayer:Button({
     Title = "传送地图",
-    TextSize = 16,
     Callback = function()
         local player = game.Players.LocalPlayer
         local char = player.Character
@@ -53,10 +51,8 @@ TabPlayer:Button({
 local speedValue = 16
 TabPlayer:Slider({
     Title = "移动速度",
-    TextSize = 16,
-    Min = 0,
-    Max = 100,
-    Default = 16,
+    Step = 1,
+    Value = { Min = 0, Max = 100, Default = 16 },
     Callback = function(value)
         if value == nil then return end
         speedValue = value
@@ -71,10 +67,8 @@ TabPlayer:Slider({
 local jumpPowerValue = 50
 TabPlayer:Slider({
     Title = "跳跃力",
-    TextSize = 16,
-    Min = 0,
-    Max = 200,
-    Default = 50,
+    Step = 1,
+    Value = { Min = 0, Max = 200, Default = 50 },
     Callback = function(value)
         if value == nil then return end
         jumpPowerValue = value
@@ -89,10 +83,8 @@ TabPlayer:Slider({
 local gravityValue = 196.2
 TabPlayer:Slider({
     Title = "重力",
-    TextSize = 16,
-    Min = 0,
-    Max = 500,
-    Default = 196.2,
+    Step = 1,
+    Value = { Min = 0, Max = 500, Default = 196 },
     Callback = function(value)
         if value == nil then return end
         gravityValue = value
@@ -103,10 +95,8 @@ TabPlayer:Slider({
 local fovValue = 70
 TabPlayer:Slider({
     Title = "广角(FOV)",
-    TextSize = 16,
-    Min = 1,
-    Max = 120,
-    Default = 70,
+    Step = 1,
+    Value = { Min = 1, Max = 120, Default = 70 },
     Callback = function(value)
         if value == nil then return end
         fovValue = value
@@ -187,7 +177,6 @@ end
 
 TabPlayer:Toggle({
     Title = "随机传送至未感染者（仅自己感染时）",
-    TextSize = 16,
     Value = false,
     Callback = function(state)
         randomTeleportActive = state
@@ -209,7 +198,6 @@ TabPlayer:Toggle({
     end
 })
 
--- 防护系统：球体直接焊接在 HumanoidRootPart 上，确保贴合
 local loopConn = nil
 local spheres = {}
 
@@ -224,23 +212,21 @@ local function addSphere(player)
     local sphere = Instance.new("Part")
     sphere.Name = "InfectionSphere"
     sphere.Shape = Enum.PartType.Ball
-    sphere.Size = Vector3.new(30, 30, 30)
-    sphere.Transparency = 0.5
+    sphere.Size = Vector3.new(35, 35, 35)
+    sphere.Transparency = 0.25
     sphere.CanCollide = true
     sphere.Massless = true
     sphere.Anchored = false
     sphere.CastShadow = false
     sphere.CanQuery = false
     sphere.Material = Enum.Material.SmoothPlastic
-    -- 关键：先将球体位置对齐到 hrp
     sphere.CFrame = hrp.CFrame
     sphere.Parent = char
 
-    -- 使用 Weld 而非 WeldConstraint，可以精确控制相对位置
     local weld = Instance.new("Weld")
     weld.Part0 = hrp
     weld.Part1 = sphere
-    weld.C0 = hrp.CFrame:Inverse() * sphere.CFrame  -- 计算相对偏移
+    weld.C0 = hrp.CFrame:Inverse() * sphere.CFrame
     weld.Parent = sphere
 
     spheres[player] = sphere
@@ -274,7 +260,6 @@ end
 
 TabProtect:Toggle({
     Title = "开启防护(给感染者装一个球)",
-    TextSize = 16,
     Value = false,
     Callback = function(state)
         if state then
