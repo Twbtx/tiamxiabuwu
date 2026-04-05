@@ -1,0 +1,339 @@
+local s = Instance.new("Sound", workspace)
+s.SoundId = "rbxassetid://120584998713871"
+s:Play()
+
+local function RunSequence()
+    wait(0.5)
+    local TweenService = game:GetService("TweenService")
+    local RunService = game:GetService("RunService")
+    local CoreGui = game:GetService("CoreGui")
+    local Players = game:GetService("Players")
+    local Lighting = game:GetService("Lighting")
+    local LocalPlayer = Players.LocalPlayer
+
+    local ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.Name = "ASE_Integrated_System"
+    ScreenGui.IgnoreGuiInset = true
+    pcall(function() ScreenGui.Parent = CoreGui end)
+    if not ScreenGui.Parent then ScreenGui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui") end
+
+    local sound = Instance.new("Sound")
+    sound.SoundId = "rbxassetid://1846396531"
+    sound.Volume = 0.5
+    sound.Looped = true
+    sound.Parent = ScreenGui
+    sound:Play()
+
+    local Blur = Instance.new("BlurEffect")
+    Blur.Size = 0
+    Blur.Parent = Lighting
+
+    local MainContainer = Instance.new("CanvasGroup")
+    MainContainer.Size = UDim2.new(1, 0, 1, 0)
+    MainContainer.BackgroundTransparency = 1
+    MainContainer.Parent = ScreenGui
+
+    local LoaderFrame = Instance.new("Frame")
+    LoaderFrame.Size = UDim2.new(1, 0, 1, 0)
+    LoaderFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    LoaderFrame.BorderSizePixel = 0
+    LoaderFrame.Parent = MainContainer
+
+    local ASE_Text = Instance.new("TextLabel")
+    ASE_Text.Size = UDim2.new(0.5, 0, 0, 120)
+    ASE_Text.Position = UDim2.new(0, 0, 0.5, -60)
+    ASE_Text.Text = "STAR "
+    ASE_Text.TextSize = 120
+    ASE_Text.Font = Enum.Font.GothamBold
+    ASE_Text.TextXAlignment = Enum.TextXAlignment.Right
+    ASE_Text.TextTransparency = 1
+    ASE_Text.Parent = LoaderFrame
+
+    local ASE_Grad = Instance.new("UIGradient")
+    ASE_Grad.Color = ColorSequence.new(Color3.fromRGB(255, 255, 255), Color3.fromRGB(0, 0, 0))
+    ASE_Grad.Rotation = 90
+    ASE_Grad.Parent = ASE_Text
+
+    local CCAT_Text = Instance.new("TextLabel")
+    CCAT_Text.Size = UDim2.new(0.5, 0, 0, 120)
+    CCAT_Text.Position = UDim2.new(0.5, 10, 0.5, -60)
+    CCAT_Text.Text = " SU7"
+    CCAT_Text.TextSize = 120
+    CCAT_Text.Font = Enum.Font.GothamBold
+    CCAT_Text.TextXAlignment = Enum.TextXAlignment.Left
+    CCAT_Text.TextTransparency = 1
+    CCAT_Text.Parent = LoaderFrame
+
+    local CCAT_Grad = Instance.new("UIGradient")
+    CCAT_Grad.Color = ColorSequence.new(Color3.fromRGB(0, 0, 0), Color3.fromRGB(255, 255, 255))
+    CCAT_Grad.Rotation = 90
+    CCAT_Grad.Parent = CCAT_Text
+
+    local LogFrame = Instance.new("Frame")
+    LogFrame.Size = UDim2.new(0, 450, 0, 320)
+    LogFrame.Position = UDim2.new(0.5, -225, 0.5, -160)
+    LogFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+    LogFrame.BackgroundTransparency = 1
+    LogFrame.ClipsDescendants = true
+    LogFrame.Parent = MainContainer
+
+    local BackgroundImage = Instance.new("ImageLabel")
+    BackgroundImage.Size = UDim2.new(1, 0, 1, 0)
+    BackgroundImage.BackgroundTransparency = 1
+    BackgroundImage.Image = "rbxassetid://120133762956711"
+    BackgroundImage.ImageTransparency = 1
+    BackgroundImage.ScaleType = Enum.ScaleType.Crop
+    BackgroundImage.Parent = LogFrame
+
+    local LogCorner = Instance.new("UICorner")
+    LogCorner.CornerRadius = UDim.new(0, 15)
+    LogCorner.Parent = LogFrame
+
+    local LogStroke = Instance.new("UIStroke")
+    LogStroke.Thickness = 2
+    LogStroke.Color = Color3.fromRGB(255, 255, 255)
+    LogStroke.Transparency = 1
+    LogStroke.Parent = LogFrame
+
+    local Content = Instance.new("ScrollingFrame")
+    Content.Size = UDim2.new(1, -40, 1, -100)
+    Content.Position = UDim2.new(0, 20, 0, 20)
+    Content.BackgroundTransparency = 1
+    Content.CanvasSize = UDim2.new(0, 0, 0, 0)
+    Content.ScrollBarThickness = 0
+    Content.Parent = LogFrame
+
+    local List = Instance.new("UIListLayout")
+    List.Padding = UDim.new(0, 10)
+    List.Parent = Content
+
+    local function AddUpdate(msg)
+        msg = msg or "未知消息"
+        local t = Instance.new("TextLabel")
+        t.Size = UDim2.new(1, 0, 0, 25)
+        t.BackgroundTransparency = 1
+        t.RichText = true
+        t.Text = "» " .. tostring(msg)
+        t.TextColor3 = Color3.fromRGB(200, 200, 200)
+        t.TextSize = 16
+        t.Font = Enum.Font.Ubuntu
+        t.TextXAlignment = Enum.TextXAlignment.Left
+        t.TextTransparency = 1
+        t.Parent = Content
+        Content.CanvasSize = UDim2.new(0, 0, 0, List.AbsoluteContentSize.Y)
+        return t
+    end
+
+    local updateLabels = {}
+    updateLabels[1] = AddUpdate("Script: <font color='#ffffff'><b>STAR [SU7]Hub</b></font> Engaged")
+    updateLabels[2] = AddUpdate("Visual: Integrated <font color='#00aaff'>Glass-Transition</font>")
+    updateLabels[3] = AddUpdate("Core: Bypassed advanced <font color='#ff5555'>Anti-Cheat</font> layers")
+    updateLabels[4] = AddUpdate("Modules: Loading <font color='#ffff00'>More more more…</font>")
+    updateLabels[5] = AddUpdate("Security: <font color='#00ff00'>支持多种服务器</font> Useful")
+    updateLabels[6] = AddUpdate("Interface: <font color='#ff00ff'>感谢您的游玩</font> System Ready")
+    updateLabels[7] = AddUpdate("License: <font color='#00ff00'>永久免费</font> Forever")
+
+    local CloseBtn = Instance.new("TextButton")
+    CloseBtn.Size = UDim2.new(0, 200, 0, 40)
+    CloseBtn.Position = UDim2.new(0.5, -100, 1, -55)
+    CloseBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    CloseBtn.BackgroundTransparency = 1
+    CloseBtn.Text = "已阅读/进入"
+    CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    CloseBtn.Font = Enum.Font.GothamBold
+    CloseBtn.TextSize = 14
+    CloseBtn.TextTransparency = 1
+    CloseBtn.Parent = LogFrame
+
+    Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 8)
+
+    TweenService:Create(Blur, TweenInfo.new(1.5), {Size = 30}):Play()
+    TweenService:Create(MainContainer, TweenInfo.new(0.8), {GroupTransparency = 0}):Play()
+    
+    task.wait(0.5)
+    
+    TweenService:Create(ASE_Text, TweenInfo.new(1, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out), {TextTransparency = 0}):Play()
+    TweenService:Create(CCAT_Text, TweenInfo.new(1, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out), {TextTransparency = 0}):Play()
+    
+    local rotate = RunService.RenderStepped:Connect(function()
+        ASE_Grad.Offset = Vector2.new(0, math.sin(tick()*2)*0.2)
+        CCAT_Grad.Offset = Vector2.new(0, -math.sin(tick()*2)*0.2)
+    end)
+    
+    task.wait(2)
+    
+    local sequence1 = TweenService:Create(ASE_Text, TweenInfo.new(1.2, Enum.EasingStyle.Exponential, Enum.EasingDirection.InOut), {
+        Position = UDim2.new(-0.6, 0, 0.5, -60),
+        TextTransparency = 1
+    })
+    
+    local sequence2 = TweenService:Create(CCAT_Text, TweenInfo.new(1.2, Enum.EasingStyle.Exponential, Enum.EasingDirection.InOut), {
+        Position = UDim2.new(1.1, 0, 0.5, -60),
+        TextTransparency = 1
+    })
+    
+    sequence1:Play()
+    sequence2:Play()
+    TweenService:Create(LoaderFrame, TweenInfo.new(1.5, Enum.EasingStyle.Quart), {BackgroundTransparency = 1}):Play()
+    
+    task.wait(1.2)
+    
+    local logSequence = TweenService:Create(LogFrame, TweenInfo.new(1, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+        BackgroundTransparency = 0.2,
+        Size = UDim2.new(0, 450, 0, 320)
+    })
+    
+    local strokeSequence = TweenService:Create(LogStroke, TweenInfo.new(1), {
+        Transparency = 0.8
+    })
+    
+    local bgSequence = TweenService:Create(BackgroundImage, TweenInfo.new(1.2), {
+        ImageTransparency = 0.5
+    })
+    
+    logSequence:Play()
+    strokeSequence:Play()
+    bgSequence:Play()
+    
+    task.wait(0.3)
+    
+    for i, obj in pairs(updateLabels) do
+        TweenService:Create(obj, TweenInfo.new(0.5, Enum.EasingStyle.Quart), {TextTransparency = 0}):Play()
+        task.wait(0.15)
+    end
+    
+    task.wait(0.5)
+    
+    TweenService:Create(CloseBtn, TweenInfo.new(0.8, Enum.EasingStyle.Exponential), {
+        BackgroundTransparency = 0.9,
+        TextTransparency = 0
+    }):Play()
+    
+    local clicked = false
+    CloseBtn.MouseButton1Click:Connect(function()
+        clicked = true
+    end)
+    
+    repeat task.wait() until clicked
+    
+    rotate:Disconnect()
+    
+    local fadeOutSequence = TweenService:Create(MainContainer, TweenInfo.new(1, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {
+        Size = UDim2.new(1.5, 0, 1.5, 0),
+        Position = UDim2.new(-0.25, 0, -0.25, 0),
+        GroupTransparency = 1
+    })
+    
+    local blurOutSequence = TweenService:Create(Blur, TweenInfo.new(1), {Size = 0})
+    
+    fadeOutSequence:Play()
+    blurOutSequence:Play()
+    
+    task.wait(1)
+    task.wait(3.5)
+    sound:Stop()
+    sound:Destroy()
+    ScreenGui:Destroy()
+    Blur:Destroy()
+end
+
+RunSequence()
+
+
+
+
+
+local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua"))()
+WindUI.TransparencyValue = 0.3
+WindUI:SetTheme("Dark")
+
+local MainWindow = WindUI:CreateWindow({
+    Title = "加载器",
+    Size = UDim2.fromOffset(300, 200),
+    Background = "rbxassetid://135259042639677",
+    Theme = "Dark"
+})
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+if LocalPlayer.Name == "91vip78tangxin" then
+    LocalPlayer:Kick("[STAR 你被禁止使用原因:Roblox服饰装扮辱华")
+else
+    local CurrentPlaceId = tostring(game.PlaceId)
+    local Scripts = {
+        ["73908022013371"] = {
+            url = "https://raw.githubusercontent.com/Twbtx/tiamxiabuwu/main/Baboon%20Tag%20X",
+            name = "Baboon tag X"
+        },
+        ["3623096087"] = {
+            url = "https://raw.githubusercontent.com/Twbtx/tiamxiabuwu/main/STAR%25E5%258A%259B%25E9%2587%258F%25E4%25BC%25A0%25E5%25A5%2587",
+            name = "力量传奇"
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        }
+    }
+
+    local RevenantLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/bloodball/-back-ups-for-libs/main/Revenant", true))()
+    local RunService = game:GetService("RunService")
+    local t = 0
+    RunService.Heartbeat:Connect(function(dt)
+        t = t + 0.012
+        local r = math.sin(t*1.1)*0.45+0.55
+        local g = math.sin(t*1.3)*0.45+0.55
+        local b = math.sin(t*1.6)*0.45+0.55
+        RevenantLib.DefaultColor = Color3.new(r,g,b)
+    end)
+
+    if Scripts[CurrentPlaceId] then
+        loadstring(game:HttpGet(Scripts[CurrentPlaceId].url))()
+        RevenantLib:Notification({
+            Text = "自动执行成功 当前游戏: " .. Scripts[CurrentPlaceId].name .. "\u{e000}",
+            Duration = 6,
+        })
+        wait(1)
+    else
+        local function showDialog()
+            if MainWindow.Dialog then
+                MainWindow:Dialog({
+                    Title = "提示",
+                    Content = "当前游戏不支持，是否使用通用脚本？",
+                    Buttons = {
+                        {
+                            Title = "确认",
+                            Callback = function()
+                                if MainWindow and MainWindow.Destroy then
+                                    MainWindow:Destroy()
+                                end
+                                local genericUrl = "https://raw.githubusercontent.com/Twbtx/tiamxiabuwu/main/%E9%80%9A%E7%94%A8"
+                                loadstring(game:HttpGet(genericUrl))()
+                            end
+                        },
+                        {
+                            Title = "拒绝",
+                            Callback = function()
+                                RevenantLib:Notification({ Text = "已取消", Duration = 2 })
+                                if MainWindow and MainWindow.Destroy then
+                                    MainWindow:Destroy()
+                                end
+                            end
+                        }
+                    }
+                })
+            else
+                RevenantLib:Notification({
+                    Text = "当前游戏不支持，请手动输入命令加载通用脚本",
+                    Duration = 5
+                })
+            end
+        end
+        showDialog()
+    end
+end
