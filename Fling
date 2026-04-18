@@ -1,0 +1,354 @@
+_G.Kspa = {
+Player = game.Players.LocalPlayer,
+RunService = game:GetService("RunService"),
+ReplicatedStorage = game:GetService("ReplicatedStorage"),
+MarketplaceService = game:GetService("MarketplaceService"),
+Toggles = {
+AntiGrabNormal = {
+Enabled = false,
+Interval = 0.02,
+Start = function()
+if _G.Kspa.Toggles.AntiGrabNormal.Enabled then return end
+_G.Kspa.Toggles.AntiGrabNormal.Enabled = true
+task.spawn(function()
+while _G.Kspa.Toggles.AntiGrabNormal.Enabled do
+pcall(function()
+_G.Kspa.HeldTimer.Value = 0
+_G.Kspa.Struggle:FireServer()
+_G.Kspa.ReplicatedStorage.GrabEvents.DestroyGrabLine:FireServer(_G.Kspa.Player)
+end)
+task.wait(0.02)
+end
+end)
+end,
+Stop = function()
+_G.Kspa.Toggles.AntiGrabNormal.Enabled = false
+end
+},
+AntiGrabFast = {
+Enabled = false,
+Interval = 0.01,
+Start = function()
+if _G.Kspa.Toggles.AntiGrabFast.Enabled then return end
+_G.Kspa.Toggles.AntiGrabFast.Enabled = true
+task.spawn(function()
+while _G.Kspa.Toggles.AntiGrabFast.Enabled do
+pcall(function()
+_G.Kspa.HeldTimer.Value = 0
+_G.Kspa.Struggle:FireServer()
+_G.Kspa.ReplicatedStorage.GrabEvents.DestroyGrabLine:FireServer(_G.Kspa.Player)
+end)
+task.wait(0.01)
+end
+end)
+end,
+Stop = function()
+_G.Kspa.Toggles.AntiGrabFast.Enabled = false
+end
+},
+AntiGrabTurbo = {
+Enabled = false,
+Interval = 0.005,
+Start = function()
+if _G.Kspa.Toggles.AntiGrabTurbo.Enabled then return end
+_G.Kspa.Toggles.AntiGrabTurbo.Enabled = true
+task.spawn(function()
+while _G.Kspa.Toggles.AntiGrabTurbo.Enabled do
+pcall(function()
+_G.Kspa.HeldTimer.Value = 0
+_G.Kspa.Struggle:FireServer()
+_G.Kspa.ReplicatedStorage.GrabEvents.DestroyGrabLine:FireServer(_G.Kspa.Player)
+end)
+task.wait(0.005)
+end
+end)
+end,
+Stop = function()
+_G.Kspa.Toggles.AntiGrabTurbo.Enabled = false
+end
+},
+AutoGrabNearby = {
+Enabled = false,
+Connection = nil,
+Start = function()
+if _G.Kspa.Toggles.AutoGrabNearby.Connection then return end
+local player = _G.Kspa.Player
+local grabEvents = _G.Kspa.ReplicatedStorage.GrabEvents
+local setOwner = grabEvents.SetNetworkOwner
+local createGrab = grabEvents.CreateGrabLine
+local extendGrab = grabEvents.ExtendGrabLine
+local camera = workspace.CurrentCamera
+_G.Kspa.Toggles.AutoGrabNearby.Connection = _G.Kspa.RunService.Heartbeat:Connect(function()
+pcall(function()
+local myChar = player.Character
+if not myChar then return end
+local myRoot = myChar:FindFirstChild("HumanoidRootPart")
+if not myRoot then return end
+local myPos = myRoot.Position
+for _, target in ipairs(game.Players:GetPlayers()) do
+if target ~= player and target.Character then
+local targetRoot = target.Character:FindFirstChild("HumanoidRootPart")
+if targetRoot and (targetRoot.Position - myPos).Magnitude <= 30 then
+local targetPos = targetRoot.Position + Vector3.new(0, 2, 0)
+local offset = targetRoot.CFrame:ToObjectSpace(CFrame.new(targetPos))
+setOwner:FireServer(targetRoot, camera.CFrame)
+createGrab:FireServer(targetRoot, offset)
+extendGrab:FireServer(5)
+end
+end
+end
+end)
+end)
+_G.Kspa.Toggles.AutoGrabNearby.Enabled = true
+end,
+Stop = function()
+if _G.Kspa.Toggles.AutoGrabNearby.Connection then
+_G.Kspa.Toggles.AutoGrabNearby.Connection:Disconnect()
+_G.Kspa.Toggles.AutoGrabNearby.Connection = nil
+end
+_G.Kspa.Toggles.AutoGrabNearby.Enabled = false
+end
+}
+}
+}
+function _G.Kspa.SetAntiGrabMode(mode)
+local modes = {"AntiGrabNormal", "AntiGrabFast", "AntiGrabTurbo"}
+for _, m in ipairs(modes) do
+if m ~= mode and _G.Kspa.Toggles[m].Enabled then
+_G.Kspa.Toggles[m].Stop()
+end
+end
+if not _G.Kspa.Toggles[mode].Enabled then
+_G.Kspa.Toggles[mode].Start()
+end
+end
+local Player = _G.Kspa.Player
+_G.Kspa.Struggle = _G.Kspa.ReplicatedStorage:WaitForChild("CharacterEvents"):WaitForChild("Struggle")
+_G.Kspa.HeldTimer = Player:WaitForChild("HeldTimer")
+_G.Kspa.IsHeld = Player:WaitForChild("IsHeld")
+_G.Kspa.GameName = "未知游戏"
+task.spawn(function()
+local success, info = pcall(function() return _G.Kspa.MarketplaceService:GetProductInfo(game.PlaceId) end)
+if success and info then _G.Kspa.GameName = info.Name end
+end)
+if game.PlaceId == 6961824067 then
+local uik = "https://raw.githubusercontent.com/Footagesus/WindUI/refs/heads/main/dist/main.lua"
+local zt = "<font color='#FF0000'>K</font><font color='#FF3333'>s</font><font color='#FF6666'>p</font><font color='#FF9999'>a</font><font color='#FFAAAA'></font><font color='#FFCCCC'></font><font color='#FF9999'></font>"
+local KeySystem = {
+Key = { "true key", "Kspa TOP 1", "top 1", "好人", "10"},
+Note = "卡密 System.",
+Thumbnail = { Image = "rbxassetid://138471523656801", Title = "" },
+URL = "[加入群聊获取卡密587841124 卡密定时更换]",
+SaveKey = true,
+}
+local WindUI = loadstring(game:HttpGet(uik))()
+local Window = WindUI:CreateWindow({
+Title = "<font color='#FF0000'>K</font><font color='#FF3333'>s</font><font color='#FF6666'>p</font><font color='#FF9999'>a</font> <font color='#FFAAAA'></font><font color='#FFCCCC'></font><font color='#FF9999'></font> <font color='#FF9999'>X</font> ",
+IconThemed = true,
+Folder = "Kspa",
+Size = UDim2.fromOffset(0, 0),
+Transparent = false,
+Background = "rbxassetid://138471523656801",
+BackgroundImageTransparency = 0.5,
+Theme = "Dark",
+User = { Enabled = true, Callback = function() end, Anonymous = false },
+KeySystem = KeySystem,
+SideBarWidth = 170,
+HideSearchBar = false,
+OpenButton = {
+Title = zt,
+Icon = "monitor",
+CornerRadius = UDim.new(0.3, 0),
+StrokeThickness = 2,
+Enabled = true,
+Draggable = true,
+OnlyMobile = false,
+Color = ColorSequence.new(Color3.fromHex("#FF0000"), Color3.fromHex("#ffffff"))
+}
+})
+Window:SetUIScale(0.7)
+Window:Tag({ Title = '<font color="#001100">Kspa X | v1.0.1 | By Kspa</font>', Radius = 7, Color = Color3.fromRGB(255, 10, 10) })
+WindUI:Notify({ Title = "欢迎使用脚本", Content = "欢迎用户 " .. Player.Name .. " 使用", Duration = 3, Icon = "monitor" })
+local function SEFONT()
+if WindUI.Creator then
+WindUI:SetFont("rbxassetid://12187369639")
+if WindUI.Creator.FontObjects then
+for _, obj in ipairs(WindUI.Creator.FontObjects) do
+if obj and (obj:IsA("TextLabel") or obj:IsA("TextButton") or obj:IsA("TextBox")) then
+obj.TextSize = 24
+end
+end
+end
+end
+end
+task.spawn(function()
+while task.wait(0.01) do
+local WindUIObj = game:GetService("CoreGui"):FindFirstChild("WindUI", true)
+if WindUIObj then
+local Main = WindUIObj:FindFirstChild("Window", true)
+if Main then
+for _, obj in ipairs(Main:GetDescendants()) do
+if obj:IsA("UIGradient") and obj.Parent.Name ~= "RainbowStroke" and obj.Parent.Name ~= "Outline" then
+obj.Rotation = obj.Rotation + 3
+end
+end
+end
+end
+end
+end)
+local function blurEffect(window, color, transparency)
+color = color or Color3.fromRGB(255, 215, 0)
+transparency = transparency or 0.1
+local frame = window.UIElements and window.UIElements.Main or window.Frame or window.Gui or window
+if not frame then return false end
+local blur = frame:FindFirstChild("Blur", true)
+if blur and blur:IsA("ImageLabel") then
+blur.ImageColor3 = color
+blur.ImageTransparency = transparency
+return true
+end
+local shadow = frame:FindFirstChild("Shadow", true)
+if shadow and shadow:IsA("ImageLabel") then
+shadow.ImageColor3 = color
+shadow.ImageTransparency = transparency
+return true
+end
+return false
+end
+task.spawn(function()
+while task.wait() do
+local hue = tick() % 5 / 5
+local color1 = Color3.fromHSV(hue, 1, 1)
+local color2 = Color3.fromHSV((hue + 0.00001) % 1, 1, 1)
+local avg = Color3.new((color1.R + color2.R) / 2, (color1.G + color2.G) / 2, (color1.B + color2.B) / 2)
+blurEffect(Window, avg, 0.2)
+end
+end)
+SEFONT()
+local serverTab = Window:Tab({ Title = "服务器", Icon = "dollar-sign", Opened = true })
+local MianTab = Window:Tab({ Title = "防护功能", Icon = "shield", Opened = false })
+local placeId = tostring(game.PlaceId)
+local jobId = game.JobId
+local userId = tostring(Player.UserId)
+local userName = Player.Name
+local function makeCopyButton(parent, displayText, copyValue)
+return parent:Button({
+Title = displayText,
+Desc = "点击复制",
+Callback = function()
+setclipboard(copyValue)
+WindUI:Notify({ Title = "复制成功", Content = "已复制: " .. copyValue, Duration = 2, Icon = "clipboard" })
+end
+})
+end
+repeat task.wait(0.05) until _G.Kspa.GameName ~= "未知游戏" or os.clock() > 1
+makeCopyButton(serverTab, "游戏名称: " .. _G.Kspa.GameName, _G.Kspa.GameName)
+makeCopyButton(serverTab, "PlaceId: " .. placeId, placeId)
+makeCopyButton(serverTab, "JobId: " .. jobId, jobId)
+makeCopyButton(serverTab, "玩家ID: " .. userId, userId)
+makeCopyButton(serverTab, "用户名: " .. userName, userName)
+local coordValue = "点击复制"
+local coordButton = serverTab:Button({
+Title = "坐标: " .. coordValue,
+Desc = "点击复制",
+Callback = function()
+if coordValue and coordValue ~= "等待角色加载" then
+setclipboard(coordValue)
+WindUI:Notify({ Title = "复制成功", Content = "已复制坐标: " .. coordValue, Duration = 2, Icon = "clipboard" })
+end
+end
+})
+task.spawn(function()
+while true do
+task.wait()
+local character = Player.Character
+local root = character and character:FindFirstChild("HumanoidRootPart")
+local newCoord = "角色未加载"
+if root then
+local pos = root.Position
+newCoord = string.format("X: %.2f, Y: %.2f, Z: %.2f", pos.X, pos.Y, pos.Z)
+end
+if newCoord ~= coordValue then
+coordValue = newCoord
+if coordButton and coordButton.UIElements and coordButton.UIElements.Main then
+local label = coordButton.UIElements.Main:FindFirstChild("TitleLabel", true) or coordButton.UIElements.Main:FindFirstChild("TextLabel", true)
+if label then
+label.Text = "坐标: " .. newCoord
+end
+end
+end
+end
+end)
+MianTab:Toggle({
+Title = "普通防抓 (50次/秒)",
+Desc = "稳定防护，低资源占用",
+Callback = function(state)
+if state then
+_G.Kspa.SetAntiGrabMode("AntiGrabNormal")
+else
+_G.Kspa.Toggles.AntiGrabNormal.Stop()
+end
+WindUI:Notify({
+Title = state and "普通防抓已开启" or "已关闭",
+Content = state and "每秒50次挣脱" or "防抓已停止",
+Duration = 2,
+Icon = "shield"
+})
+end,
+Default = false
+})
+MianTab:Toggle({
+Title = "快速防抓 (100次/秒)",
+Desc = "推荐使用，平衡防护与性能",
+Callback = function(state)
+if state then
+_G.Kspa.SetAntiGrabMode("AntiGrabFast")
+else
+_G.Kspa.Toggles.AntiGrabFast.Stop()
+end
+WindUI:Notify({
+Title = state and "快速防抓已开启" or "已关闭",
+Content = state and "每秒100次挣脱" or "防抓已停止",
+Duration = 2,
+Icon = "zap"
+})
+end,
+Default = false
+})
+MianTab:Toggle({
+Title = "急速防抓 (200次/秒)",
+Desc = "极限防护，对抗外挂专用",
+Callback = function(state)
+if state then
+_G.Kspa.SetAntiGrabMode("AntiGrabTurbo")
+else
+_G.Kspa.Toggles.AntiGrabTurbo.Stop()
+end
+WindUI:Notify({
+Title = state and "急速防抓已开启" or "已关闭",
+Content = state and "每秒200次挣脱" or "防抓已停止",
+Duration = 2,
+Icon = "rocket"
+})
+end,
+Default = false
+})
+MianTab:Toggle({
+Title = "自动抓取附近玩家",
+Desc = "360度自动抓取30格内的所有玩家",
+Callback = function(state)
+if state then
+_G.Kspa.Toggles.AutoGrabNearby.Start()
+else
+_G.Kspa.Toggles.AutoGrabNearby.Stop()
+end
+WindUI:Notify({
+Title = state and "自动抓取已开启" or "自动抓取已关闭",
+Content = state and "正在抓取附近所有玩家" or "停止抓取",
+Duration = 2,
+Icon = "users"
+})
+end,
+Default = false
+})
+end
