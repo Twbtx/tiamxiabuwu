@@ -84,6 +84,78 @@ Stop = function()
 _G.Kspa.Toggles.AntiGrabFast.Enabled = false
 end
 },
+-- 反虚空 / 恢复走路轨迹
+AntiVoidWalk = {
+    Enabled = false,
+    Connection = nil,
+    LastSafeCFrame = nil,
+    LastSafeVelocity = Vector3.new(0, 0, 0),
+    Start = function()
+        if _G.Kspa.Toggles.AntiVoidWalk.Connection then return end
+        local player = _G.Kspa.Player
+        _G.Kspa.Toggles.AntiVoidWalk.Connection = _G.Kspa.RunService.Heartbeat:Connect(function()
+            pcall(function()
+                local char = player.Character
+                if not char then return end
+                local root = char:FindFirstChild("HumanoidRootPart")
+                local hum = char:FindFirstChild("Humanoid")
+                if not root or not hum then return end
+
+                local pos = root.Position
+                local vel = root.Velocity
+
+                -- 检测是否被抓（IsHeld 或位置突变）
+                local isHeld = _G.Kspa.IsHeld.Value
+                local yAbnormal = pos.Y < -50 or pos.Y > 5000
+                local posJump = _G.Kspa.Toggles.AntiVoidWalk.LastSafeCFrame and
+                                (pos - _G.Kspa.Toggles.AntiVoidWalk.LastSafeCFrame.Position).Magnitude > 50
+
+                if isHeld or yAbnormal or posJump then
+                    -- 异常：回滚到上一帧安全位置，并沿原方向补偿移动
+                    if _G.Kspa.Toggles.AntiVoidWalk.LastSafeCFrame then
+                        -- 恢复位置并添加前进补偿（约0.1秒移动距离）
+                        local moveDir = _G.Kspa.Toggles.AntiVoidWalk.LastSafeVelocity
+                        if moveDir.Magnitude > 0 then
+                            moveDir = moveDir.Unit * math.min(moveDir.Magnitude, 16) -- 限制速度
+                        else
+                            moveDir = root.CFrame.LookVector
+                        end
+                        local offset = moveDir * 0.1 * 16 -- 约0.1秒行走距离
+                        root.CFrame = _G.Kspa.Toggles.AntiVoidWalk.LastSafeCFrame + offset
+                    end
+                    -- 同时清除被抓状态
+                    _G.Kspa.HeldTimer.Value = 0
+                    _G.Kspa.Struggle:FireServer()
+                    _G.Kspa.ReplicatedStorage.GrabEvents.DestroyGrabLine:FireServer(player)
+                    -- 强制恢复行走能力
+                    hum.Sit = false
+                    hum.PlatformStand = false
+                    hum:ChangeState(Enum.HumanoidStateType.Running)
+                else
+                    -- 正常：记录安全位置和速度方向
+                    _G.Kspa.Toggles.AntiVoidWalk.LastSafeCFrame = root.CFrame
+                    _G.Kspa.Toggles.AntiVoidWalk.LastSafeVelocity = vel
+                end
+            end)
+        end)
+        _G.Kspa.Toggles.AntiVoidWalk.Enabled = true
+    end,
+    Stop = function()
+        if _G.Kspa.Toggles.AntiVoidWalk.Connection then
+            _G.Kspa.Toggles.AntiVoidWalk.Connection:Disconnect()
+            _G.Kspa.Toggles.AntiVoidWalk.Connection = nil
+        end
+        _G.Kspa.Toggles.AntiVoidWalk.LastSafeCFrame = nil
+        _G.Kspa.Toggles.AntiVoidWalk.Enabled = false
+    end,
+    Toggle = function(state)
+        if state then
+            _G.Kspa.Toggles.AntiVoidWalk.Start()
+        else
+            _G.Kspa.Toggles.AntiVoidWalk.Stop()
+        end
+    end
+}
 AntiGrabTurbo = {
 Enabled = false,
 Interval = 0.005,
@@ -403,7 +475,5 @@ Icon = "users"
 end,
 Default = false
 })
-else
-while true do end
-game.Players.LocalPlayer:Kick("手动踢出")
+
 end
