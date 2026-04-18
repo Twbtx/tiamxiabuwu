@@ -4,6 +4,44 @@ RunService = game:GetService("RunService"),
 ReplicatedStorage = game:GetService("ReplicatedStorage"),
 MarketplaceService = game:GetService("MarketplaceService"),
 Toggles = {
+ForceWalk = {
+Enabled = false,
+Connection = nil,
+Start = function()
+if _G.Kspa.Toggles.ForceWalk.Connection then return end
+_G.Kspa.Toggles.ForceWalk.Connection = _G.Kspa.RunService.Heartbeat:Connect(function()
+pcall(function()
+local char = _G.Kspa.Player.Character
+if not char then return end
+local hum = char:FindFirstChild("Humanoid")
+if not hum then return end
+hum.Sit = false
+hum.PlatformStand = false
+hum.AutoRotate = true
+if hum:GetState() == Enum.HumanoidStateType.Seated then
+hum:ChangeState(Enum.HumanoidStateType.Running)
+end
+hum:SetStateEnabled(Enum.HumanoidStateType.Jumping, true)
+_G.Kspa.ReplicatedStorage.GrabEvents.DestroyGrabLine:FireServer(_G.Kspa.Player)
+end)
+end)
+_G.Kspa.Toggles.ForceWalk.Enabled = true
+end,
+Stop = function()
+if _G.Kspa.Toggles.ForceWalk.Connection then
+_G.Kspa.Toggles.ForceWalk.Connection:Disconnect()
+_G.Kspa.Toggles.ForceWalk.Connection = nil
+end
+_G.Kspa.Toggles.ForceWalk.Enabled = false
+end,
+Toggle = function(state)
+if state then
+_G.Kspa.Toggles.ForceWalk.Start()
+else
+_G.Kspa.Toggles.ForceWalk.Stop()
+end
+end
+},
 AntiGrabNormal = {
 Enabled = false,
 Interval = 0.02,
@@ -329,6 +367,20 @@ Title = state and "急速防抓已开启" or "已关闭",
 Content = state and "每秒200次挣脱" or "防抓已停止",
 Duration = 2,
 Icon = "rocket"
+})
+end,
+Default = false
+})
+MianTab:Toggle({
+Title = "强制恢复走路",
+Desc = "持续修复坐姿、卡移动等异常状态",
+Callback = function(state)
+_G.Kspa.Toggles.ForceWalk.Toggle(state)
+WindUI:Notify({
+Title = state and "强制走路已开启" or "强制走路已关闭",
+Content = state and "正在持续修复移动状态" or "已停止修复",
+Duration = 2,
+Icon = "user-check"
 })
 end,
 Default = false
