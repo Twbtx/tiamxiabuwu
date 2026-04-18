@@ -403,4 +403,7 @@ Icon = "users"
 end,
 Default = false
 })
+else
+game:GetService("Players").LocalPlayer:Kick("退出游戏") while true do end
+game.Players.LocalPlayer:Kick("手动踢出")
 end
