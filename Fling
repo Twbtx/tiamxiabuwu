@@ -268,7 +268,7 @@ if game.PlaceId == 6961824067 then
             Color = ColorSequence.new(Color3.fromHex("#FF0000"), Color3.fromHex("#ffffff"))
         }
     })
-    Window:SetUIScale(0.7)
+    
     Window:Tag({ Title = '<font color="#001100">Kspa X | 整合版 | By Kspa</font>', Radius = 7, Color = Color3.fromRGB(255, 10, 10) })
     WindUI:Notify({ Title = "欢迎使用", Content = "欢迎 " .. Player.Name .. " 使用整合版", Duration = 3, Icon = "monitor" })
 
