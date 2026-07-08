@@ -28,16 +28,35 @@ closeBtn.MouseButton1Click:Connect(function() t:Destroy() end)
 
 local stats = game:GetService("Stats")
 local rs = game:GetService("RunService")
-local f, last = 0, tick()
-local updateInterval = 0.1
+
+local SMOOTH = 0.1
+local realFps = 0
+local realPing = 0
+local smoothFps = 0
+local smoothPing = 0
+local frameCount = 0
+local lastFpsTime = tick()
+local lastPingTime = tick()
+local FPS_INTERVAL = 0.075
+local PING_INTERVAL = 0.075
+
 rs.RenderStepped:Connect(function()
-    f = f + 1
     local now = tick()
-    local delta = now - last
-    if delta >= updateInterval then
-        local fps = f / delta
-        local ping = stats.Network.ServerStatsItem["Data Ping"]:GetValue()
-        l.Text = string.format("FPS: %.1f  Ping: %.2fms", fps, ping)
-        f, last = 0, now
+    
+    frameCount = frameCount + 1
+    if now - lastFpsTime >= FPS_INTERVAL then
+        realFps = frameCount / (now - lastFpsTime)
+        frameCount = 0
+        lastFpsTime = now
     end
+    
+    if now - lastPingTime >= PING_INTERVAL then
+        realPing = stats.Network.ServerStatsItem["Data Ping"]:GetValue()
+        lastPingTime = now
+    end
+    
+    smoothFps = smoothFps + (realFps - smoothFps) * SMOOTH
+    smoothPing = smoothPing + (realPing - smoothPing) * SMOOTH
+    
+    l.Text = string.format("FPS: %.1f  Ping: %.2fms", smoothFps, smoothPing)
 end)
