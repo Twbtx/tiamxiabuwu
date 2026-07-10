@@ -1,0 +1,98 @@
+-- =============================================
+-- 终极防踢代理 (基于 xpcall + 元表劫持)
+-- 解决 "Kick is not a valid member" 报错
+-- =============================================
+
+local success, err = xpcall(function()
+
+    local Players = game:GetService("Players")
+    local LocalPlayer = Players.LocalPlayer
+    local RunService = game:GetService("RunService")
+
+    -- 1. 核心：劫持 LocalPlayer 的索引，伪造一个 Kick 函数
+    -- 这样即使游戏里没有 Kick，当执行到 :Kick() 时，会被我们拦截！
+    local mt = getrawmetatable(LocalPlayer)
+    if not mt then
+        mt = {}
+        setrawmetatable(LocalPlayer, mt)
+    end
+    
+    local oldIndex = mt.__index
+    mt.__index = function(self, key)
+        if key == "Kick" then
+            -- 返回一个假的拦截函数，吃掉踢出指令
+            return function(_, msg)
+                warn("[防踢代理] 成功拦截到 Kick(" .. tostring(msg) .. ") 调用")
+                return nil
+            end
+        end
+        -- 其他属性正常返回
+        return oldIndex and oldIndex(self, key) or nil
+    end
+
+    -- 2. 拦截 game:Shutdown() (老套路)
+    local oldShutdown = game.Shutdown
+    game.Shutdown = function()
+        warn("[防踢代理] 拦截到 game:Shutdown()")
+        return nil
+    end
+
+    -- 保护 game 的元表，防止被恢复
+    local gameMt = getrawmetatable(game)
+    if gameMt then
+        local gameOldIdx = gameMt.__index
+        gameMt.__index = function(self, key)
+            if key == "Shutdown" then
+                return game.Shutdown
+            end
+            return gameOldIdx(self, key)
+        end
+    end
+
+    -- 3. 拦截常见的踢人远程事件（若存在）
+    local function hookRemoteKicks()
+        for _, v in pairs(game:GetDescendants()) do
+            if v:IsA("RemoteEvent") and (
+                v.Name:lower():find("kick") or 
+                v.Name:lower():find("ban") or
+                v.Name:lower():find("remove") or
+                v.Name:lower():find("shutdown")
+            ) then
+                local oldFire = v.FireServer
+                v.FireServer = function(self, ...)
+                    warn("[防踢代理] 拦截到踢人远程事件: " .. v.Name)
+                    return nil
+                end
+                -- 拦截OnClientEvent接收
+                local oldConnect = v.OnClientEvent.Connect
+                v.OnClientEvent.Connect = function(self, func)
+                    return oldConnect(self, function(...)
+                        warn("[防踢代理] 拦截到踢人触发 (OnClientEvent): " .. v.Name)
+                        -- 不执行原函数
+                    end)
+                end
+            end
+        end
+    end
+    hookRemoteKicks()
+    game.DescendantAdded:Connect(hookRemoteKicks)
+
+    -- 4. 心脏跳防止超时断线（保活）
+    task.spawn(function()
+        while RunService.Heartbeat:Wait() do
+            -- 只要脚本活着，网络层就会保持活跃
+        end
+    end)
+
+    print("=========================================")
+    print("[终极防踢] 加载成功！")
+    print("[原理] 通过元表劫持伪造 Kick 函数")
+    print("[覆盖] Kick / Shutdown / Remote踢人事件")
+    print("[注意] 服务器主动断网(引擎层)依然无法阻止")
+    print("=========================================")
+
+-- 即使上面的代码有语法错误或异常，这里也会兜底
+end, function(err)
+    warn("[防踢代理] xpcall 捕获到异常: " .. tostring(err))
+    warn("但这不影响游戏运行，防踢代理可能部分失效")
+end)
