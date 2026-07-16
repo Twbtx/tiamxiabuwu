@@ -1,0 +1,2040 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local HttpService = game:GetService("HttpService")
+local Workspace = game:GetService("Workspace")
+
+local player = Players.LocalPlayer
+
+local Teleport = {
+    Active = false,
+    Target = nil,
+    Connection = nil,
+    PlayerList = {},
+    WallVision = false,
+    OriginalTransparency = {},
+    HorizontalOrbitActive = false,
+    HorizontalOrbitConnection = nil,
+    OrbitRadius = 10,
+    HorizontalSpeed = 2,
+    HorizontalAngle = 0,
+    FlingLoopActive = false,
+    FlingLoopConnection = nil,
+    FlingInterval = 0.5,
+    LastFlingTime = 0,
+    TouchFlingActive = false,
+    TouchFlingThread = nil,
+    PredictEnabled = false,
+    PredictDelay = 0.125,
+}
+
+local CoordinateManager = {
+    SavedCoordinates = {},
+    FilePath = "SavedCoordinates.json"
+}
+
+local SupaTech = {
+    Enabled = false,
+    IsExecuting = false,
+    IsCooldown = false,
+    CooldownEndTime = 0,
+    AnimId = "10503381238",
+    RagdollAnimId = "10473655645",
+    EndAnimId = "180436148",
+    NearbyRange = 7,
+    WaitBeforeAction = 0.2775,
+    TeleportDuration = 0.6,
+    VerticalOffset = 2.5,
+    TeleportOffset = 0.2,
+    UpwardAngle = 50,
+    FaceDistance = 1.5,
+    CooldownTime = 5.0,
+    RandomRadius = 0.5
+}
+
+local InvisData = {
+    enabled = false,
+    char = nil,
+    hum = nil,
+    root = nil,
+    parts = {},
+    connections = {},
+    heartbeatCon = nil
+}
+
+local function ReadFile(path)
+    local success, result = pcall(function()
+        if readfile then
+            return readfile(path)
+        elseif syn and syn.readfile then
+            return syn.readfile(path)
+        else
+            return nil
+        end
+    end)
+    return success and result or nil
+end
+
+local function WriteFile(path, content)
+    local success, result = pcall(function()
+        if writefile then
+            writefile(path, content)
+            return true
+        elseif syn and syn.writefile then
+            syn.writefile(path, content)
+            return true
+        else
+            return false
+        end
+    end)
+    return success and result or false
+end
+
+local function LoadCoordinates()
+    local content = ReadFile(CoordinateManager.FilePath)
+    if content then
+        local success, data = pcall(function()
+            return HttpService:JSONDecode(content)
+        end)
+        if success and type(data) == "table" then
+            CoordinateManager.SavedCoordinates = data
+            return true
+        end
+    end
+    return false
+end
+
+local function SaveCoordinates()
+    local success = pcall(function()
+        local json = HttpService:JSONEncode(CoordinateManager.SavedCoordinates)
+        return WriteFile(CoordinateManager.FilePath, json)
+    end)
+    return success
+end
+
+local function InitCoordinateManager()
+    LoadCoordinates()
+end
+
+local function ShowNotification(message, color)
+    color = color or Color3.fromRGB(0, 150, 255)
+    local NotificationGui = Instance.new("ScreenGui")
+    NotificationGui.Parent = player:WaitForChild("PlayerGui")
+    NotificationGui.ResetOnSpawn = false
+
+    local NotificationFrame = Instance.new("Frame")
+    NotificationFrame.Parent = NotificationGui
+    NotificationFrame.Size = UDim2.new(0, 200, 0, 50)
+    NotificationFrame.Position = UDim2.new(0.5, -100, 0.1, 0)
+    NotificationFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+    NotificationFrame.BackgroundTransparency = 0.1
+
+    local NotificationCorner = Instance.new("UICorner")
+    NotificationCorner.Parent = NotificationFrame
+    NotificationCorner.CornerRadius = UDim.new(0, 8)
+
+    local NotificationStroke = Instance.new("UIStroke")
+    NotificationStroke.Parent = NotificationFrame
+    NotificationStroke.Color = color
+    NotificationStroke.Thickness = 2
+
+    local NotificationText = Instance.new("TextLabel")
+    NotificationText.Parent = NotificationFrame
+    NotificationText.Size = UDim2.new(1, -20, 1, -10)
+    NotificationText.Position = UDim2.new(0, 10, 0, 5)
+    NotificationText.BackgroundTransparency = 1
+    NotificationText.Text = message
+    NotificationText.TextColor3 = Color3.fromRGB(220, 220, 255)
+    NotificationText.TextSize = 14
+    NotificationText.Font = Enum.Font.Gotham
+    NotificationText.TextWrapped = true
+
+    delay(2, function()
+        for i = 0, 1, 0.1 do
+            NotificationFrame.BackgroundTransparency = i
+            NotificationText.TextTransparency = i
+            wait(0.05)
+        end
+        NotificationGui:Destroy()
+    end)
+end
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Parent = player:WaitForChild("PlayerGui")
+ScreenGui.Name = "TeleportControlUI"
+ScreenGui.ResetOnSpawn = false
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Parent = ScreenGui
+MainFrame.Size = UDim2.new(0, 180, 0, 280)
+MainFrame.Position = UDim2.new(0.5, -90, 0.5, -140)
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 25)
+MainFrame.Active = true
+MainFrame.Draggable = true
+
+local Glow = Instance.new("ImageLabel")
+Glow.Parent = MainFrame
+Glow.Size = UDim2.new(1, 20, 1, 20)
+Glow.Position = UDim2.new(0, -10, 0, -10)
+Glow.BackgroundTransparency = 1
+Glow.Image = "rbxassetid://8992230673"
+Glow.ImageColor3 = Color3.fromRGB(0, 80, 255)
+Glow.ImageTransparency = 0.8
+Glow.ScaleType = Enum.ScaleType.Slice
+Glow.SliceCenter = Rect.new(49, 49, 450, 450)
+
+local Corner = Instance.new("UICorner")
+Corner.Parent = MainFrame
+Corner.CornerRadius = UDim.new(0, 10)
+
+local Stroke = Instance.new("UIStroke")
+Stroke.Parent = MainFrame
+Stroke.Color = Color3.fromRGB(60, 120, 255)
+Stroke.Thickness = 2
+Stroke.Transparency = 0.3
+
+local Header = Instance.new("Frame")
+Header.Parent = MainFrame
+Header.Size = UDim2.new(1, 0, 0, 28)
+Header.Position = UDim2.new(0, 0, 0, 0)
+Header.BackgroundColor3 = Color3.fromRGB(25, 25, 40)
+Header.BackgroundTransparency = 0.1
+
+local HeaderCorner = Instance.new("UICorner")
+HeaderCorner.Parent = Header
+HeaderCorner.CornerRadius = UDim.new(0, 10)
+
+local Title = Instance.new("TextLabel")
+Title.Parent = Header
+Title.Size = UDim2.new(1, -50, 1, 0)
+Title.Position = UDim2.new(0, 8, 0, 0)
+Title.BackgroundTransparency = 1
+Title.Text = "by 混 传送脚本 "
+Title.TextColor3 = Color3.fromRGB(180, 200, 255)
+Title.TextSize = 12
+Title.Font = Enum.Font.GothamBold
+Title.TextXAlignment = Enum.TextXAlignment.Left
+
+local Status = Instance.new("Frame")
+Status.Parent = Header
+Status.Size = UDim2.new(0, 6, 0, 6)
+Status.Position = UDim2.new(1, -35, 0.5, -3)
+Status.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+Status.BorderSizePixel = 0
+
+local StatusCorner = Instance.new("UICorner")
+StatusCorner.Parent = Status
+StatusCorner.CornerRadius = UDim.new(1, 0)
+
+local MinimizeButton = Instance.new("TextButton")
+MinimizeButton.Parent = Header
+MinimizeButton.Size = UDim2.new(0, 22, 0, 22)
+MinimizeButton.Position = UDim2.new(1, -25, 0.5, -11)
+MinimizeButton.BackgroundColor3 = Color3.fromRGB(50, 50, 80)
+MinimizeButton.BackgroundTransparency = 0.2
+MinimizeButton.Text = "-"
+MinimizeButton.TextColor3 = Color3.fromRGB(220, 220, 255)
+MinimizeButton.TextSize = 14
+MinimizeButton.Font = Enum.Font.GothamBold
+
+local MinimizeCorner = Instance.new("UICorner")
+MinimizeCorner.Parent = MinimizeButton
+MinimizeCorner.CornerRadius = UDim.new(0, 5)
+
+local MinimizeStroke = Instance.new("UIStroke")
+MinimizeStroke.Parent = MinimizeButton
+MinimizeStroke.Color = Color3.fromRGB(100, 150, 255)
+MinimizeStroke.Thickness = 1
+
+local ScrollFrame = Instance.new("ScrollingFrame")
+ScrollFrame.Parent = MainFrame
+ScrollFrame.Size = UDim2.new(1, -12, 1, -40)
+ScrollFrame.Position = UDim2.new(0, 6, 0, 32)
+ScrollFrame.BackgroundTransparency = 1
+ScrollFrame.ScrollBarThickness = 4
+ScrollFrame.ScrollBarImageColor3 = Color3.fromRGB(80, 120, 200)
+ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 750)
+
+local Content = Instance.new("Frame")
+Content.Parent = ScrollFrame
+Content.Size = UDim2.new(1, 0, 0, 750)
+Content.BackgroundTransparency = 1
+
+local function CreateButton(name, yPosition, hasIndicator)
+    local Button = Instance.new("TextButton")
+    Button.Name = name
+    Button.Size = UDim2.new(1, 0, 0, 30)
+    Button.Position = UDim2.new(0, 0, 0, yPosition)
+    Button.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+    Button.BackgroundTransparency = 0.2
+    Button.TextColor3 = Color3.fromRGB(220, 220, 255)
+    Button.Text = name
+    Button.TextSize = 11
+    Button.Font = Enum.Font.Gotham
+    Button.Parent = Content
+
+    local ButtonCorner = Instance.new("UICorner")
+    ButtonCorner.Parent = Button
+    ButtonCorner.CornerRadius = UDim.new(0, 6)
+
+    local ButtonStroke = Instance.new("UIStroke")
+    ButtonStroke.Parent = Button
+    ButtonStroke.Color = Color3.fromRGB(80, 120, 200)
+    ButtonStroke.Thickness = 1
+
+    if hasIndicator then
+        local Indicator = Instance.new("Frame")
+        Indicator.Name = "Indicator"
+        Indicator.Size = UDim2.new(0, 6, 0, 6)
+        Indicator.Position = UDim2.new(1, -10, 0.5, -3)
+        Indicator.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+        Indicator.BorderSizePixel = 0
+        Indicator.Parent = Button
+
+        local IndicatorCorner = Instance.new("UICorner")
+        IndicatorCorner.Parent = Indicator
+        IndicatorCorner.CornerRadius = UDim.new(1, 0)
+    end
+
+    return Button
+end
+
+local function CreateInputControl(label, yPosition, defaultValue, minValue, maxValue)
+    local ControlFrame = Instance.new("Frame")
+    ControlFrame.Size = UDim2.new(1, 0, 0, 25)
+    ControlFrame.Position = UDim2.new(0, 0, 0, yPosition)
+    ControlFrame.BackgroundTransparency = 1
+    ControlFrame.Parent = Content
+
+    local Label = Instance.new("TextLabel")
+    Label.Size = UDim2.new(0.4, 0, 1, 0)
+    Label.Position = UDim2.new(0, 0, 0, 0)
+    Label.BackgroundTransparency = 1
+    Label.Text = label
+    Label.TextColor3 = Color3.fromRGB(180, 200, 255)
+    Label.TextSize = 10
+    Label.Font = Enum.Font.Gotham
+    Label.TextXAlignment = Enum.TextXAlignment.Left
+    Label.Parent = ControlFrame
+
+    local ValueBox = Instance.new("TextButton")
+    ValueBox.Size = UDim2.new(0.6, 0, 1, 0)
+    ValueBox.Position = UDim2.new(0.4, 0, 0, 0)
+    ValueBox.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+    ValueBox.Text = tostring(defaultValue)
+    ValueBox.TextColor3 = Color3.fromRGB(0, 200, 255)
+    ValueBox.TextSize = 10
+    ValueBox.Font = Enum.Font.Gotham
+    ValueBox.Parent = ControlFrame
+
+    local ValueCorner = Instance.new("UICorner")
+    ValueCorner.Parent = ValueBox
+    ValueCorner.CornerRadius = UDim.new(0, 4)
+
+    local ValueStroke = Instance.new("UIStroke")
+    ValueStroke.Parent = ValueBox
+    ValueStroke.Color = Color3.fromRGB(80, 120, 200)
+    ValueStroke.Thickness = 1
+
+    return {
+        Frame = ControlFrame,
+        Box = ValueBox,
+        Value = defaultValue,
+        Min = minValue,
+        Max = maxValue
+    }
+end
+
+local StartButton = CreateButton("开始传送", 0, false)
+local PlayerSelectButton = CreateButton("选择玩家", 35, false)
+local StopButton = CreateButton("停止传送", 70, false)
+
+local TouchFlingButton = CreateButton("触碰甩飞: 关闭", 105, true)
+local FlingOnceButton = CreateButton("甩飞一次", 140, false)
+local FlingLoopButton = CreateButton("循环甩飞: 关闭", 175, true)
+
+local AntiFlingButton = CreateButton("防甩飞: 关闭", 210, true)
+local WallVisionButton = CreateButton("穿墙视野", 245, true)
+
+local CoordSeparator = Instance.new("Frame")
+CoordSeparator.Parent = Content
+CoordSeparator.Size = UDim2.new(1, 0, 0, 1)
+CoordSeparator.Position = UDim2.new(0, 0, 0, 280)
+CoordSeparator.BackgroundColor3 = Color3.fromRGB(60, 200, 255)
+CoordSeparator.BackgroundTransparency = 0.5
+
+local CoordSeparatorLabel = Instance.new("TextLabel")
+CoordSeparatorLabel.Parent = Content
+CoordSeparatorLabel.Size = UDim2.new(1, 0, 0, 18)
+CoordSeparatorLabel.Position = UDim2.new(0, 0, 0, 285)
+CoordSeparatorLabel.BackgroundTransparency = 1
+CoordSeparatorLabel.Text = "坐标管理"
+CoordSeparatorLabel.TextColor3 = Color3.fromRGB(120, 200, 255)
+CoordSeparatorLabel.TextSize = 10
+CoordSeparatorLabel.Font = Enum.Font.GothamBold
+
+local SaveCoordButton = CreateButton("保存当前坐标", 308, false)
+local TeleportCoordButton = CreateButton("传送保存坐标", 343, false)
+local DeleteCoordButton = CreateButton("删除保存坐标", 378, false)
+
+local Separator1 = Instance.new("Frame")
+Separator1.Parent = Content
+Separator1.Size = UDim2.new(1, 0, 0, 1)
+Separator1.Position = UDim2.new(0, 0, 0, 413)
+Separator1.BackgroundColor3 = Color3.fromRGB(60, 120, 255)
+Separator1.BackgroundTransparency = 0.5
+
+local SeparatorLabel1 = Instance.new("TextLabel")
+SeparatorLabel1.Parent = Content
+SeparatorLabel1.Size = UDim2.new(1, 0, 0, 18)
+SeparatorLabel1.Position = UDim2.new(0, 0, 0, 418)
+SeparatorLabel1.BackgroundTransparency = 1
+SeparatorLabel1.Text = "环绕设置"
+SeparatorLabel1.TextColor3 = Color3.fromRGB(120, 160, 255)
+SeparatorLabel1.TextSize = 10
+SeparatorLabel1.Font = Enum.Font.GothamBold
+
+local ParallelOrbitButton = CreateButton("平行环绕", 441, true)
+local RadiusControl = CreateInputControl("环绕半径:", 476, 10, 1, 999999)
+local OrbitSpeedControl = CreateInputControl("环绕速度:", 506, 2, 0.1, 999999)
+
+local Separator2 = Instance.new("Frame")
+Separator2.Parent = Content
+Separator2.Size = UDim2.new(1, 0, 0, 1)
+Separator2.Position = UDim2.new(0, 0, 0, 541)
+Separator2.BackgroundColor3 = Color3.fromRGB(60, 120, 255)
+Separator2.BackgroundTransparency = 0.5
+
+local SeparatorLabel2 = Instance.new("TextLabel")
+SeparatorLabel2.Parent = Content
+SeparatorLabel2.Size = UDim2.new(1, 0, 0, 18)
+SeparatorLabel2.Position = UDim2.new(0, 0, 0, 546)
+SeparatorLabel2.BackgroundTransparency = 1
+SeparatorLabel2.Text = "高级设置"
+SeparatorLabel2.TextColor3 = Color3.fromRGB(120, 160, 255)
+SeparatorLabel2.TextSize = 10
+SeparatorLabel2.Font = Enum.Font.GothamBold
+
+local AntiThrowSpeedControl = CreateInputControl("防甩阈值:", 569, 50, 1, 999999)
+
+local PredictButton = CreateButton("预测攻击: 关闭", 599, true)
+local PredictDelayControl = CreateInputControl("延迟时间(秒):", 629, 0.125, 0.01, 0.5)
+
+local Separator3 = Instance.new("Frame")
+Separator3.Parent = Content
+Separator3.Size = UDim2.new(1, 0, 0, 1)
+Separator3.Position = UDim2.new(0, 0, 0, 664)
+Separator3.BackgroundColor3 = Color3.fromRGB(255, 50, 100)
+Separator3.BackgroundTransparency = 0.5
+
+local SeparatorLabel3 = Instance.new("TextLabel")
+SeparatorLabel3.Parent = Content
+SeparatorLabel3.Size = UDim2.new(1, 0, 0, 18)
+SeparatorLabel3.Position = UDim2.new(0, 0, 0, 669)
+SeparatorLabel3.BackgroundTransparency = 1
+SeparatorLabel3.Text = "Supa Tech"
+SeparatorLabel3.TextColor3 = Color3.fromRGB(255, 100, 150)
+SeparatorLabel3.TextSize = 10
+SeparatorLabel3.Font = Enum.Font.GothamBold
+
+local SupaTechButton = CreateButton("SupaTech", 692, true)
+SupaTechButton.Text = "Supa Tech: 关闭"
+
+local SupaRadiusControl = CreateInputControl("随机半径:", 727, 0.5, 0, 10)
+local SupaWaitControl = CreateInputControl("等待时间:", 757, 0.2775, 0, 10)
+local SupaVerticalControl = CreateInputControl("垂直偏移:", 787, 2.5, 0, 20)
+local SupaCooldownControl = CreateInputControl("冷却时间:", 817, 5.0, 0, 60)
+
+local SupaStatusLabel = Instance.new("TextLabel")
+SupaStatusLabel.Parent = Content
+SupaStatusLabel.Size = UDim2.new(1, 0, 0, 20)
+SupaStatusLabel.Position = UDim2.new(0, 0, 0, 847)
+SupaStatusLabel.BackgroundTransparency = 1
+SupaStatusLabel.Text = "就绪"
+SupaStatusLabel.TextColor3 = Color3.fromRGB(150, 255, 150)
+SupaStatusLabel.TextSize = 10
+SupaStatusLabel.Font = Enum.Font.GothamBold
+SupaStatusLabel.TextXAlignment = Enum.TextXAlignment.Center
+
+local Separator4 = Instance.new("Frame")
+Separator4.Parent = Content
+Separator4.Size = UDim2.new(1, 0, 0, 1)
+Separator4.Position = UDim2.new(0, 0, 0, 875)
+Separator4.BackgroundColor3 = Color3.fromRGB(255, 200, 50)
+Separator4.BackgroundTransparency = 0.5
+
+local SeparatorLabel4 = Instance.new("TextLabel")
+SeparatorLabel4.Parent = Content
+SeparatorLabel4.Size = UDim2.new(1, 0, 0, 18)
+SeparatorLabel4.Position = UDim2.new(0, 0, 0, 880)
+SeparatorLabel4.BackgroundTransparency = 1
+SeparatorLabel4.Text = "附加功能"
+SeparatorLabel4.TextColor3 = Color3.fromRGB(255, 200, 100)
+SeparatorLabel4.TextSize = 10
+SeparatorLabel4.Font = Enum.Font.GothamBold
+
+local InvisButton = CreateButton("隐身: 关闭", 905, true)
+local SuicideButton = CreateButton("立即死亡", 940, false)
+local DeleteUIButton = CreateButton("删除UI", 975, false)
+
+Content.Size = UDim2.new(1, 0, 0, 1010)
+ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 1030)
+
+local function UpdateButtonState(buttonName, isActive)
+    local button = Content:FindFirstChild(buttonName)
+    if button then
+        local indicator = button:FindFirstChild("Indicator")
+        if indicator then
+            if isActive then
+                indicator.BackgroundColor3 = Color3.fromRGB(50, 255, 50)
+                button.BackgroundColor3 = Color3.fromRGB(40, 80, 40)
+            else
+                indicator.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+                button.BackgroundColor3 = Color3.fromRGB(60, 40, 40)
+            end
+        end
+    end
+end
+
+local function CreateNumberInputPopup(currentValue, minValue, maxValue, callback)
+    local PopupGui = Instance.new("ScreenGui")
+    PopupGui.Parent = player:WaitForChild("PlayerGui")
+
+    local PopupFrame = Instance.new("Frame")
+    PopupFrame.Parent = PopupGui
+    PopupFrame.Size = UDim2.new(0, 220, 0, 130)
+    PopupFrame.Position = UDim2.new(0.5, -110, 0.5, -65)
+    PopupFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 35)
+    PopupFrame.Active = true
+    PopupFrame.Draggable = true
+
+    local PopupCorner = Instance.new("UICorner")
+    PopupCorner.Parent = PopupFrame
+    PopupCorner.CornerRadius = UDim.new(0, 10)
+
+    local PopupStroke = Instance.new("UIStroke")
+    PopupStroke.Parent = PopupFrame
+    PopupStroke.Color = Color3.fromRGB(80, 120, 200)
+    PopupStroke.Thickness = 2
+
+    local Title = Instance.new("TextLabel")
+    Title.Parent = PopupFrame
+    Title.Size = UDim2.new(1, -20, 0, 25)
+    Title.Position = UDim2.new(0, 10, 0, 8)
+    Title.BackgroundTransparency = 1
+    Title.Text = "输入数值 (" .. minValue .. "-" .. maxValue .. ")"
+    Title.TextColor3 = Color3.fromRGB(220, 220, 255)
+    Title.TextSize = 12
+    Title.Font = Enum.Font.GothamBold
+
+    local InputBox = Instance.new("TextBox")
+    InputBox.Parent = PopupFrame
+    InputBox.Size = UDim2.new(1, -40, 0, 30)
+    InputBox.Position = UDim2.new(0, 20, 0, 40)
+    InputBox.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+    InputBox.Text = tostring(currentValue)
+    InputBox.TextColor3 = Color3.fromRGB(220, 220, 255)
+    InputBox.TextSize = 14
+    InputBox.Font = Enum.Font.Gotham
+    InputBox.ClearTextOnFocus = false
+
+    local InputCorner = Instance.new("UICorner")
+    InputCorner.Parent = InputBox
+    InputCorner.CornerRadius = UDim.new(0, 6)
+
+    local InputStroke = Instance.new("UIStroke")
+    InputStroke.Parent = InputBox
+    InputStroke.Color = Color3.fromRGB(80, 120, 200)
+    InputStroke.Thickness = 1
+
+    local ConfirmButton = Instance.new("TextButton")
+    ConfirmButton.Parent = PopupFrame
+    ConfirmButton.Size = UDim2.new(0, 70, 0, 25)
+    ConfirmButton.Position = UDim2.new(0.5, -80, 1, -40)
+    ConfirmButton.BackgroundColor3 = Color3.fromRGB(40, 120, 80)
+    ConfirmButton.Text = "确认"
+    ConfirmButton.TextColor3 = Color3.fromRGB(220, 220, 255)
+    ConfirmButton.TextSize = 12
+    ConfirmButton.Font = Enum.Font.Gotham
+
+    local ConfirmCorner = Instance.new("UICorner")
+    ConfirmCorner.Parent = ConfirmButton
+    ConfirmCorner.CornerRadius = UDim.new(0, 5)
+
+    local CancelButton = Instance.new("TextButton")
+    CancelButton.Parent = PopupFrame
+    CancelButton.Size = UDim2.new(0, 70, 0, 25)
+    CancelButton.Position = UDim2.new(0.5, 10, 1, -40)
+    CancelButton.BackgroundColor3 = Color3.fromRGB(120, 40, 40)
+    CancelButton.Text = "取消"
+    CancelButton.TextColor3 = Color3.fromRGB(220, 220, 255)
+    CancelButton.TextSize = 12
+    CancelButton.Font = Enum.Font.Gotham
+
+    local CancelCorner = Instance.new("UICorner")
+    CancelCorner.Parent = CancelButton
+    CancelCorner.CornerRadius = UDim.new(0, 5)
+
+    ConfirmButton.MouseButton1Click:Connect(function()
+        local inputText = InputBox.Text
+        local numberValue = tonumber(inputText)
+        if numberValue then
+            if numberValue < minValue then
+                numberValue = minValue
+            elseif numberValue > maxValue then
+                numberValue = maxValue
+            end
+            callback(numberValue)
+        end
+        PopupGui:Destroy()
+    end)
+
+    CancelButton.MouseButton1Click:Connect(function()
+        PopupGui:Destroy()
+    end)
+
+    InputBox.FocusLost:Connect(function(enterPressed)
+        if enterPressed then
+            local inputText = InputBox.Text
+            local numberValue = tonumber(inputText)
+            if numberValue then
+                if numberValue < minValue then
+                    numberValue = minValue
+                elseif numberValue > maxValue then
+                    numberValue = maxValue
+                end
+                callback(numberValue)
+            end
+            PopupGui:Destroy()
+        end
+    end)
+end
+
+local function CreateTextInputPopup(title, placeholder, callback)
+    local PopupGui = Instance.new("ScreenGui")
+    PopupGui.Parent = player:WaitForChild("PlayerGui")
+
+    local PopupFrame = Instance.new("Frame")
+    PopupFrame.Parent = PopupGui
+    PopupFrame.Size = UDim2.new(0, 250, 0, 150)
+    PopupFrame.Position = UDim2.new(0.5, -125, 0.5, -75)
+    PopupFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 35)
+    PopupFrame.Active = true
+    PopupFrame.Draggable = true
+
+    local PopupCorner = Instance.new("UICorner")
+    PopupCorner.Parent = PopupFrame
+    PopupCorner.CornerRadius = UDim.new(0, 10)
+
+    local PopupStroke = Instance.new("UIStroke")
+    PopupStroke.Parent = PopupFrame
+    PopupStroke.Color = Color3.fromRGB(80, 120, 200)
+    PopupStroke.Thickness = 2
+
+    local TitleLabel = Instance.new("TextLabel")
+    TitleLabel.Parent = PopupFrame
+    TitleLabel.Size = UDim2.new(1, -20, 0, 25)
+    TitleLabel.Position = UDim2.new(0, 10, 0, 8)
+    TitleLabel.BackgroundTransparency = 1
+    TitleLabel.Text = title
+    TitleLabel.TextColor3 = Color3.fromRGB(220, 220, 255)
+    TitleLabel.TextSize = 12
+    TitleLabel.Font = Enum.Font.GothamBold
+
+    local InputBox = Instance.new("TextBox")
+    InputBox.Parent = PopupFrame
+    InputBox.Size = UDim2.new(1, -40, 0, 35)
+    InputBox.Position = UDim2.new(0, 20, 0, 40)
+    InputBox.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+    InputBox.PlaceholderText = placeholder
+    InputBox.Text = ""
+    InputBox.TextColor3 = Color3.fromRGB(220, 220, 255)
+    InputBox.TextSize = 14
+    InputBox.Font = Enum.Font.Gotham
+    InputBox.ClearTextOnFocus = false
+
+    local InputCorner = Instance.new("UICorner")
+    InputCorner.Parent = InputBox
+    InputCorner.CornerRadius = UDim.new(0, 6)
+
+    local InputStroke = Instance.new("UIStroke")
+    InputStroke.Parent = InputBox
+    InputStroke.Color = Color3.fromRGB(80, 120, 200)
+    InputStroke.Thickness = 1
+
+    local ConfirmButton = Instance.new("TextButton")
+    ConfirmButton.Parent = PopupFrame
+    ConfirmButton.Size = UDim2.new(0, 80, 0, 25)
+    ConfirmButton.Position = UDim2.new(0.5, -90, 1, -40)
+    ConfirmButton.BackgroundColor3 = Color3.fromRGB(40, 120, 80)
+    ConfirmButton.Text = "确认"
+    ConfirmButton.TextColor3 = Color3.fromRGB(220, 220, 255)
+    ConfirmButton.TextSize = 12
+    ConfirmButton.Font = Enum.Font.Gotham
+
+    local ConfirmCorner = Instance.new("UICorner")
+    ConfirmCorner.Parent = ConfirmButton
+    ConfirmCorner.CornerRadius = UDim.new(0, 5)
+
+    local CancelButton = Instance.new("TextButton")
+    CancelButton.Parent = PopupFrame
+    CancelButton.Size = UDim2.new(0, 80, 0, 25)
+    CancelButton.Position = UDim2.new(0.5, 10, 1, -40)
+    CancelButton.BackgroundColor3 = Color3.fromRGB(120, 40, 40)
+    CancelButton.Text = "取消"
+    CancelButton.TextColor3 = Color3.fromRGB(220, 220, 255)
+    CancelButton.TextSize = 12
+    CancelButton.Font = Enum.Font.Gotham
+
+    local CancelCorner = Instance.new("UICorner")
+    CancelCorner.Parent = CancelButton
+    CancelCorner.CornerRadius = UDim.new(0, 5)
+
+    ConfirmButton.MouseButton1Click:Connect(function()
+        local inputText = InputBox.Text
+        if inputText and inputText ~= "" then
+            callback(inputText)
+        end
+        PopupGui:Destroy()
+    end)
+
+    CancelButton.MouseButton1Click:Connect(function()
+        PopupGui:Destroy()
+    end)
+
+    InputBox.FocusLost:Connect(function(enterPressed)
+        if enterPressed then
+            local inputText = InputBox.Text
+            if inputText and inputText ~= "" then
+                callback(inputText)
+            end
+            PopupGui:Destroy()
+        end
+    end)
+end
+
+local function SaveCurrentCoordinate()
+    local character = player.Character
+    if not character then
+        ShowNotification("角色未找到", Color3.fromRGB(255, 50, 50))
+        return
+    end
+
+    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+    if not humanoidRootPart then
+        ShowNotification("未找到HumanoidRootPart", Color3.fromRGB(255, 50, 50))
+        return
+    end
+
+    CreateTextInputPopup("保存坐标", "输入坐标名称", function(coordinateName)
+        local position = humanoidRootPart.Position
+        local coordinate = {
+            name = coordinateName,
+            x = math.round(position.X * 100) / 100,
+            y = math.round(position.Y * 100) / 100,
+            z = math.round(position.Z * 100) / 100,
+            timestamp = os.time()
+        }
+        table.insert(CoordinateManager.SavedCoordinates, coordinate)
+        SaveCoordinates()
+        ShowNotification("坐标已保存: " .. coordinateName, Color3.fromRGB(0, 255, 100))
+    end)
+end
+
+local function ShowCoordinateSelectionPopup(title, actionCallback)
+    if #CoordinateManager.SavedCoordinates == 0 then
+        ShowNotification("没有保存的坐标", Color3.fromRGB(255, 150, 0))
+        return
+    end
+
+    local SelectionGui = Instance.new("ScreenGui")
+    SelectionGui.Parent = player:WaitForChild("PlayerGui")
+
+    local SelectionFrame = Instance.new("Frame")
+    SelectionFrame.Parent = SelectionGui
+    SelectionFrame.Size = UDim2.new(0, 280, 0, 350)
+    SelectionFrame.Position = UDim2.new(0.5, -140, 0.5, -175)
+    SelectionFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 35)
+    SelectionFrame.Active = true
+    SelectionFrame.Draggable = true
+
+    local SelectionCorner = Instance.new("UICorner")
+    SelectionCorner.Parent = SelectionFrame
+    SelectionCorner.CornerRadius = UDim.new(0, 10)
+
+    local SelectionStroke = Instance.new("UIStroke")
+    SelectionStroke.Parent = SelectionFrame
+    SelectionStroke.Color = Color3.fromRGB(80, 120, 200)
+    SelectionStroke.Thickness = 2
+
+    local Title = Instance.new("TextLabel")
+    Title.Parent = SelectionFrame
+    Title.Size = UDim2.new(1, -20, 0, 30)
+    Title.Position = UDim2.new(0, 10, 0, 10)
+    Title.BackgroundTransparency = 1
+    Title.Text = title
+    Title.TextColor3 = Color3.fromRGB(220, 220, 255)
+    Title.TextSize = 14
+    Title.Font = Enum.Font.GothamBold
+
+    local ScrollFrame = Instance.new("ScrollingFrame")
+    ScrollFrame.Parent = SelectionFrame
+    ScrollFrame.Size = UDim2.new(1, -20, 1, -80)
+    ScrollFrame.Position = UDim2.new(0, 10, 0, 50)
+    ScrollFrame.BackgroundTransparency = 1
+    ScrollFrame.ScrollBarThickness = 4
+    ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, #CoordinateManager.SavedCoordinates * 45)
+
+    local CloseButton = Instance.new("TextButton")
+    CloseButton.Parent = SelectionFrame
+    CloseButton.Size = UDim2.new(0, 80, 0, 25)
+    CloseButton.Position = UDim2.new(0.5, -40, 1, -35)
+    CloseButton.BackgroundColor3 = Color3.fromRGB(120, 40, 40)
+    CloseButton.Text = "关闭"
+    CloseButton.TextColor3 = Color3.fromRGB(220, 220, 255)
+    CloseButton.TextSize = 12
+    CloseButton.Font = Enum.Font.Gotham
+
+    local CloseCorner = Instance.new("UICorner")
+    CloseCorner.Parent = CloseButton
+    CloseCorner.CornerRadius = UDim.new(0, 5)
+
+    for i, coord in ipairs(CoordinateManager.SavedCoordinates) do
+        local CoordButton = Instance.new("TextButton")
+        CoordButton.Size = UDim2.new(1, 0, 0, 40)
+        CoordButton.Position = UDim2.new(0, 0, 0, (i - 1) * 45)
+        CoordButton.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+        CoordButton.Text = string.format("%s\nX: %.1f, Y: %.1f, Z: %.1f", coord.name, coord.x, coord.y, coord.z)
+        CoordButton.TextColor3 = Color3.fromRGB(220, 220, 255)
+        CoordButton.TextSize = 10
+        CoordButton.Font = Enum.Font.Gotham
+        CoordButton.TextWrapped = true
+        CoordButton.Parent = ScrollFrame
+
+        local CoordCorner = Instance.new("UICorner")
+        CoordCorner.Parent = CoordButton
+        CoordCorner.CornerRadius = UDim.new(0, 6)
+
+        local CoordStroke = Instance.new("UIStroke")
+        CoordStroke.Parent = CoordButton
+        CoordStroke.Color = Color3.fromRGB(80, 120, 200)
+        CoordStroke.Thickness = 1
+
+        CoordButton.MouseButton1Click:Connect(function()
+            actionCallback(coord, i)
+            SelectionGui:Destroy()
+        end)
+    end
+
+    CloseButton.MouseButton1Click:Connect(function()
+        SelectionGui:Destroy()
+    end)
+end
+
+local function TeleportToCoordinate()
+    ShowCoordinateSelectionPopup("选择要传送的坐标", function(coord)
+        local character = player.Character
+        if not character then
+            ShowNotification("角色未找到", Color3.fromRGB(255, 50, 50))
+            return
+        end
+
+        local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+        if not humanoidRootPart then
+            ShowNotification("未找到HumanoidRootPart", Color3.fromRGB(255, 50, 50))
+            return
+        end
+
+        humanoidRootPart.CFrame = CFrame.new(coord.x, coord.y, coord.z)
+        ShowNotification("已传送到: " .. coord.name, Color3.fromRGB(0, 255, 100))
+    end)
+end
+
+local function DeleteCoordinate()
+    ShowCoordinateSelectionPopup("选择要删除的坐标", function(coord, index)
+        table.remove(CoordinateManager.SavedCoordinates, index)
+        SaveCoordinates()
+        ShowNotification("已删除坐标: " .. coord.name, Color3.fromRGB(255, 100, 0))
+    end)
+end
+
+local minimized = false
+MinimizeButton.MouseButton1Click:Connect(function()
+    minimized = not minimized
+    if minimized then
+        MainFrame:TweenSize(UDim2.new(0, 180, 0, 28), "Out", "Quad", 0.3, true)
+        MinimizeButton.Text = "+"
+        ScrollFrame.Visible = false
+        Glow.Visible = false
+    else
+        MainFrame:TweenSize(UDim2.new(0, 180, 0, 280), "Out", "Quad", 0.3, true)
+        MinimizeButton.Text = "-"
+        ScrollFrame.Visible = true
+        Glow.Visible = true
+    end
+end)
+
+local function GetAllPlayers()
+    local players = {}
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= player then
+            table.insert(players, p)
+        end
+    end
+    return players
+end
+
+local function CreatePlayerSelectionUI()
+    local PlayerSelectGui = Instance.new("ScreenGui")
+    PlayerSelectGui.Parent = player:WaitForChild("PlayerGui")
+    PlayerSelectGui.Name = "PlayerSelectionUI"
+    PlayerSelectGui.ResetOnSpawn = false
+
+    local PlayerSelectFrame = Instance.new("Frame")
+    PlayerSelectFrame.Parent = PlayerSelectGui
+    PlayerSelectFrame.Size = UDim2.new(0, 200, 0, 300)
+    PlayerSelectFrame.Position = UDim2.new(0.5, -100, 0.5, -150)
+    PlayerSelectFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 35)
+    PlayerSelectFrame.Active = true
+    PlayerSelectFrame.Draggable = true
+
+    local PlayerSelectCorner = Instance.new("UICorner")
+    PlayerSelectCorner.Parent = PlayerSelectFrame
+    PlayerSelectCorner.CornerRadius = UDim.new(0, 10)
+
+    local PlayerSelectStroke = Instance.new("UIStroke")
+    PlayerSelectStroke.Parent = PlayerSelectFrame
+    PlayerSelectStroke.Color = Color3.fromRGB(80, 120, 200)
+    PlayerSelectStroke.Thickness = 2
+
+    local Title = Instance.new("TextLabel")
+    Title.Parent = PlayerSelectFrame
+    Title.Size = UDim2.new(1, -20, 0, 30)
+    Title.Position = UDim2.new(0, 10, 0, 10)
+    Title.BackgroundTransparency = 1
+    Title.Text = "选择玩家"
+    Title.TextColor3 = Color3.fromRGB(220, 220, 255)
+    Title.TextSize = 14
+    Title.Font = Enum.Font.GothamBold
+
+    local PlayerScroll = Instance.new("ScrollingFrame")
+    PlayerScroll.Parent = PlayerSelectFrame
+    PlayerScroll.Size = UDim2.new(1, -20, 1, -80)
+    PlayerScroll.Position = UDim2.new(0, 10, 0, 50)
+    PlayerScroll.BackgroundTransparency = 1
+    PlayerScroll.ScrollBarThickness = 4
+
+    local PlayerListLayout = Instance.new("UIListLayout")
+    PlayerListLayout.Parent = PlayerScroll
+    PlayerListLayout.SortOrder = Enum.SortOrder.Name
+
+    local CloseButton = Instance.new("TextButton")
+    CloseButton.Parent = PlayerSelectFrame
+    CloseButton.Size = UDim2.new(0, 80, 0, 25)
+    CloseButton.Position = UDim2.new(0.5, -40, 1, -35)
+    CloseButton.BackgroundColor3 = Color3.fromRGB(120, 40, 40)
+    CloseButton.Text = "关闭"
+    CloseButton.TextColor3 = Color3.fromRGB(220, 220, 255)
+    CloseButton.TextSize = 12
+    CloseButton.Font = Enum.Font.Gotham
+
+    local CloseCorner = Instance.new("UICorner")
+    CloseCorner.Parent = CloseButton
+    CloseCorner.CornerRadius = UDim.new(0, 5)
+
+    Teleport.PlayerList = GetAllPlayers()
+    PlayerScroll.CanvasSize = UDim2.new(0, 0, 0, #Teleport.PlayerList * 35)
+
+    for _, p in ipairs(Teleport.PlayerList) do
+        local PlayerButton = Instance.new("TextButton")
+        PlayerButton.Size = UDim2.new(1, 0, 0, 30)
+        PlayerButton.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+        PlayerButton.Text = p.Name
+        PlayerButton.TextColor3 = Color3.fromRGB(220, 220, 255)
+        PlayerButton.TextSize = 11
+        PlayerButton.Font = Enum.Font.Gotham
+        PlayerButton.Parent = PlayerScroll
+
+        local PlayerButtonCorner = Instance.new("UICorner")
+        PlayerButtonCorner.Parent = PlayerButton
+        PlayerButtonCorner.CornerRadius = UDim.new(0, 6)
+
+        local PlayerButtonStroke = Instance.new("UIStroke")
+        PlayerButtonStroke.Parent = PlayerButton
+        PlayerButtonStroke.Color = Color3.fromRGB(80, 120, 200)
+        PlayerButtonStroke.Thickness = 1
+
+        PlayerButton.MouseButton1Click:Connect(function()
+            Teleport.Target = p
+            ShowNotification("已选择: " .. p.Name, Color3.fromRGB(0, 200, 255))
+            PlayerSelectGui:Destroy()
+        end)
+    end
+
+    CloseButton.MouseButton1Click:Connect(function()
+        PlayerSelectGui:Destroy()
+    end)
+end
+
+-- ========== 预测核心（动态：速度 × 延迟时间） ==========
+local function GetPredictedPosition(rootPart)
+    if not Teleport.PredictEnabled then
+        return rootPart.Position
+    end
+    local vel = rootPart.AssemblyLinearVelocity
+    if vel.Magnitude < 0.5 then
+        return rootPart.Position
+    end
+    return rootPart.Position + vel * Teleport.PredictDelay
+end
+
+-- ========== 传送（带预测） ==========
+local function TeleportRoutine()
+    if not Teleport.Active then return end
+
+    local myChar = player.Character
+    local targetChar = Teleport.Target and Teleport.Target.Character
+
+    if not myChar or not targetChar then
+        StopTeleport()
+        return
+    end
+
+    local myRoot = myChar:FindFirstChild("HumanoidRootPart")
+    local targetRoot = targetChar:FindFirstChild("HumanoidRootPart")
+
+    if myRoot and targetRoot then
+        local targetPos = GetPredictedPosition(targetRoot)
+        local newPos = Vector3.new(targetPos.X, targetPos.Y - 5.5, targetPos.Z)
+        myRoot.CFrame = CFrame.new(newPos, targetPos)
+    end
+end
+
+-- ========== 平行环绕（带预测） ==========
+local function ParallelOrbitRoutine()
+    if not Teleport.HorizontalOrbitActive then return end
+
+    local myChar = player.Character
+    local targetChar = Teleport.Target and Teleport.Target.Character
+
+    if not myChar or not targetChar then
+        StopParallelOrbit()
+        return
+    end
+
+    local myRoot = myChar:FindFirstChild("HumanoidRootPart")
+    local targetRoot = targetChar:FindFirstChild("HumanoidRootPart")
+
+    if myRoot and targetRoot then
+        local centerPos = GetPredictedPosition(targetRoot)
+        Teleport.HorizontalAngle = Teleport.HorizontalAngle + Teleport.HorizontalSpeed * 0.05
+        local radius = Teleport.OrbitRadius
+
+        local x = centerPos.X + math.cos(Teleport.HorizontalAngle) * radius
+        local z = centerPos.Z + math.sin(Teleport.HorizontalAngle) * radius
+
+        local raycastParams = RaycastParams.new()
+        raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+        raycastParams.FilterDescendantsInstances = {myChar}
+
+        local raycastResult = Workspace:Raycast(Vector3.new(x, centerPos.Y + 10, z), Vector3.new(0, -50, 0), raycastParams)
+        local y = raycastResult and raycastResult.Position.Y or centerPos.Y
+
+        local newPos = Vector3.new(x, y + 3, z)
+        myRoot.CFrame = CFrame.new(newPos, centerPos)
+    end
+end
+
+local function DeleteUI()
+    ScreenGui:Destroy()
+    ShowNotification("UI界面已删除", Color3.fromRGB(255, 100, 0))
+end
+
+local function ToggleWallVision()
+    Teleport.WallVision = not Teleport.WallVision
+    UpdateButtonState("穿墙视野", Teleport.WallVision)
+
+    if Teleport.WallVision then
+        Teleport.OriginalTransparency = {}
+        for _, part in ipairs(workspace:GetDescendants()) do
+            if part:IsA("BasePart") and part.Transparency < 0.5 then
+                Teleport.OriginalTransparency[part] = part.Transparency
+                part.Transparency = 0.7
+            end
+        end
+        ShowNotification("穿墙视野已启用", Color3.fromRGB(0, 200, 255))
+    else
+        for part, transparency in pairs(Teleport.OriginalTransparency) do
+            if part:IsA("BasePart") then
+                part.Transparency = transparency
+            end
+        end
+        Teleport.OriginalTransparency = {}
+        ShowNotification("穿墙视野已禁用", Color3.fromRGB(255, 100, 0))
+    end
+end
+
+local function StartTeleport()
+    if Teleport.Active then return end
+
+    if not Teleport.Target then
+        ShowNotification("请先选择目标玩家", Color3.fromRGB(255, 50, 50))
+        return
+    end
+
+    Teleport.Active = true
+    Teleport.Connection = RunService.Heartbeat:Connect(function()
+        TeleportRoutine()
+        task.wait(0.001)
+    end)
+
+    ShowNotification("传送已启动 - 目标: " .. Teleport.Target.Name, Color3.fromRGB(0, 255, 100))
+    Status.BackgroundColor3 = Color3.fromRGB(0, 255, 100)
+end
+
+local function StopTeleport()
+    if Teleport.Active then
+        Teleport.Active = false
+        if Teleport.Connection then
+            Teleport.Connection:Disconnect()
+        end
+        ShowNotification("传送已停止", Color3.fromRGB(255, 100, 0))
+        Status.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+    else
+        ShowNotification("传送未启动", Color3.fromRGB(255, 150, 0))
+    end
+
+    if Teleport.FlingLoopActive then
+        Teleport.FlingLoopActive = false
+        if Teleport.FlingLoopConnection then
+            Teleport.FlingLoopConnection:Disconnect()
+            Teleport.FlingLoopConnection = nil
+        end
+        FlingLoopButton.Text = "循环甩飞: 关闭"
+        local ind = FlingLoopButton:FindFirstChild("Indicator")
+        if ind then ind.BackgroundColor3 = Color3.fromRGB(255, 50, 50) end
+    end
+
+    if Teleport.TouchFlingActive then
+        Teleport.TouchFlingActive = false
+        if Teleport.TouchFlingThread then
+            task.cancel(Teleport.TouchFlingThread)
+            Teleport.TouchFlingThread = nil
+        end
+        TouchFlingButton.Text = "触碰甩飞: 关闭"
+        local ind = TouchFlingButton:FindFirstChild("Indicator")
+        if ind then ind.BackgroundColor3 = Color3.fromRGB(255, 50, 50) end
+    end
+end
+
+local function StartParallelOrbit()
+    if Teleport.HorizontalOrbitActive then return end
+
+    if not Teleport.Target then
+        ShowNotification("请先选择目标玩家", Color3.fromRGB(255, 50, 50))
+        return
+    end
+
+    Teleport.HorizontalOrbitActive = true
+    Teleport.HorizontalAngle = 0
+    Teleport.HorizontalOrbitConnection = RunService.Heartbeat:Connect(function()
+        ParallelOrbitRoutine()
+        task.wait(0.001)
+    end)
+
+    UpdateButtonState("平行环绕", true)
+    ShowNotification("平行环绕已启动", Color3.fromRGB(0, 200, 255))
+    Status.BackgroundColor3 = Color3.fromRGB(0, 200, 255)
+end
+
+local function StopParallelOrbit()
+    if not Teleport.HorizontalOrbitActive then
+        ShowNotification("平行环绕未启动", Color3.fromRGB(255, 150, 0))
+        return
+    end
+
+    Teleport.HorizontalOrbitActive = false
+    if Teleport.HorizontalOrbitConnection then
+        Teleport.HorizontalOrbitConnection:Disconnect()
+    end
+
+    UpdateButtonState("平行环绕", false)
+    ShowNotification("平行环绕已停止", Color3.fromRGB(255, 100, 0))
+
+    if not Teleport.Active then
+        Status.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+    end
+end
+
+local function ToggleParallelOrbit()
+    if Teleport.HorizontalOrbitActive then
+        StopParallelOrbit()
+    else
+        StartParallelOrbit()
+    end
+end
+
+local function randomOffset()
+    local angle = math.random() * math.pi * 2
+    local dist = math.random() * SupaTech.RandomRadius
+    return Vector3.new(math.cos(angle) * dist, 0, math.sin(angle) * dist)
+end
+
+local function isPlayingAnim(hum, animId)
+    if not hum then return false end
+    for _, track in ipairs(hum:GetPlayingAnimationTracks()) do
+        local anim = track.Animation
+        if anim then
+            local id = anim.AnimationId
+            if id and string.find(id, animId) then
+                return true
+            end
+        end
+    end
+    return false
+end
+
+local function getNearestEnemy()
+    local char = player.Character
+    if not char then return nil, nil end
+
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not root then return nil, nil end
+
+    local nearest = nil
+    local nearestRoot = nil
+    local nearestDist = math.huge
+    local myPos = root.Position
+
+    for _, other in ipairs(Players:GetPlayers()) do
+        if other ~= player then
+            local oChar = other.Character
+            if oChar then
+                local oRoot = oChar:FindFirstChild("HumanoidRootPart")
+                if oRoot then
+                    local dist = (myPos - oRoot.Position).Magnitude
+                    if dist < nearestDist then
+                        nearestDist = dist
+                        nearest = oChar
+                        nearestRoot = oRoot
+                    end
+                end
+            end
+        end
+    end
+
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        if obj:IsA("Model") and obj ~= char then
+            local hum = obj:FindFirstChild("Humanoid")
+            local oRoot = obj:FindFirstChild("HumanoidRootPart")
+            if hum and oRoot then
+                local dist = (myPos - oRoot.Position).Magnitude
+                if dist < nearestDist then
+                    nearestDist = dist
+                    nearest = obj
+                    nearestRoot = oRoot
+                end
+            end
+        end
+    end
+
+    if nearest and nearestRoot then
+        return nearest, nearestRoot
+    end
+    return nil, nil
+end
+
+local function doDash()
+    local char = player.Character
+    if not char then return end
+
+    local comm = char:FindFirstChild("Communicate")
+    if comm then
+        local args = {
+            {
+                Dash = Enum.KeyCode.W,
+                Key = Enum.KeyCode.Q,
+                Goal = "KeyPress",
+                MousePos = CFrame.new(-36.971492767333984, 438.15667724609375, 86.00199127197266, -0.9908232092857361, -0.0044507840648293495, 0.1350911408662796, -4.656612873077393e-10, 0.999457836151123, 0.03292866051197052, -0.13516442477703094, 0.03262647986412048, -0.9902859330177307)
+            }
+        }
+        comm:FireServer(unpack(args))
+        SupaTech.IsCooldown = true
+        SupaTech.CooldownEndTime = tick() + SupaTech.CooldownTime
+    end
+end
+
+local function updateSupaCooldown()
+    if SupaTech.IsCooldown then
+        local remaining = SupaTech.CooldownEndTime - tick()
+        if remaining <= 0 then
+            SupaTech.IsCooldown = false
+        end
+    end
+
+    if SupaStatusLabel then
+        if SupaTech.IsCooldown then
+            local remaining = SupaTech.CooldownEndTime - tick()
+            if remaining > 0 then
+                SupaStatusLabel.Text = string.format("冷却: %.1f秒", remaining)
+                SupaStatusLabel.TextColor3 = Color3.fromRGB(255, 200, 100)
+            else
+                SupaStatusLabel.Text = "就绪"
+                SupaStatusLabel.TextColor3 = Color3.fromRGB(150, 255, 150)
+            end
+        else
+            SupaStatusLabel.Text = "就绪"
+            SupaStatusLabel.TextColor3 = Color3.fromRGB(150, 255, 150)
+        end
+    end
+end
+
+local function startTeleportLoop(enemyChar, enemyRoot)
+    local startTime = tick()
+    local myChar = player.Character
+    if not myChar then return end
+
+    local myRoot = myChar:FindFirstChild("HumanoidRootPart")
+    if not myRoot then return end
+
+    local myHum = myChar:FindFirstChild("Humanoid")
+    if not myHum then return end
+
+    local enemyHum = enemyChar:FindFirstChild("Humanoid")
+    if not enemyHum then return end
+
+    myHum.PlatformStand = true
+    local fixedOffset = randomOffset()
+
+    local myPos = myRoot.Position
+    local enemyPos = enemyRoot.Position
+    local dirToEnemy = (enemyPos - myPos).Unit
+    local facePos = enemyPos - dirToEnemy * SupaTech.FaceDistance
+    facePos = Vector3.new(facePos.X, enemyPos.Y, facePos.Z)
+
+    myRoot.CFrame = CFrame.new(facePos + fixedOffset) * CFrame.Angles(math.rad(SupaTech.UpwardAngle), 0, 0)
+    task.wait(0.1)
+
+    local footPos = enemyRoot.Position - Vector3.new(0, SupaTech.TeleportOffset, 0)
+    myRoot.CFrame = CFrame.new(footPos + fixedOffset) * CFrame.Angles(math.rad(SupaTech.UpwardAngle), 0, 0)
+
+    while tick() - startTime < SupaTech.TeleportDuration do
+        if not SupaTech.Enabled then break end
+        if not enemyRoot or not enemyRoot.Parent then break end
+        if not myRoot or not myRoot.Parent then break end
+        if not myHum then break end
+
+        local currentEnemyHum = enemyChar:FindFirstChild("Humanoid")
+        if not currentEnemyHum then break end
+
+        if isPlayingAnim(currentEnemyHum, SupaTech.EndAnimId) or isPlayingAnim(currentEnemyHum, SupaTech.RagdollAnimId) then
+            break
+        end
+
+        local newFootPos = enemyRoot.Position - Vector3.new(0, SupaTech.TeleportOffset, 0)
+        myRoot.CFrame = CFrame.new(newFootPos + fixedOffset) * CFrame.Angles(math.rad(SupaTech.UpwardAngle), 0, 0)
+        task.wait()
+    end
+
+    if enemyRoot and enemyRoot.Parent and myRoot and myRoot.Parent then
+        local finalFootPos = enemyRoot.Position - Vector3.new(0, SupaTech.VerticalOffset, 0)
+        myRoot.CFrame = CFrame.new(finalFootPos + fixedOffset) * CFrame.Angles(math.rad(SupaTech.UpwardAngle), 0, 0)
+    end
+
+    myHum.PlatformStand = false
+end
+
+local function executeSupaTech()
+    if SupaTech.IsExecuting then return end
+    if SupaTech.IsCooldown then return end
+
+    SupaTech.IsExecuting = true
+    local enemyChar, enemyRoot = getNearestEnemy()
+
+    if not enemyChar or not enemyRoot then
+        SupaTech.IsExecuting = false
+        return
+    end
+
+    local enemyHumCheck = enemyChar:FindFirstChild("Humanoid")
+    if enemyHumCheck and (isPlayingAnim(enemyHumCheck, SupaTech.RagdollAnimId) or isPlayingAnim(enemyHumCheck, SupaTech.EndAnimId)) then
+        SupaTech.IsExecuting = false
+        return
+    end
+
+    task.wait(SupaTech.WaitBeforeAction)
+
+    if not enemyChar.Parent or not enemyRoot.Parent then
+        SupaTech.IsExecuting = false
+        return
+    end
+
+    local enemyHum2 = enemyChar:FindFirstChild("Humanoid")
+    if enemyHum2 and (isPlayingAnim(enemyHum2, SupaTech.RagdollAnimId) or isPlayingAnim(enemyHum2, SupaTech.EndAnimId)) then
+        SupaTech.IsExecuting = false
+        return
+    end
+
+    doDash()
+    startTeleportLoop(enemyChar, enemyRoot)
+    SupaTech.IsExecuting = false
+end
+
+local function ToggleSupaTech()
+    SupaTech.Enabled = not SupaTech.Enabled
+    SupaTechButton.Text = SupaTech.Enabled and "Supa Tech: 开启" or "Supa Tech: 关闭"
+    UpdateButtonState("SupaTech", SupaTech.Enabled)
+
+    if SupaTech.Enabled then
+        ShowNotification("Supa Tech 已启用", Color3.fromRGB(0, 255, 100))
+    else
+        ShowNotification("Supa Tech 已禁用", Color3.fromRGB(255, 100, 0))
+        SupaTech.IsExecuting = false
+    end
+end
+
+local AntiFling = {
+    Enabled = false,
+    MaxLinear = 200,
+    MaxAngular = 100,
+    SafeCFrame = nil,
+    BodyMovers = {"BodyVelocity", "BodyAngularVelocity", "BodyForce", "BodyThrust", "BodyPosition", "BodyGyro"},
+    Conns = {}
+}
+
+local function FlingNeutralize()
+    local char = player.Character
+    if not char then return end
+
+    for _, obj in ipairs(char:GetDescendants()) do
+        if table.find(AntiFling.BodyMovers, obj.ClassName) then
+            pcall(function() obj:Destroy() end)
+        end
+    end
+
+    for _, part in ipairs(char:GetDescendants()) do
+        if part:IsA("BasePart") then
+            part.CanCollide = false
+            part.AssemblyLinearVelocity = Vector3.zero
+            part.AssemblyAngularVelocity = Vector3.zero
+            part.Velocity = Vector3.zero
+            part.RotVelocity = Vector3.zero
+        end
+    end
+
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if root and AntiFling.SafeCFrame then
+        root.CFrame = AntiFling.SafeCFrame
+        char:SetPrimaryPartCFrame(AntiFling.SafeCFrame)
+    end
+
+    task.delay(0.4, function()
+        if char and char.Parent then
+            for _, part in ipairs(char:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = true
+                end
+            end
+        end
+    end)
+
+    ShowNotification("检测到被甩飞，已 neutralize", Color3.fromRGB(255, 100, 0))
+end
+
+local function WatchBodyMovers(char)
+    local con = char.DescendantAdded:Connect(function(child)
+        if not AntiFling.Enabled then return end
+        if table.find(AntiFling.BodyMovers, child.ClassName) then
+            child:Destroy()
+            ShowNotification("拦截异常 " .. child.ClassName, Color3.fromRGB(255, 100, 0))
+            FlingNeutralize()
+        end
+    end)
+    table.insert(AntiFling.Conns, con)
+end
+
+local function AntiFlingHeartbeat()
+    if not AntiFling.Enabled then return end
+
+    local char = player.Character
+    if not char then return end
+
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+
+    local linear = root.AssemblyLinearVelocity.Magnitude
+    local angular = root.AssemblyAngularVelocity.Magnitude
+
+    if linear < 60 and angular < 40 then
+        AntiFling.SafeCFrame = root.CFrame
+    end
+
+    if linear > AntiFling.MaxLinear or angular > AntiFling.MaxAngular then
+        FlingNeutralize()
+    end
+end
+
+local function SetupAntiFling(char)
+    for _, con in ipairs(AntiFling.Conns) do
+        pcall(function() con:Disconnect() end)
+    end
+    AntiFling.Conns = {}
+    task.wait(0.3)
+    if char and char.Parent then
+        WatchBodyMovers(char)
+    end
+end
+
+if player.Character then
+    SetupAntiFling(player.Character)
+end
+player.CharacterAdded:Connect(SetupAntiFling)
+RunService.Heartbeat:Connect(AntiFlingHeartbeat)
+
+local function ToggleAntiFling()
+    AntiFling.Enabled = not AntiFling.Enabled
+    AntiFlingButton.Text = AntiFling.Enabled and "防甩飞: 开启" or "防甩飞: 关闭"
+
+    local indicator = AntiFlingButton:FindFirstChild("Indicator")
+    if indicator then
+        indicator.BackgroundColor3 = AntiFling.Enabled and Color3.fromRGB(50, 255, 50) or Color3.fromRGB(255, 50, 50)
+    end
+
+    if AntiFling.Enabled then
+        ShowNotification("防甩飞已启用", Color3.fromRGB(0, 255, 100))
+    else
+        ShowNotification("防甩飞已禁用", Color3.fromRGB(255, 100, 0))
+    end
+end
+
+AntiFlingButton.MouseButton1Click:Connect(ToggleAntiFling)
+
+StartButton.MouseButton1Click:Connect(StartTeleport)
+PlayerSelectButton.MouseButton1Click:Connect(CreatePlayerSelectionUI)
+StopButton.MouseButton1Click:Connect(StopTeleport)
+WallVisionButton.MouseButton1Click:Connect(ToggleWallVision)
+SaveCoordButton.MouseButton1Click:Connect(SaveCurrentCoordinate)
+TeleportCoordButton.MouseButton1Click:Connect(TeleportToCoordinate)
+DeleteCoordButton.MouseButton1Click:Connect(DeleteCoordinate)
+ParallelOrbitButton.MouseButton1Click:Connect(ToggleParallelOrbit)
+SupaTechButton.MouseButton1Click:Connect(ToggleSupaTech)
+
+RadiusControl.Box.MouseButton1Click:Connect(function()
+    CreateNumberInputPopup(RadiusControl.Value, RadiusControl.Min, RadiusControl.Max, function(newValue)
+        RadiusControl.Value = newValue
+        RadiusControl.Box.Text = tostring(newValue)
+        Teleport.OrbitRadius = newValue
+    end)
+end)
+
+OrbitSpeedControl.Box.MouseButton1Click:Connect(function()
+    CreateNumberInputPopup(OrbitSpeedControl.Value, OrbitSpeedControl.Min, OrbitSpeedControl.Max, function(newValue)
+        OrbitSpeedControl.Value = newValue
+        OrbitSpeedControl.Box.Text = tostring(newValue)
+        Teleport.HorizontalSpeed = newValue
+    end)
+end)
+
+AntiThrowSpeedControl.Box.MouseButton1Click:Connect(function()
+    CreateNumberInputPopup(AntiThrowSpeedControl.Value, AntiThrowSpeedControl.Min, AntiThrowSpeedControl.Max, function(newValue)
+        AntiThrowSpeedControl.Value = newValue
+        AntiThrowSpeedControl.Box.Text = tostring(newValue)
+        ShowNotification("防甩飞阈值已设置为: " .. newValue, Color3.fromRGB(0, 200, 255))
+    end)
+end)
+
+SupaRadiusControl.Box.MouseButton1Click:Connect(function()
+    CreateNumberInputPopup(SupaRadiusControl.Value, SupaRadiusControl.Min, SupaRadiusControl.Max, function(newValue)
+        SupaRadiusControl.Value = newValue
+        SupaRadiusControl.Box.Text = tostring(newValue)
+        SupaTech.RandomRadius = newValue
+    end)
+end)
+
+SupaWaitControl.Box.MouseButton1Click:Connect(function()
+    CreateNumberInputPopup(SupaWaitControl.Value, SupaWaitControl.Min, SupaWaitControl.Max, function(newValue)
+        SupaWaitControl.Value = newValue
+        SupaWaitControl.Box.Text = tostring(newValue)
+        SupaTech.WaitBeforeAction = newValue
+    end)
+end)
+
+SupaVerticalControl.Box.MouseButton1Click:Connect(function()
+    CreateNumberInputPopup(SupaVerticalControl.Value, SupaVerticalControl.Min, SupaVerticalControl.Max, function(newValue)
+        SupaVerticalControl.Value = newValue
+        SupaVerticalControl.Box.Text = tostring(newValue)
+        SupaTech.VerticalOffset = newValue
+    end)
+end)
+
+SupaCooldownControl.Box.MouseButton1Click:Connect(function()
+    CreateNumberInputPopup(SupaCooldownControl.Value, SupaCooldownControl.Min, SupaCooldownControl.Max, function(newValue)
+        SupaCooldownControl.Value = newValue
+        SupaCooldownControl.Box.Text = tostring(newValue)
+        SupaTech.CooldownTime = newValue
+    end)
+end)
+
+local function Invis_RefreshParts()
+    InvisData.char = player.Character or player.CharacterAdded:Wait()
+    InvisData.hum = InvisData.char:WaitForChild('Humanoid')
+    InvisData.root = InvisData.char:WaitForChild('HumanoidRootPart')
+    InvisData.parts = {}
+
+    for _, part in ipairs(InvisData.char:GetDescendants()) do
+        if part:IsA('BasePart') and part.Transparency == 0 then
+            table.insert(InvisData.parts, part)
+        end
+    end
+end
+
+local function Invis_Toggle()
+    InvisData.enabled = not InvisData.enabled
+
+    for _, part in ipairs(InvisData.parts) do
+        if part and part.Parent then
+            part.Transparency = InvisData.enabled and 0.5 or 0
+        end
+    end
+
+    InvisButton.Text = InvisData.enabled and "隐身: 开启" or "隐身: 关闭"
+    local indicator = InvisButton:FindFirstChild("Indicator")
+    if indicator then
+        indicator.BackgroundColor3 = InvisData.enabled and Color3.fromRGB(50, 255, 50) or Color3.fromRGB(255, 50, 50)
+    end
+
+    ShowNotification(InvisData.enabled and "隐身已开启" or "隐身已关闭", InvisData.enabled and Color3.fromRGB(0, 255, 100) or Color3.fromRGB(255, 100, 0))
+end
+
+Invis_RefreshParts()
+
+InvisButton.MouseButton1Click:Connect(Invis_Toggle)
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.G then
+        Invis_Toggle()
+    end
+end)
+
+local function Invis_Heartbeat()
+    if not InvisData.enabled then return end
+    if not InvisData.root or not InvisData.hum then return end
+
+    local currentCFrame = InvisData.root.CFrame
+    local currentOffset = InvisData.hum.CameraOffset
+    local targetCFrame = currentCFrame * CFrame.new(0, -200000, 0)
+    local posOffset = targetCFrame:ToObjectSpace(CFrame.new(currentCFrame.Position)).Position
+
+    InvisData.root.CFrame = targetCFrame
+    InvisData.hum.CameraOffset = posOffset
+
+    RunService.RenderStepped:Wait()
+
+    InvisData.root.CFrame = currentCFrame
+    InvisData.hum.CameraOffset = currentOffset
+end
+RunService.Heartbeat:Connect(Invis_Heartbeat)
+
+player.CharacterAdded:Connect(function()
+    Invis_RefreshParts()
+    if InvisData.enabled then
+        for _, part in ipairs(InvisData.parts) do
+            if part and part.Parent then
+                part.Transparency = 0.5
+            end
+        end
+    end
+end)
+
+SuicideButton.MouseButton1Click:Connect(function()
+    local char = player.Character
+    if char then
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hum then
+            hum.Health = 0
+            ShowNotification("已自杀，即将重生", Color3.fromRGB(255, 200, 0))
+        else
+            ShowNotification("未找到 Humanoid", Color3.fromRGB(255, 50, 50))
+        end
+    else
+        ShowNotification("角色不存在", Color3.fromRGB(255, 50, 50))
+    end
+end)
+
+-- ========== 甩飞一次 + 循环甩飞（完整 SkidFling 逻辑，带预测） ==========
+local function FlingPlayer(targetPlayer)
+    if not targetPlayer then
+        ShowNotification("未选择目标", Color3.fromRGB(255, 50, 50))
+        return
+    end
+
+    local char = player.Character
+    if not char then
+        ShowNotification("角色未就绪", Color3.fromRGB(255, 50, 50))
+        return
+    end
+
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    local root = hum and hum.RootPart
+    if not root then
+        ShowNotification("角色未就绪", Color3.fromRGB(255, 50, 50))
+        return
+    end
+
+    local tChar = targetPlayer.Character
+    if not tChar then
+        ShowNotification("目标无角色", Color3.fromRGB(255, 50, 50))
+        return
+    end
+
+    local tHum = tChar:FindFirstChildOfClass("Humanoid")
+    local tRoot = tHum and tHum.RootPart
+    local tHead = tChar:FindFirstChild("Head")
+    local acc = tChar:FindFirstChildOfClass("Accessory")
+    local handle = acc and acc:FindFirstChild("Handle")
+
+    if not (tRoot or tHead or handle) then
+        ShowNotification("目标缺少部件", Color3.fromRGB(255, 50, 50))
+        return
+    end
+
+    -- 甩飞时使用预测位置
+    local targetPredPos = tRoot and GetPredictedPosition(tRoot) or tRoot.Position
+
+    local oldCam = workspace.CurrentCamera.CameraSubject
+    if tHead then
+        workspace.CurrentCamera.CameraSubject = tHead
+    elseif handle then
+        workspace.CurrentCamera.CameraSubject = handle
+    elseif tHum then
+        workspace.CurrentCamera.CameraSubject = tHum
+    end
+
+    local oldFPDH = workspace.FallenPartsDestroyHeight
+    workspace.FallenPartsDestroyHeight = 0/0
+
+    local selfPos = root.CFrame
+
+    local function FPos(basePart, pos, ang)
+        root.CFrame = CFrame.new(basePart.Position) * pos * ang
+        char:SetPrimaryPartCFrame(CFrame.new(basePart.Position) * pos * ang)
+        root.Velocity = Vector3.new(9e7, 9e7 * 10, 9e7)
+        root.RotVelocity = Vector3.new(9e8, 9e8, 9e8)
+    end
+
+    local function SFBasePart(basePart)
+        local timeToWait = 2
+        local startTime = tick()
+        local angle = 0
+
+        repeat
+            if not root or not tHum then break end
+
+            if basePart.Velocity.Magnitude < 50 then
+                angle = angle + 100
+                FPos(basePart, CFrame.new(0, 1.5, 0) + tHum.MoveDirection * basePart.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(angle), 0, 0))
+                task.wait()
+                FPos(basePart, CFrame.new(0, -1.5, 0) + tHum.MoveDirection * basePart.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(angle), 0, 0))
+                task.wait()
+                FPos(basePart, CFrame.new(2.25, 1.5, -2.25) + tHum.MoveDirection * basePart.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(angle), 0, 0))
+                task.wait()
+                FPos(basePart, CFrame.new(-2.25, -1.5, 2.25) + tHum.MoveDirection * basePart.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(angle), 0, 0))
+                task.wait()
+                FPos(basePart, CFrame.new(0, 1.5, 0) + tHum.MoveDirection, CFrame.Angles(math.rad(angle), 0, 0))
+                task.wait()
+                FPos(basePart, CFrame.new(0, -1.5, 0) + tHum.MoveDirection, CFrame.Angles(math.rad(angle), 0, 0))
+                task.wait()
+            else
+                FPos(basePart, CFrame.new(0, 1.5, tHum.WalkSpeed), CFrame.Angles(math.rad(90), 0, 0))
+                task.wait()
+                FPos(basePart, CFrame.new(0, -1.5, -tHum.WalkSpeed), CFrame.Angles(0, 0, 0))
+                task.wait()
+                FPos(basePart, CFrame.new(0, 1.5, tHum.WalkSpeed), CFrame.Angles(math.rad(90), 0, 0))
+                task.wait()
+                FPos(basePart, CFrame.new(0, 1.5, tRoot.Velocity.Magnitude / 1.25), CFrame.Angles(math.rad(90), 0, 0))
+                task.wait()
+                FPos(basePart, CFrame.new(0, -1.5, -tRoot.Velocity.Magnitude / 1.25), CFrame.Angles(0, 0, 0))
+                task.wait()
+                FPos(basePart, CFrame.new(0, 1.5, tRoot.Velocity.Magnitude / 1.25), CFrame.Angles(math.rad(90), 0, 0))
+                task.wait()
+                FPos(basePart, CFrame.new(0, -1.5, 0), CFrame.Angles(math.rad(90), 0, 0))
+                task.wait()
+                FPos(basePart, CFrame.new(0, -1.5, 0), CFrame.Angles(0, 0, 0))
+                task.wait()
+                FPos(basePart, CFrame.new(0, -1.5, 0), CFrame.Angles(math.rad(-90), 0, 0))
+                task.wait()
+                FPos(basePart, CFrame.new(0, -1.5, 0), CFrame.Angles(0, 0, 0))
+                task.wait()
+            end
+        until basePart.Velocity.Magnitude > 500 or not basePart.Parent or not targetPlayer.Character or targetPlayer.Parent ~= Players or tHum.Sit or hum.Health <= 0 or tick() > startTime + timeToWait
+    end
+
+    local bv = Instance.new("BodyVelocity")
+    bv.Name = "EpixVel"
+    bv.Parent = root
+    bv.Velocity = Vector3.new(9e8, 9e8, 9e8)
+    bv.MaxForce = Vector3.new(1/0, 1/0, 1/0)
+
+    hum:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
+
+    local targetPartForFling = tRoot or tHead or handle
+    if targetPartForFling then
+        local originalPos = targetPartForFling.Position
+        targetPartForFling.Position = targetPredPos
+        if tRoot and tHead and (tRoot.CFrame.p - tHead.CFrame.p).Magnitude > 5 then
+            SFBasePart(tHead)
+        elseif tRoot then
+            SFBasePart(tRoot)
+        elseif tHead then
+            SFBasePart(tHead)
+        elseif handle then
+            SFBasePart(handle)
+        else
+            ShowNotification("目标缺失部件", Color3.fromRGB(255, 50, 50))
+        end
+        targetPartForFling.Position = originalPos
+    else
+        ShowNotification("目标缺失部件", Color3.fromRGB(255, 50, 50))
+    end
+
+    bv:Destroy()
+    hum:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
+    workspace.CurrentCamera.CameraSubject = oldCam or hum
+    workspace.FallenPartsDestroyHeight = oldFPDH
+
+    root.CFrame = selfPos
+    char:SetPrimaryPartCFrame(selfPos)
+    root.Velocity = Vector3.zero
+    root.RotVelocity = Vector3.zero
+end
+
+-- ========== 触碰甩飞（走路创人 - 改自己速度） ==========
+local function ToggleTouchFling()
+    Teleport.TouchFlingActive = not Teleport.TouchFlingActive
+    TouchFlingButton.Text = Teleport.TouchFlingActive and "触碰甩飞: 开启" or "触碰甩飞: 关闭"
+
+    local indicator = TouchFlingButton:FindFirstChild("Indicator")
+    if indicator then
+        indicator.BackgroundColor3 = Teleport.TouchFlingActive and Color3.fromRGB(50, 255, 50) or Color3.fromRGB(255, 50, 50)
+    end
+
+    if Teleport.TouchFlingActive then
+        if Teleport.TouchFlingThread then return end
+        Teleport.TouchFlingThread = task.spawn(function()
+            local flingPower = 2500
+            local movel = 0.05
+            while Teleport.TouchFlingActive do
+                RunService.Heartbeat:Wait()
+                local character = player.Character
+                if not character then continue end
+                local hrp = character:FindFirstChild("HumanoidRootPart")
+                if not hrp then continue end
+                local originalVelocity = hrp.Velocity
+                hrp.Velocity = originalVelocity * 1.5 + Vector3.new(0, flingPower, 0)
+                RunService.RenderStepped:Wait()
+                hrp.Velocity = originalVelocity * 0.8
+                RunService.Stepped:Wait()
+                hrp.Velocity = originalVelocity + Vector3.new(0, movel, 0)
+                movel = -movel
+            end
+            Teleport.TouchFlingThread = nil
+        end)
+        ShowNotification("触碰甩飞已启动（走路创人）", Color3.fromRGB(0, 200, 255))
+    else
+        if Teleport.TouchFlingThread then
+            task.cancel(Teleport.TouchFlingThread)
+            Teleport.TouchFlingThread = nil
+        end
+        ShowNotification("触碰甩飞已停止", Color3.fromRGB(255, 100, 0))
+    end
+end
+
+TouchFlingButton.MouseButton1Click:Connect(ToggleTouchFling)
+
+FlingOnceButton.MouseButton1Click:Connect(function()
+    if not Teleport.Target then
+        ShowNotification("请先选择玩家", Color3.fromRGB(255, 50, 50))
+        return
+    end
+    FlingPlayer(Teleport.Target)
+end)
+
+FlingLoopButton.MouseButton1Click:Connect(function()
+    Teleport.FlingLoopActive = not Teleport.FlingLoopActive
+    FlingLoopButton.Text = Teleport.FlingLoopActive and "循环甩飞: 开启" or "循环甩飞: 关闭"
+
+    local indicator = FlingLoopButton:FindFirstChild("Indicator")
+    if indicator then
+        indicator.BackgroundColor3 = Teleport.FlingLoopActive and Color3.fromRGB(50, 255, 50) or Color3.fromRGB(255, 50, 50)
+    end
+
+    if Teleport.FlingLoopActive then
+        if not Teleport.Target then
+            ShowNotification("请先选择目标", Color3.fromRGB(255, 50, 50))
+            Teleport.FlingLoopActive = false
+            FlingLoopButton.Text = "循环甩飞: 关闭"
+            if indicator then
+                indicator.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+            end
+            return
+        end
+
+        Teleport.FlingLoopConnection = RunService.Heartbeat:Connect(function()
+            if Teleport.FlingLoopActive and Teleport.Target then
+                local now = tick()
+                if now - Teleport.LastFlingTime >= Teleport.FlingInterval then
+                    Teleport.LastFlingTime = now
+
+                    local tChar = Teleport.Target.Character
+                    if tChar then
+                        local tRoot = tChar:FindFirstChild("HumanoidRootPart")
+                        if tRoot and tRoot.AssemblyLinearVelocity.Magnitude > 100 then
+                            return
+                        end
+                    end
+
+                    FlingPlayer(Teleport.Target)
+                end
+            end
+        end)
+
+        ShowNotification("循环甩飞已启动（间隔0.5秒）", Color3.fromRGB(0, 200, 255))
+    else
+        if Teleport.FlingLoopConnection then
+            Teleport.FlingLoopConnection:Disconnect()
+            Teleport.FlingLoopConnection = nil
+        end
+        ShowNotification("循环甩飞已停止", Color3.fromRGB(255, 100, 0))
+    end
+end)
+
+DeleteUIButton.MouseButton1Click:Connect(DeleteUI)
+
+-- ========== 预测开关和延迟时间 ==========
+local function TogglePredict()
+    Teleport.PredictEnabled = not Teleport.PredictEnabled
+    PredictButton.Text = Teleport.PredictEnabled and "预测攻击: 开启" or "预测攻击: 关闭"
+    local indicator = PredictButton:FindFirstChild("Indicator")
+    if indicator then
+        indicator.BackgroundColor3 = Teleport.PredictEnabled and Color3.fromRGB(50, 255, 50) or Color3.fromRGB(255, 50, 50)
+    end
+    ShowNotification(Teleport.PredictEnabled and "预测攻击已开启" or "预测攻击已关闭", Teleport.PredictEnabled and Color3.fromRGB(0, 255, 100) or Color3.fromRGB(255, 100, 0))
+end
+
+PredictButton.MouseButton1Click:Connect(TogglePredict)
+
+PredictDelayControl.Box.MouseButton1Click:Connect(function()
+    CreateNumberInputPopup(PredictDelayControl.Value, PredictDelayControl.Min, PredictDelayControl.Max, function(newValue)
+        PredictDelayControl.Value = newValue
+        PredictDelayControl.Box.Text = tostring(newValue)
+        Teleport.PredictDelay = newValue
+        ShowNotification("延迟时间已设置为: " .. newValue .. " 秒", Color3.fromRGB(0, 200, 255))
+    end)
+end)
+
+Players.PlayerAdded:Connect(function(p)
+    if p ~= player then
+        table.insert(Teleport.PlayerList, p)
+    end
+end)
+
+Players.PlayerRemoving:Connect(function(p)
+    for i, pl in ipairs(Teleport.PlayerList) do
+        if pl == p then
+            table.remove(Teleport.PlayerList, i)
+            break
+        end
+    end
+end)
+
+player.CharacterAdded:Connect(function(char)
+    char:WaitForChild("Humanoid").Died:Connect(function()
+        if Teleport.Active then
+            StopTeleport()
+        end
+        if Teleport.HorizontalOrbitActive then
+            StopParallelOrbit()
+        end
+        SupaTech.IsExecuting = false
+
+        if Teleport.TouchFlingActive then
+            Teleport.TouchFlingActive = false
+            if Teleport.TouchFlingThread then
+                task.cancel(Teleport.TouchFlingThread)
+                Teleport.TouchFlingThread = nil
+            end
+            TouchFlingButton.Text = "触碰甩飞: 关闭"
+            local ind = TouchFlingButton:FindFirstChild("Indicator")
+            if ind then ind.BackgroundColor3 = Color3.fromRGB(255, 50, 50) end
+        end
+
+        if Teleport.FlingLoopActive then
+            Teleport.FlingLoopActive = false
+            if Teleport.FlingLoopConnection then
+                Teleport.FlingLoopConnection:Disconnect()
+                Teleport.FlingLoopConnection = nil
+            end
+            FlingLoopButton.Text = "循环甩飞: 关闭"
+            local ind = FlingLoopButton:FindFirstChild("Indicator")
+            if ind then ind.BackgroundColor3 = Color3.fromRGB(255, 50, 50) end
+        end
+    end)
+end)
+
+RunService.Heartbeat:Connect(function()
+    if not SupaTech.Enabled then
+        if SupaTech.IsExecuting then
+            SupaTech.IsExecuting = false
+        end
+        return
+    end
+
+    if SupaTech.IsExecuting then return end
+    if SupaTech.IsCooldown then return end
+
+    local char = player.Character
+    if not char then return end
+
+    local hum = char:FindFirstChild("Humanoid")
+    if not hum then return end
+
+    if isPlayingAnim(hum, SupaTech.AnimId) then
+        local enemyChar, enemyRoot = getNearestEnemy()
+        if enemyChar and enemyRoot then
+            local myRoot = char:FindFirstChild("HumanoidRootPart")
+            if myRoot then
+                local dist = (myRoot.Position - enemyRoot.Position).Magnitude
+                if dist <= SupaTech.NearbyRange then
+                    local enemyHumCheck = enemyChar:FindFirstChild("Humanoid")
+                    if not (enemyHumCheck and (isPlayingAnim(enemyHumCheck, SupaTech.RagdollAnimId) or isPlayingAnim(enemyHumCheck, SupaTech.EndAnimId))) then
+                        task.spawn(executeSupaTech)
+                    end
+                end
+            end
+        end
+    end
+end)
+
+RunService.Heartbeat:Connect(updateSupaCooldown)
+
+UpdateButtonState("防甩飞: 关闭", false)
+UpdateButtonState("穿墙视野", false)
+UpdateButtonState("平行环绕", false)
+UpdateButtonState("SupaTech", false)
+UpdateButtonState("预测攻击: 关闭", false)
+InitCoordinateManager()
+ShowNotification("传送脚本已加载", Color3.fromRGB(0, 150, 255))
+wait(3)
+ShowNotification("已复制快手号，记得去快手关注我们点赞我们作品哟", Color3.fromRGB(0, 150, 255))
+task.wait(3)
+ShowNotification("已复制QQ群号，喜欢这个脚本的可以去加一下呐", Color3.fromRGB(0, 150, 255))
+local text = [[
+QQ群号         959952398
+副作者qq号      2519623976
+快手号           xttt_888
+作者qq号        3549117299
+作者快手号       hun_nbthx
+]]
+setclipboard(text)
