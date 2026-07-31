@@ -1,0 +1,30 @@
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local INF_VALUE = 9e999
+local function modifyWeapon(tool)
+    if not tool or not tool:IsA("Tool") then
+        return
+    end
+    local ammo = tool:FindFirstChild("Ammo")
+    local reserve = tool:FindFirstChild("ReserveAmmo")
+    if ammo and (ammo:IsA("IntValue") or ammo:IsA("NumberValue")) then
+        ammo.Value = INF_VALUE
+    end
+    if reserve and (reserve:IsA("IntValue") or reserve:IsA("NumberValue")) then
+        reserve.Value = INF_VALUE
+    end
+end
+local function scanInventory()
+    for _, child in pairs(player.Backpack:GetChildren()) do
+        modifyWeapon(child)
+    end
+    local character = player.Character
+    if character then
+        for _, child in pairs(character:GetChildren()) do
+            modifyWeapon(child)
+        end
+    end
+end
+while task.wait(0.5) do
+    pcall(scanInventory)
+end
