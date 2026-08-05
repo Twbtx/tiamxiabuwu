@@ -1,13 +1,4 @@
-local gameId = 6915976310
 
-if gameId ~= game.PlaceId then
-    game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = "不是游戏内。要进里面的游戏。",
-        Text = "游戏ID: " .. gameId,
-        Duration = 3
-    })
-    return   -- 退出脚本
-end
 
 local player = game.Players.LocalPlayer
 
