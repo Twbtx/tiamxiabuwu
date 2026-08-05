@@ -1,61 +1,28 @@
 local gameId = 6915976310
+
 if gameId ~= game.PlaceId then
     game:GetService("StarterGui"):SetCore("SendNotification", {
         Title = "不是游戏内。要进里面的游戏。",
         Text = "游戏ID: " .. gameId,
         Duration = 3
     })
-    return   -- 退出脚本，不再执行后续收集
+    return   -- 退出脚本
 end
 
 local player = game.Players.LocalPlayer
-local COINS = workspace.Coins
 
-while true do
-    local target = nil
-    for _, child in COINS:GetChildren() do
-        if child.Name == "Money" then
-            target = child
-            break
-        end
-    end
-    if not target then
-        player:Kick("所有货币已收集完毕，退出服务器")
-        return
-    end
-
-    local char = player.Character
-    local root = char and char:FindFirstChild("HumanoidRootPart")
-    if root then
-        local hum = char:FindFirstChild("Humanoid")
-        if hum then
-            hum.PlatformStand = true
-        end
-
-        local pos
-        if target:IsA("BasePart") then
-            pos = target.Position
-        elseif target:IsA("Model") then
-            if target.PrimaryPart then
-                pos = target.PrimaryPart.Position
-            else
-                for _, obj in target:GetDescendants() do
-                    if obj:IsA("BasePart") then
-                        pos = obj.Position
-                        break
-                    end
-                end
-            end
-        end
-        if pos then
-            root.Position = pos + Vector3.new(0, -0.5, 0)
-        end
-    end
-    task.wait()
+-- 【重要修复】安全获取 Coins，避免报错
+local COINS = workspace:FindFirstChild("Coins")
+if not COINS then
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "错误",
+        Text = "找不到 Coins，请检查游戏是否更新或名称是否正确",
+        Duration = 5
+    })
+    return   -- 停止执行
 end
-local player = game.Players.LocalPlayer
-local COINS = workspace.Coins
 
+-- 以下保持你的原逻辑（未改动）
 while true do
     local target = nil
     for _, child in COINS:GetChildren() do
