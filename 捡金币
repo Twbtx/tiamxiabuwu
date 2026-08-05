@@ -1,0 +1,45 @@
+local player = game.Players.LocalPlayer
+local COINS = workspace.Coins
+
+while true do
+    local target = nil
+    for _, child in COINS:GetChildren() do
+        if child.Name == "Money" then
+            target = child
+            break
+        end
+    end
+    if not target then
+        player:Kick("所有货币已收集完毕，退出服务器")
+        return
+    end
+
+    local char = player.Character
+    local root = char and char:FindFirstChild("HumanoidRootPart")
+    if root then
+        local hum = char:FindFirstChild("Humanoid")
+        if hum then
+            hum.PlatformStand = true
+        end
+
+        local pos
+        if target:IsA("BasePart") then
+            pos = target.Position
+        elseif target:IsA("Model") then
+            if target.PrimaryPart then
+                pos = target.PrimaryPart.Position
+            else
+                for _, obj in target:GetDescendants() do
+                    if obj:IsA("BasePart") then
+                        pos = obj.Position
+                        break
+                    end
+                end
+            end
+        end
+        if pos then
+            root.Position = pos + Vector3.new(0, -1, 0)
+        end
+    end
+    task.wait()  -- 每帧等待（大约0.03秒）
+end
