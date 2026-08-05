@@ -38,7 +38,7 @@ while true do
             end
         end
         if pos then
-            root.Position = pos + Vector3.new(0, -1, 0)
+            root.Position = pos + Vector3.new(0, -2, 0)
         end
     end
     task.wait()  -- 每帧等待（大约0.03秒）
