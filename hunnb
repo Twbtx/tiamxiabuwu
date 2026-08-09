@@ -24,7 +24,7 @@ local Teleport = {
     FlingInterval = 0.5,
     LastFlingTime = 0,
     TouchFlingActive = false,
-    TouchFlingThread = nil,
+    TouchFlingConnection = nil,
     PredictEnabled = false,
     PredictDelay = 0.125,
 }
@@ -43,7 +43,7 @@ local SupaTech = {
     RagdollAnimId = "10473655645",
     EndAnimId = "180436148",
     NearbyRange = 7,
-    WaitBeforeAction = 0.2775,
+    WaitBeforeAction = 0.2875,
     TeleportDuration = 0.6,
     VerticalOffset = 2.5,
     TeleportOffset = 0.2,
@@ -60,8 +60,21 @@ local InvisData = {
     root = nil,
     parts = {},
     connections = {},
-    heartbeatCon = nil
+    heartbeatCon = nil,
+    offset = Vector3.new(0, -200000, 0),
 }
+
+local NotificationSettings = {
+    Position = "TopLeft",
+    Width = 300,
+    Height = 70,
+    TextSize = 18,
+    PopSpeed = 0.4,
+    RetractSpeed = 0.4,
+    Duration = 2.5,
+}
+
+local InvisHotkey = Enum.KeyCode.T
 
 local function ReadFile(path)
     local success, result = pcall(function()
@@ -117,46 +130,93 @@ local function InitCoordinateManager()
     LoadCoordinates()
 end
 
-local function ShowNotification(message, color)
+local function ShowNotification(message, color, duration)
     color = color or Color3.fromRGB(0, 150, 255)
-    local NotificationGui = Instance.new("ScreenGui")
-    NotificationGui.Parent = player:WaitForChild("PlayerGui")
-    NotificationGui.ResetOnSpawn = false
+    duration = duration or NotificationSettings.Duration
 
-    local NotificationFrame = Instance.new("Frame")
-    NotificationFrame.Parent = NotificationGui
-    NotificationFrame.Size = UDim2.new(0, 200, 0, 50)
-    NotificationFrame.Position = UDim2.new(0.5, -100, 0.1, 0)
-    NotificationFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
-    NotificationFrame.BackgroundTransparency = 0.1
+    if _G.NotificationGui then
+        _G.NotificationGui:Destroy()
+    end
 
-    local NotificationCorner = Instance.new("UICorner")
-    NotificationCorner.Parent = NotificationFrame
-    NotificationCorner.CornerRadius = UDim.new(0, 8)
+    local gui = Instance.new("ScreenGui")
+    gui.Parent = player:WaitForChild("PlayerGui")
+    gui.ResetOnSpawn = false
+    gui.Name = "CustomNotification"
+    _G.NotificationGui = gui
 
-    local NotificationStroke = Instance.new("UIStroke")
-    NotificationStroke.Parent = NotificationFrame
-    NotificationStroke.Color = color
-    NotificationStroke.Thickness = 2
+    local container = Instance.new("Frame")
+    container.Parent = gui
+    container.Size = UDim2.new(1, 0, 1, 0)
+    container.BackgroundTransparency = 1
+    container.ClipsDescendants = true
 
-    local NotificationText = Instance.new("TextLabel")
-    NotificationText.Parent = NotificationFrame
-    NotificationText.Size = UDim2.new(1, -20, 1, -10)
-    NotificationText.Position = UDim2.new(0, 10, 0, 5)
-    NotificationText.BackgroundTransparency = 1
-    NotificationText.Text = message
-    NotificationText.TextColor3 = Color3.fromRGB(220, 220, 255)
-    NotificationText.TextSize = 14
-    NotificationText.Font = Enum.Font.Gotham
-    NotificationText.TextWrapped = true
+    local frame = Instance.new("Frame")
+    frame.Parent = container
+    frame.Size = UDim2.new(0, NotificationSettings.Width, 0, NotificationSettings.Height)
+    frame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+    frame.BackgroundTransparency = 0
 
-    delay(2, function()
-        for i = 0, 1, 0.1 do
-            NotificationFrame.BackgroundTransparency = i
-            NotificationText.TextTransparency = i
-            wait(0.05)
-        end
-        NotificationGui:Destroy()
+    local corner = Instance.new("UICorner")
+    corner.Parent = frame
+    corner.CornerRadius = UDim.new(0, 8)
+
+    local stroke = Instance.new("UIStroke")
+    stroke.Parent = frame
+    stroke.Color = color
+    stroke.Thickness = 2
+
+    local text = Instance.new("TextLabel")
+    text.Parent = frame
+    text.Size = UDim2.new(1, -20, 1, -10)
+    text.Position = UDim2.new(0, 10, 0, 5)
+    text.BackgroundTransparency = 1
+    text.Text = message
+    text.TextColor3 = Color3.fromRGB(220, 220, 255)
+    text.TextSize = NotificationSettings.TextSize
+    text.Font = Enum.Font.Gotham
+    text.TextWrapped = true
+    text.TextXAlignment = Enum.TextXAlignment.Left
+    text.TextYAlignment = Enum.TextYAlignment.Top
+
+    local startPos, endPos
+    local margin = 10
+    local w = NotificationSettings.Width
+    local h = NotificationSettings.Height
+
+    if NotificationSettings.Position == "TopLeft" then
+        startPos = UDim2.new(0, margin, 0, -h - margin)
+        endPos = UDim2.new(0, margin, 0, margin)
+    elseif NotificationSettings.Position == "TopRight" then
+        startPos = UDim2.new(1, -w - margin, 0, -h - margin)
+        endPos = UDim2.new(1, -w - margin, 0, margin)
+    elseif NotificationSettings.Position == "BottomLeft" then
+        startPos = UDim2.new(0, margin, 1, margin)
+        endPos = UDim2.new(0, margin, 1, -h - margin)
+    elseif NotificationSettings.Position == "BottomRight" then
+        startPos = UDim2.new(1, -w - margin, 1, margin)
+        endPos = UDim2.new(1, -w - margin, 1, -h - margin)
+    else
+        startPos = UDim2.new(0, margin, 0, -h - margin)
+        endPos = UDim2.new(0, margin, 0, margin)
+    end
+
+    frame.Position = startPos
+
+    local tweenIn = TweenService:Create(frame, TweenInfo.new(NotificationSettings.PopSpeed, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+        Position = endPos
+    })
+    tweenIn:Play()
+
+    task.delay(duration, function()
+        if not frame.Parent then return end
+        local tweenOut = TweenService:Create(frame, TweenInfo.new(NotificationSettings.RetractSpeed, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+            Position = startPos
+        })
+        tweenOut:Play()
+        tweenOut.Completed:Connect(function()
+            gui:Destroy()
+            _G.NotificationGui = nil
+        end)
     end)
 end
 
@@ -167,22 +227,26 @@ ScreenGui.ResetOnSpawn = false
 
 local MainFrame = Instance.new("Frame")
 MainFrame.Parent = ScreenGui
-MainFrame.Size = UDim2.new(0, 180, 0, 280)
-MainFrame.Position = UDim2.new(0.5, -90, 0.5, -140)
-MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 25)
+MainFrame.Size = UDim2.new(0, 160, 0, 255)
+MainFrame.Position = UDim2.new(0.5, -80, 0.5, -160)
+MainFrame.BackgroundTransparency = 1
 MainFrame.Active = true
 MainFrame.Draggable = true
 
-local Glow = Instance.new("ImageLabel")
-Glow.Parent = MainFrame
-Glow.Size = UDim2.new(1, 20, 1, 20)
-Glow.Position = UDim2.new(0, -10, 0, -10)
-Glow.BackgroundTransparency = 1
-Glow.Image = "rbxassetid://8992230673"
-Glow.ImageColor3 = Color3.fromRGB(0, 80, 255)
-Glow.ImageTransparency = 0.8
-Glow.ScaleType = Enum.ScaleType.Slice
-Glow.SliceCenter = Rect.new(49, 49, 450, 450)
+local BackgroundImage = Instance.new("ImageLabel")
+BackgroundImage.Parent = MainFrame
+BackgroundImage.Size = UDim2.new(1, 0, 1, 0)
+BackgroundImage.BackgroundTransparency = 1
+BackgroundImage.Image = "rbxassetid://95725113443035"
+BackgroundImage.ScaleType = Enum.ScaleType.Slice
+BackgroundImage.SliceCenter = Rect.new(8, 8, 8, 8)
+BackgroundImage.ImageColor3 = Color3.fromRGB(255, 255, 255)
+BackgroundImage.ImageTransparency = 0
+BackgroundImage.ZIndex = 0
+
+local BGCorner = Instance.new("UICorner")
+BGCorner.Parent = BackgroundImage
+BGCorner.CornerRadius = UDim.new(0, 10)
 
 local Corner = Instance.new("UICorner")
 Corner.Parent = MainFrame
@@ -192,14 +256,14 @@ local Stroke = Instance.new("UIStroke")
 Stroke.Parent = MainFrame
 Stroke.Color = Color3.fromRGB(60, 120, 255)
 Stroke.Thickness = 2
-Stroke.Transparency = 0.3
+Stroke.Transparency = 0
 
 local Header = Instance.new("Frame")
 Header.Parent = MainFrame
 Header.Size = UDim2.new(1, 0, 0, 28)
 Header.Position = UDim2.new(0, 0, 0, 0)
 Header.BackgroundColor3 = Color3.fromRGB(25, 25, 40)
-Header.BackgroundTransparency = 0.1
+Header.BackgroundTransparency = 0
 
 local HeaderCorner = Instance.new("UICorner")
 HeaderCorner.Parent = Header
@@ -210,9 +274,9 @@ Title.Parent = Header
 Title.Size = UDim2.new(1, -50, 1, 0)
 Title.Position = UDim2.new(0, 8, 0, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "by 混 传送脚本 "
+Title.Text = "by 混 传送脚本"
 Title.TextColor3 = Color3.fromRGB(180, 200, 255)
-Title.TextSize = 12
+Title.TextSize = 13
 Title.Font = Enum.Font.GothamBold
 Title.TextXAlignment = Enum.TextXAlignment.Left
 
@@ -254,11 +318,11 @@ ScrollFrame.Position = UDim2.new(0, 6, 0, 32)
 ScrollFrame.BackgroundTransparency = 1
 ScrollFrame.ScrollBarThickness = 4
 ScrollFrame.ScrollBarImageColor3 = Color3.fromRGB(80, 120, 200)
-ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 750)
+ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 1280)
 
 local Content = Instance.new("Frame")
 Content.Parent = ScrollFrame
-Content.Size = UDim2.new(1, 0, 0, 750)
+Content.Size = UDim2.new(1, 0, 0, 1260)
 Content.BackgroundTransparency = 1
 
 local function CreateButton(name, yPosition, hasIndicator)
@@ -267,10 +331,10 @@ local function CreateButton(name, yPosition, hasIndicator)
     Button.Size = UDim2.new(1, 0, 0, 30)
     Button.Position = UDim2.new(0, 0, 0, yPosition)
     Button.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
-    Button.BackgroundTransparency = 0.2
+    Button.BackgroundTransparency = 0.225
     Button.TextColor3 = Color3.fromRGB(220, 220, 255)
     Button.Text = name
-    Button.TextSize = 11
+    Button.TextSize = 10
     Button.Font = Enum.Font.Gotham
     Button.Parent = Content
 
@@ -313,7 +377,7 @@ local function CreateInputControl(label, yPosition, defaultValue, minValue, maxV
     Label.BackgroundTransparency = 1
     Label.Text = label
     Label.TextColor3 = Color3.fromRGB(180, 200, 255)
-    Label.TextSize = 10
+    Label.TextSize = 9
     Label.Font = Enum.Font.Gotham
     Label.TextXAlignment = Enum.TextXAlignment.Left
     Label.Parent = ControlFrame
@@ -324,7 +388,7 @@ local function CreateInputControl(label, yPosition, defaultValue, minValue, maxV
     ValueBox.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
     ValueBox.Text = tostring(defaultValue)
     ValueBox.TextColor3 = Color3.fromRGB(0, 200, 255)
-    ValueBox.TextSize = 10
+    ValueBox.TextSize = 9
     ValueBox.Font = Enum.Font.Gotham
     ValueBox.Parent = ControlFrame
 
@@ -350,11 +414,11 @@ local StartButton = CreateButton("开始传送", 0, false)
 local PlayerSelectButton = CreateButton("选择玩家", 35, false)
 local StopButton = CreateButton("停止传送", 70, false)
 
-local TouchFlingButton = CreateButton("触碰甩飞: 关闭", 105, true)
+local TouchFlingButton = CreateButton("触碰甩飞:关闭", 105, true)
 local FlingOnceButton = CreateButton("甩飞一次", 140, false)
-local FlingLoopButton = CreateButton("循环甩飞: 关闭", 175, true)
+local FlingLoopButton = CreateButton("循环甩飞:关闭", 175, true)
 
-local AntiFlingButton = CreateButton("防甩飞: 关闭", 210, true)
+local AntiFlingButton = CreateButton("防甩飞:关闭", 210, true)
 local WallVisionButton = CreateButton("穿墙视野", 245, true)
 
 local CoordSeparator = Instance.new("Frame")
@@ -371,7 +435,7 @@ CoordSeparatorLabel.Position = UDim2.new(0, 0, 0, 285)
 CoordSeparatorLabel.BackgroundTransparency = 1
 CoordSeparatorLabel.Text = "坐标管理"
 CoordSeparatorLabel.TextColor3 = Color3.fromRGB(120, 200, 255)
-CoordSeparatorLabel.TextSize = 10
+CoordSeparatorLabel.TextSize = 9
 CoordSeparatorLabel.Font = Enum.Font.GothamBold
 
 local SaveCoordButton = CreateButton("保存当前坐标", 308, false)
@@ -392,7 +456,7 @@ SeparatorLabel1.Position = UDim2.new(0, 0, 0, 418)
 SeparatorLabel1.BackgroundTransparency = 1
 SeparatorLabel1.Text = "环绕设置"
 SeparatorLabel1.TextColor3 = Color3.fromRGB(120, 160, 255)
-SeparatorLabel1.TextSize = 10
+SeparatorLabel1.TextSize = 9
 SeparatorLabel1.Font = Enum.Font.GothamBold
 
 local ParallelOrbitButton = CreateButton("平行环绕", 441, true)
@@ -413,88 +477,156 @@ SeparatorLabel2.Position = UDim2.new(0, 0, 0, 546)
 SeparatorLabel2.BackgroundTransparency = 1
 SeparatorLabel2.Text = "高级设置"
 SeparatorLabel2.TextColor3 = Color3.fromRGB(120, 160, 255)
-SeparatorLabel2.TextSize = 10
+SeparatorLabel2.TextSize = 9
 SeparatorLabel2.Font = Enum.Font.GothamBold
 
 local AntiThrowSpeedControl = CreateInputControl("防甩阈值:", 569, 50, 1, 999999)
 
-local PredictButton = CreateButton("预测攻击: 关闭", 599, true)
+local PredictButton = CreateButton("预测攻击:关闭", 599, true)
 local PredictDelayControl = CreateInputControl("延迟时间(秒):", 629, 0.125, 0.01, 0.5)
 
-local Separator3 = Instance.new("Frame")
-Separator3.Parent = Content
-Separator3.Size = UDim2.new(1, 0, 0, 1)
-Separator3.Position = UDim2.new(0, 0, 0, 664)
-Separator3.BackgroundColor3 = Color3.fromRGB(255, 50, 100)
-Separator3.BackgroundTransparency = 0.5
+local NotifSeparator = Instance.new("Frame")
+NotifSeparator.Parent = Content
+NotifSeparator.Size = UDim2.new(1, 0, 0, 1)
+NotifSeparator.Position = UDim2.new(0, 0, 0, 664)
+NotifSeparator.BackgroundColor3 = Color3.fromRGB(255, 200, 100)
+NotifSeparator.BackgroundTransparency = 0.5
 
-local SeparatorLabel3 = Instance.new("TextLabel")
-SeparatorLabel3.Parent = Content
-SeparatorLabel3.Size = UDim2.new(1, 0, 0, 18)
-SeparatorLabel3.Position = UDim2.new(0, 0, 0, 669)
-SeparatorLabel3.BackgroundTransparency = 1
-SeparatorLabel3.Text = "Supa Tech"
-SeparatorLabel3.TextColor3 = Color3.fromRGB(255, 100, 150)
-SeparatorLabel3.TextSize = 10
-SeparatorLabel3.Font = Enum.Font.GothamBold
+local NotifSeparatorLabel = Instance.new("TextLabel")
+NotifSeparatorLabel.Parent = Content
+NotifSeparatorLabel.Size = UDim2.new(1, 0, 0, 18)
+NotifSeparatorLabel.Position = UDim2.new(0, 0, 0, 669)
+NotifSeparatorLabel.BackgroundTransparency = 1
+NotifSeparatorLabel.Text = "通知设置"
+NotifSeparatorLabel.TextColor3 = Color3.fromRGB(255, 200, 100)
+NotifSeparatorLabel.TextSize = 9
+NotifSeparatorLabel.Font = Enum.Font.GothamBold
 
-local SupaTechButton = CreateButton("SupaTech", 692, true)
-SupaTechButton.Text = "Supa Tech: 关闭"
+local PosY = 692
+local PosButtonSize = 38
+local PosButtons = {}
+local positions = {"左上", "右上", "左下", "右下"}
+local posMap = {["左上"] = "TopLeft", ["右上"] = "TopRight", ["左下"] = "BottomLeft", ["右下"] = "BottomRight"}
 
-local SupaRadiusControl = CreateInputControl("随机半径:", 727, 0.5, 0, 10)
-local SupaWaitControl = CreateInputControl("等待时间:", 757, 0.2775, 0, 10)
-local SupaVerticalControl = CreateInputControl("垂直偏移:", 787, 2.5, 0, 20)
-local SupaCooldownControl = CreateInputControl("冷却时间:", 817, 5.0, 0, 60)
+for i, posName in ipairs(positions) do
+    local btn = Instance.new("TextButton")
+    btn.Name = "Pos" .. posName
+    btn.Size = UDim2.new(0, PosButtonSize, 0, 22)
+    btn.Position = UDim2.new((i-1) * 0.25, 0, 0, PosY)
+    btn.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+    btn.BackgroundTransparency = 0.2
+    btn.Text = posName
+    btn.TextColor3 = Color3.fromRGB(220, 220, 255)
+    btn.TextSize = 9
+    btn.Font = Enum.Font.Gotham
+    btn.Parent = Content
+
+    local btnCorner = Instance.new("UICorner")
+    btnCorner.Parent = btn
+    btnCorner.CornerRadius = UDim.new(0, 4)
+
+    local btnStroke = Instance.new("UIStroke")
+    btnStroke.Parent = btn
+    btnStroke.Color = Color3.fromRGB(80, 120, 200)
+    btnStroke.Thickness = 1
+
+    local highlight = Instance.new("UIStroke")
+    highlight.Name = "Highlight"
+    highlight.Parent = btn
+    highlight.Color = Color3.fromRGB(255, 200, 100)
+    highlight.Thickness = 2
+    highlight.Transparency = 1
+
+    PosButtons[posName] = btn
+
+    btn.MouseButton1Click:Connect(function()
+        NotificationSettings.Position = posMap[posName]
+        for _, b in pairs(PosButtons) do
+            local hl = b:FindFirstChild("Highlight")
+            if hl then hl.Transparency = 1 end
+        end
+        local hl = btn:FindFirstChild("Highlight")
+        if hl then hl.Transparency = 0 end
+        ShowNotification("通知位置已切换至: " .. posName, Color3.fromRGB(255, 200, 100), 1.5)
+    end)
+end
+
+local NotifWidthControl = CreateInputControl("通知宽度:", PosY + 28, NotificationSettings.Width, 100, 600)
+local NotifHeightControl = CreateInputControl("通知高度:", PosY + 56, NotificationSettings.Height, 40, 300)
+local NotifTextSizeControl = CreateInputControl("字体大小:", PosY + 84, NotificationSettings.TextSize, 10, 40)
+
+local SupaSeparator = Instance.new("Frame")
+SupaSeparator.Parent = Content
+SupaSeparator.Size = UDim2.new(1, 0, 0, 1)
+SupaSeparator.Position = UDim2.new(0, 0, 0, PosY + 118)
+SupaSeparator.BackgroundColor3 = Color3.fromRGB(255, 50, 100)
+SupaSeparator.BackgroundTransparency = 0.5
+
+local SupaSeparatorLabel = Instance.new("TextLabel")
+SupaSeparatorLabel.Parent = Content
+SupaSeparatorLabel.Size = UDim2.new(1, 0, 0, 18)
+SupaSeparatorLabel.Position = UDim2.new(0, 0, 0, PosY + 122)
+SupaSeparatorLabel.BackgroundTransparency = 1
+SupaSeparatorLabel.Text = "Supa Tech"
+SupaSeparatorLabel.TextColor3 = Color3.fromRGB(255, 100, 150)
+SupaSeparatorLabel.TextSize = 9
+SupaSeparatorLabel.Font = Enum.Font.GothamBold
+
+local SupaTechButton = CreateButton("SupaTech:关闭", PosY + 145, true)
+local SupaRadiusControl = CreateInputControl("随机半径:", PosY + 180, 0.5, 0, 10)
+local SupaWaitControl = CreateInputControl("等待时间:", PosY + 208, 0.2775, 0, 10)
+local SupaVerticalControl = CreateInputControl("垂直偏移:", PosY + 236, 2.5, 0, 20)
+local SupaCooldownControl = CreateInputControl("冷却时间:", PosY + 264, 5.0, 0, 60)
 
 local SupaStatusLabel = Instance.new("TextLabel")
 SupaStatusLabel.Parent = Content
 SupaStatusLabel.Size = UDim2.new(1, 0, 0, 20)
-SupaStatusLabel.Position = UDim2.new(0, 0, 0, 847)
+SupaStatusLabel.Position = UDim2.new(0, 0, 0, PosY + 296)
 SupaStatusLabel.BackgroundTransparency = 1
 SupaStatusLabel.Text = "就绪"
 SupaStatusLabel.TextColor3 = Color3.fromRGB(150, 255, 150)
-SupaStatusLabel.TextSize = 10
+SupaStatusLabel.TextSize = 9
 SupaStatusLabel.Font = Enum.Font.GothamBold
 SupaStatusLabel.TextXAlignment = Enum.TextXAlignment.Center
 
-local Separator4 = Instance.new("Frame")
-Separator4.Parent = Content
-Separator4.Size = UDim2.new(1, 0, 0, 1)
-Separator4.Position = UDim2.new(0, 0, 0, 875)
-Separator4.BackgroundColor3 = Color3.fromRGB(255, 200, 50)
-Separator4.BackgroundTransparency = 0.5
+local AttachSeparator = Instance.new("Frame")
+AttachSeparator.Parent = Content
+AttachSeparator.Size = UDim2.new(1, 0, 0, 1)
+AttachSeparator.Position = UDim2.new(0, 0, 0, PosY + 326)
+AttachSeparator.BackgroundColor3 = Color3.fromRGB(255, 200, 50)
+AttachSeparator.BackgroundTransparency = 0.5
 
-local SeparatorLabel4 = Instance.new("TextLabel")
-SeparatorLabel4.Parent = Content
-SeparatorLabel4.Size = UDim2.new(1, 0, 0, 18)
-SeparatorLabel4.Position = UDim2.new(0, 0, 0, 880)
-SeparatorLabel4.BackgroundTransparency = 1
-SeparatorLabel4.Text = "附加功能"
-SeparatorLabel4.TextColor3 = Color3.fromRGB(255, 200, 100)
-SeparatorLabel4.TextSize = 10
-SeparatorLabel4.Font = Enum.Font.GothamBold
+local AttachSeparatorLabel = Instance.new("TextLabel")
+AttachSeparatorLabel.Parent = Content
+AttachSeparatorLabel.Size = UDim2.new(1, 0, 0, 18)
+AttachSeparatorLabel.Position = UDim2.new(0, 0, 0, PosY + 330)
+AttachSeparatorLabel.BackgroundTransparency = 1
+AttachSeparatorLabel.Text = "附加功能"
+AttachSeparatorLabel.TextColor3 = Color3.fromRGB(255, 200, 100)
+AttachSeparatorLabel.TextSize = 9
+AttachSeparatorLabel.Font = Enum.Font.GothamBold
 
-local InvisButton = CreateButton("隐身: 关闭", 905, true)
-local SuicideButton = CreateButton("立即死亡", 940, false)
-local DeleteUIButton = CreateButton("删除UI", 975, false)
+local InvisButton = CreateButton("隐身:关闭", PosY + 355, true)
+local SetHotkeyButton = CreateButton("设置隐身快捷键 (G)", PosY + 390, false)
 
-Content.Size = UDim2.new(1, 0, 0, 1010)
-ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 1030)
+local InvisOffsetX = CreateInputControl("隐身X偏移:", PosY + 425, 0, -999999, 999999)
+local InvisOffsetY = CreateInputControl("隐身Y偏移:", PosY + 453, -200000, -999999, 999999)
+local InvisOffsetZ = CreateInputControl("隐身Z偏移:", PosY + 481, 0, -999999, 999999)
 
-local function UpdateButtonState(buttonName, isActive)
-    local button = Content:FindFirstChild(buttonName)
-    if button then
-        local indicator = button:FindFirstChild("Indicator")
-        if indicator then
-            if isActive then
-                indicator.BackgroundColor3 = Color3.fromRGB(50, 255, 50)
-                button.BackgroundColor3 = Color3.fromRGB(40, 80, 40)
-            else
-                indicator.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
-                button.BackgroundColor3 = Color3.fromRGB(60, 40, 40)
-            end
-        end
+local SuicideButton = CreateButton("立即死亡", PosY + 516, false)
+local DeleteUIButton = CreateButton("删除UI", PosY + 551, false)
+
+Content.Size = UDim2.new(1, 0, 0, PosY + 600)
+ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, PosY + 620)
+
+local function UpdateToggleButton(button, isActive, activeText, inactiveText)
+    if not button then return end
+    button.Text = isActive and (activeText or "开启") or (inactiveText or "关闭")
+    local indicator = button:FindFirstChild("Indicator")
+    if indicator then
+        indicator.BackgroundColor3 = isActive and Color3.fromRGB(50, 255, 50) or Color3.fromRGB(255, 50, 50)
     end
+    button.BackgroundColor3 = isActive and Color3.fromRGB(40, 80, 40) or Color3.fromRGB(60, 40, 40)
 end
 
 local function CreateNumberInputPopup(currentValue, minValue, maxValue, callback)
@@ -805,9 +937,9 @@ local function ShowCoordinateSelectionPopup(title, actionCallback)
         CoordButton.Size = UDim2.new(1, 0, 0, 40)
         CoordButton.Position = UDim2.new(0, 0, 0, (i - 1) * 45)
         CoordButton.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
-        CoordButton.Text = string.format("%s\nX: %.1f, Y: %.1f, Z: %.1f", coord.name, coord.x, coord.y, coord.z)
+        CoordButton.Text = string.format("%s\nX:%.1f Y:%.1f Z:%.1f", coord.name, coord.x, coord.y, coord.z)
         CoordButton.TextColor3 = Color3.fromRGB(220, 220, 255)
-        CoordButton.TextSize = 10
+        CoordButton.TextSize = 9
         CoordButton.Font = Enum.Font.Gotham
         CoordButton.TextWrapped = true
         CoordButton.Parent = ScrollFrame
@@ -863,15 +995,13 @@ local minimized = false
 MinimizeButton.MouseButton1Click:Connect(function()
     minimized = not minimized
     if minimized then
-        MainFrame:TweenSize(UDim2.new(0, 180, 0, 28), "Out", "Quad", 0.3, true)
+        MainFrame:TweenSize(UDim2.new(0, 160, 0, 28), "Out", "Quad", 0.3, true)
         MinimizeButton.Text = "+"
         ScrollFrame.Visible = false
-        Glow.Visible = false
     else
-        MainFrame:TweenSize(UDim2.new(0, 180, 0, 280), "Out", "Quad", 0.3, true)
+        MainFrame:TweenSize(UDim2.new(0, 160, 0, 255), "Out", "Quad", 0.3, true)
         MinimizeButton.Text = "-"
         ScrollFrame.Visible = true
-        Glow.Visible = true
     end
 end)
 
@@ -977,7 +1107,6 @@ local function CreatePlayerSelectionUI()
     end)
 end
 
--- ========== 预测核心（动态：速度 × 延迟时间） ==========
 local function GetPredictedPosition(rootPart)
     if not Teleport.PredictEnabled then
         return rootPart.Position
@@ -989,7 +1118,6 @@ local function GetPredictedPosition(rootPart)
     return rootPart.Position + vel * Teleport.PredictDelay
 end
 
--- ========== 传送（带预测） ==========
 local function TeleportRoutine()
     if not Teleport.Active then return end
 
@@ -1011,7 +1139,6 @@ local function TeleportRoutine()
     end
 end
 
--- ========== 平行环绕（带预测） ==========
 local function ParallelOrbitRoutine()
     if not Teleport.HorizontalOrbitActive then return end
 
@@ -1053,7 +1180,7 @@ end
 
 local function ToggleWallVision()
     Teleport.WallVision = not Teleport.WallVision
-    UpdateButtonState("穿墙视野", Teleport.WallVision)
+    UpdateToggleButton(WallVisionButton, Teleport.WallVision, "穿墙视野:开启", "穿墙视野:关闭")
 
     if Teleport.WallVision then
         Teleport.OriginalTransparency = {}
@@ -1098,6 +1225,7 @@ local function StopTeleport()
         Teleport.Active = false
         if Teleport.Connection then
             Teleport.Connection:Disconnect()
+            Teleport.Connection = nil
         end
         ShowNotification("传送已停止", Color3.fromRGB(255, 100, 0))
         Status.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
@@ -1111,20 +1239,22 @@ local function StopTeleport()
             Teleport.FlingLoopConnection:Disconnect()
             Teleport.FlingLoopConnection = nil
         end
-        FlingLoopButton.Text = "循环甩飞: 关闭"
-        local ind = FlingLoopButton:FindFirstChild("Indicator")
-        if ind then ind.BackgroundColor3 = Color3.fromRGB(255, 50, 50) end
+        UpdateToggleButton(FlingLoopButton, false, "循环甩飞:开启", "循环甩飞:关闭")
     end
-
     if Teleport.TouchFlingActive then
         Teleport.TouchFlingActive = false
-        if Teleport.TouchFlingThread then
-            task.cancel(Teleport.TouchFlingThread)
-            Teleport.TouchFlingThread = nil
+        if Teleport.TouchFlingConnection then
+            Teleport.TouchFlingConnection:Disconnect()
+            Teleport.TouchFlingConnection = nil
         end
-        TouchFlingButton.Text = "触碰甩飞: 关闭"
-        local ind = TouchFlingButton:FindFirstChild("Indicator")
-        if ind then ind.BackgroundColor3 = Color3.fromRGB(255, 50, 50) end
+        if touchCon then
+            touchCon:Disconnect()
+            touchCon = nil
+        end
+        UpdateToggleButton(TouchFlingButton, false, "触碰甩飞:开启", "触碰甩飞:关闭")
+    end
+    if Teleport.HorizontalOrbitActive then
+        StopParallelOrbit()
     end
 end
 
@@ -1143,7 +1273,7 @@ local function StartParallelOrbit()
         task.wait(0.001)
     end)
 
-    UpdateButtonState("平行环绕", true)
+    UpdateToggleButton(ParallelOrbitButton, true, "平行环绕:开启", "平行环绕:关闭")
     ShowNotification("平行环绕已启动", Color3.fromRGB(0, 200, 255))
     Status.BackgroundColor3 = Color3.fromRGB(0, 200, 255)
 end
@@ -1157,9 +1287,10 @@ local function StopParallelOrbit()
     Teleport.HorizontalOrbitActive = false
     if Teleport.HorizontalOrbitConnection then
         Teleport.HorizontalOrbitConnection:Disconnect()
+        Teleport.HorizontalOrbitConnection = nil
     end
 
-    UpdateButtonState("平行环绕", false)
+    UpdateToggleButton(ParallelOrbitButton, false, "平行环绕:开启", "平行环绕:关闭")
     ShowNotification("平行环绕已停止", Color3.fromRGB(255, 100, 0))
 
     if not Teleport.Active then
@@ -1277,7 +1408,7 @@ local function updateSupaCooldown()
         if SupaTech.IsCooldown then
             local remaining = SupaTech.CooldownEndTime - tick()
             if remaining > 0 then
-                SupaStatusLabel.Text = string.format("冷却: %.1f秒", remaining)
+                SupaStatusLabel.Text = string.format("冷却:%.1f秒", remaining)
                 SupaStatusLabel.TextColor3 = Color3.fromRGB(255, 200, 100)
             else
                 SupaStatusLabel.Text = "就绪"
@@ -1383,8 +1514,7 @@ end
 
 local function ToggleSupaTech()
     SupaTech.Enabled = not SupaTech.Enabled
-    SupaTechButton.Text = SupaTech.Enabled and "Supa Tech: 开启" or "Supa Tech: 关闭"
-    UpdateButtonState("SupaTech", SupaTech.Enabled)
+    UpdateToggleButton(SupaTechButton, SupaTech.Enabled, "SupaTech:开启", "SupaTech:关闭")
 
     if SupaTech.Enabled then
         ShowNotification("Supa Tech 已启用", Color3.fromRGB(0, 255, 100))
@@ -1494,12 +1624,7 @@ RunService.Heartbeat:Connect(AntiFlingHeartbeat)
 
 local function ToggleAntiFling()
     AntiFling.Enabled = not AntiFling.Enabled
-    AntiFlingButton.Text = AntiFling.Enabled and "防甩飞: 开启" or "防甩飞: 关闭"
-
-    local indicator = AntiFlingButton:FindFirstChild("Indicator")
-    if indicator then
-        indicator.BackgroundColor3 = AntiFling.Enabled and Color3.fromRGB(50, 255, 50) or Color3.fromRGB(255, 50, 50)
-    end
+    UpdateToggleButton(AntiFlingButton, AntiFling.Enabled, "防甩飞:开启", "防甩飞:关闭")
 
     if AntiFling.Enabled then
         ShowNotification("防甩飞已启用", Color3.fromRGB(0, 255, 100))
@@ -1508,162 +1633,55 @@ local function ToggleAntiFling()
     end
 end
 
-AntiFlingButton.MouseButton1Click:Connect(ToggleAntiFling)
+local touchCon = nil
 
-StartButton.MouseButton1Click:Connect(StartTeleport)
-PlayerSelectButton.MouseButton1Click:Connect(CreatePlayerSelectionUI)
-StopButton.MouseButton1Click:Connect(StopTeleport)
-WallVisionButton.MouseButton1Click:Connect(ToggleWallVision)
-SaveCoordButton.MouseButton1Click:Connect(SaveCurrentCoordinate)
-TeleportCoordButton.MouseButton1Click:Connect(TeleportToCoordinate)
-DeleteCoordButton.MouseButton1Click:Connect(DeleteCoordinate)
-ParallelOrbitButton.MouseButton1Click:Connect(ToggleParallelOrbit)
-SupaTechButton.MouseButton1Click:Connect(ToggleSupaTech)
-
-RadiusControl.Box.MouseButton1Click:Connect(function()
-    CreateNumberInputPopup(RadiusControl.Value, RadiusControl.Min, RadiusControl.Max, function(newValue)
-        RadiusControl.Value = newValue
-        RadiusControl.Box.Text = tostring(newValue)
-        Teleport.OrbitRadius = newValue
-    end)
-end)
-
-OrbitSpeedControl.Box.MouseButton1Click:Connect(function()
-    CreateNumberInputPopup(OrbitSpeedControl.Value, OrbitSpeedControl.Min, OrbitSpeedControl.Max, function(newValue)
-        OrbitSpeedControl.Value = newValue
-        OrbitSpeedControl.Box.Text = tostring(newValue)
-        Teleport.HorizontalSpeed = newValue
-    end)
-end)
-
-AntiThrowSpeedControl.Box.MouseButton1Click:Connect(function()
-    CreateNumberInputPopup(AntiThrowSpeedControl.Value, AntiThrowSpeedControl.Min, AntiThrowSpeedControl.Max, function(newValue)
-        AntiThrowSpeedControl.Value = newValue
-        AntiThrowSpeedControl.Box.Text = tostring(newValue)
-        ShowNotification("防甩飞阈值已设置为: " .. newValue, Color3.fromRGB(0, 200, 255))
-    end)
-end)
-
-SupaRadiusControl.Box.MouseButton1Click:Connect(function()
-    CreateNumberInputPopup(SupaRadiusControl.Value, SupaRadiusControl.Min, SupaRadiusControl.Max, function(newValue)
-        SupaRadiusControl.Value = newValue
-        SupaRadiusControl.Box.Text = tostring(newValue)
-        SupaTech.RandomRadius = newValue
-    end)
-end)
-
-SupaWaitControl.Box.MouseButton1Click:Connect(function()
-    CreateNumberInputPopup(SupaWaitControl.Value, SupaWaitControl.Min, SupaWaitControl.Max, function(newValue)
-        SupaWaitControl.Value = newValue
-        SupaWaitControl.Box.Text = tostring(newValue)
-        SupaTech.WaitBeforeAction = newValue
-    end)
-end)
-
-SupaVerticalControl.Box.MouseButton1Click:Connect(function()
-    CreateNumberInputPopup(SupaVerticalControl.Value, SupaVerticalControl.Min, SupaVerticalControl.Max, function(newValue)
-        SupaVerticalControl.Value = newValue
-        SupaVerticalControl.Box.Text = tostring(newValue)
-        SupaTech.VerticalOffset = newValue
-    end)
-end)
-
-SupaCooldownControl.Box.MouseButton1Click:Connect(function()
-    CreateNumberInputPopup(SupaCooldownControl.Value, SupaCooldownControl.Min, SupaCooldownControl.Max, function(newValue)
-        SupaCooldownControl.Value = newValue
-        SupaCooldownControl.Box.Text = tostring(newValue)
-        SupaTech.CooldownTime = newValue
-    end)
-end)
-
-local function Invis_RefreshParts()
-    InvisData.char = player.Character or player.CharacterAdded:Wait()
-    InvisData.hum = InvisData.char:WaitForChild('Humanoid')
-    InvisData.root = InvisData.char:WaitForChild('HumanoidRootPart')
-    InvisData.parts = {}
-
-    for _, part in ipairs(InvisData.char:GetDescendants()) do
-        if part:IsA('BasePart') and part.Transparency == 0 then
-            table.insert(InvisData.parts, part)
-        end
-    end
-end
-
-local function Invis_Toggle()
-    InvisData.enabled = not InvisData.enabled
-
-    for _, part in ipairs(InvisData.parts) do
-        if part and part.Parent then
-            part.Transparency = InvisData.enabled and 0.5 or 0
-        end
+local function SetupTouchFling()
+    if touchCon then
+        touchCon:Disconnect()
+        touchCon = nil
     end
 
-    InvisButton.Text = InvisData.enabled and "隐身: 开启" or "隐身: 关闭"
-    local indicator = InvisButton:FindFirstChild("Indicator")
-    if indicator then
-        indicator.BackgroundColor3 = InvisData.enabled and Color3.fromRGB(50, 255, 50) or Color3.fromRGB(255, 50, 50)
-    end
-
-    ShowNotification(InvisData.enabled and "隐身已开启" or "隐身已关闭", InvisData.enabled and Color3.fromRGB(0, 255, 100) or Color3.fromRGB(255, 100, 0))
-end
-
-Invis_RefreshParts()
-
-InvisButton.MouseButton1Click:Connect(Invis_Toggle)
-
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
-    if input.KeyCode == Enum.KeyCode.G then
-        Invis_Toggle()
-    end
-end)
-
-local function Invis_Heartbeat()
-    if not InvisData.enabled then return end
-    if not InvisData.root or not InvisData.hum then return end
-
-    local currentCFrame = InvisData.root.CFrame
-    local currentOffset = InvisData.hum.CameraOffset
-    local targetCFrame = currentCFrame * CFrame.new(0, -200000, 0)
-    local posOffset = targetCFrame:ToObjectSpace(CFrame.new(currentCFrame.Position)).Position
-
-    InvisData.root.CFrame = targetCFrame
-    InvisData.hum.CameraOffset = posOffset
-
-    RunService.RenderStepped:Wait()
-
-    InvisData.root.CFrame = currentCFrame
-    InvisData.hum.CameraOffset = currentOffset
-end
-RunService.Heartbeat:Connect(Invis_Heartbeat)
-
-player.CharacterAdded:Connect(function()
-    Invis_RefreshParts()
-    if InvisData.enabled then
-        for _, part in ipairs(InvisData.parts) do
-            if part and part.Parent then
-                part.Transparency = 0.5
-            end
-        end
-    end
-end)
-
-SuicideButton.MouseButton1Click:Connect(function()
     local char = player.Character
-    if char then
-        local hum = char:FindFirstChildOfClass("Humanoid")
-        if hum then
-            hum.Health = 0
-            ShowNotification("已自杀，即将重生", Color3.fromRGB(255, 200, 0))
-        else
-            ShowNotification("未找到 Humanoid", Color3.fromRGB(255, 50, 50))
-        end
-    else
-        ShowNotification("角色不存在", Color3.fromRGB(255, 50, 50))
-    end
-end)
+    if not char then return end
 
--- ========== 甩飞一次 + 循环甩飞（完整 SkidFling 逻辑，带预测） ==========
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    touchCon = hrp.Touched:Connect(function(hit)
+        if not Teleport.TouchFlingActive then return end
+        if not hit or not hit.Parent then return end
+        local hitChar = hit.Parent
+        if not hitChar:IsA("Model") then
+            hitChar = hitChar.Parent
+            if not hitChar or not hitChar:IsA("Model") then return end
+        end
+
+        local hum = hitChar:FindFirstChildOfClass("Humanoid")
+        if not hum then return end
+
+        local targetPlayer = Players:GetPlayerFromCharacter(hitChar)
+        if not targetPlayer or targetPlayer == player then return end
+
+        FlingPlayer(targetPlayer)
+    end)
+end
+
+local function ToggleTouchFling()
+    Teleport.TouchFlingActive = not Teleport.TouchFlingActive
+    UpdateToggleButton(TouchFlingButton, Teleport.TouchFlingActive, "触碰甩飞:开启", "触碰甩飞:关闭")
+
+    if Teleport.TouchFlingActive then
+        SetupTouchFling()
+        ShowNotification("触碰甩飞已启动", Color3.fromRGB(0, 200, 255))
+    else
+        if touchCon then
+            touchCon:Disconnect()
+            touchCon = nil
+        end
+        ShowNotification("触碰甩飞已停止", Color3.fromRGB(255, 100, 0))
+    end
+end
+
 local function FlingPlayer(targetPlayer)
     if not targetPlayer then
         ShowNotification("未选择目标", Color3.fromRGB(255, 50, 50))
@@ -1700,9 +1718,6 @@ local function FlingPlayer(targetPlayer)
         return
     end
 
-    -- 甩飞时使用预测位置
-    local targetPredPos = tRoot and GetPredictedPosition(tRoot) or tRoot.Position
-
     local oldCam = workspace.CurrentCamera.CameraSubject
     if tHead then
         workspace.CurrentCamera.CameraSubject = tHead
@@ -1713,7 +1728,7 @@ local function FlingPlayer(targetPlayer)
     end
 
     local oldFPDH = workspace.FallenPartsDestroyHeight
-    workspace.FallenPartsDestroyHeight = 0/0
+    workspace.FallenPartsDestroyHeight = math.huge
 
     local selfPos = root.CFrame
 
@@ -1779,22 +1794,14 @@ local function FlingPlayer(targetPlayer)
 
     hum:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
 
-    local targetPartForFling = tRoot or tHead or handle
-    if targetPartForFling then
-        local originalPos = targetPartForFling.Position
-        targetPartForFling.Position = targetPredPos
-        if tRoot and tHead and (tRoot.CFrame.p - tHead.CFrame.p).Magnitude > 5 then
-            SFBasePart(tHead)
-        elseif tRoot then
-            SFBasePart(tRoot)
-        elseif tHead then
-            SFBasePart(tHead)
-        elseif handle then
-            SFBasePart(handle)
-        else
-            ShowNotification("目标缺失部件", Color3.fromRGB(255, 50, 50))
-        end
-        targetPartForFling.Position = originalPos
+    if tRoot and tHead and (tRoot.CFrame.p - tHead.CFrame.p).Magnitude > 5 then
+        SFBasePart(tHead)
+    elseif tRoot then
+        SFBasePart(tRoot)
+    elseif tHead then
+        SFBasePart(tHead)
+    elseif handle then
+        SFBasePart(handle)
     else
         ShowNotification("目标缺失部件", Color3.fromRGB(255, 50, 50))
     end
@@ -1810,47 +1817,16 @@ local function FlingPlayer(targetPlayer)
     root.RotVelocity = Vector3.zero
 end
 
--- ========== 触碰甩飞（走路创人 - 改自己速度） ==========
-local function ToggleTouchFling()
-    Teleport.TouchFlingActive = not Teleport.TouchFlingActive
-    TouchFlingButton.Text = Teleport.TouchFlingActive and "触碰甩飞: 开启" or "触碰甩飞: 关闭"
-
-    local indicator = TouchFlingButton:FindFirstChild("Indicator")
-    if indicator then
-        indicator.BackgroundColor3 = Teleport.TouchFlingActive and Color3.fromRGB(50, 255, 50) or Color3.fromRGB(255, 50, 50)
-    end
-
-    if Teleport.TouchFlingActive then
-        if Teleport.TouchFlingThread then return end
-        Teleport.TouchFlingThread = task.spawn(function()
-            local flingPower = 2500
-            local movel = 0.05
-            while Teleport.TouchFlingActive do
-                RunService.Heartbeat:Wait()
-                local character = player.Character
-                if not character then continue end
-                local hrp = character:FindFirstChild("HumanoidRootPart")
-                if not hrp then continue end
-                local originalVelocity = hrp.Velocity
-                hrp.Velocity = originalVelocity * 1.5 + Vector3.new(0, flingPower, 0)
-                RunService.RenderStepped:Wait()
-                hrp.Velocity = originalVelocity * 0.8
-                RunService.Stepped:Wait()
-                hrp.Velocity = originalVelocity + Vector3.new(0, movel, 0)
-                movel = -movel
-            end
-            Teleport.TouchFlingThread = nil
-        end)
-        ShowNotification("触碰甩飞已启动（走路创人）", Color3.fromRGB(0, 200, 255))
-    else
-        if Teleport.TouchFlingThread then
-            task.cancel(Teleport.TouchFlingThread)
-            Teleport.TouchFlingThread = nil
-        end
-        ShowNotification("触碰甩飞已停止", Color3.fromRGB(255, 100, 0))
-    end
-end
-
+StartButton.MouseButton1Click:Connect(StartTeleport)
+PlayerSelectButton.MouseButton1Click:Connect(CreatePlayerSelectionUI)
+StopButton.MouseButton1Click:Connect(StopTeleport)
+WallVisionButton.MouseButton1Click:Connect(ToggleWallVision)
+SaveCoordButton.MouseButton1Click:Connect(SaveCurrentCoordinate)
+TeleportCoordButton.MouseButton1Click:Connect(TeleportToCoordinate)
+DeleteCoordButton.MouseButton1Click:Connect(DeleteCoordinate)
+ParallelOrbitButton.MouseButton1Click:Connect(ToggleParallelOrbit)
+SupaTechButton.MouseButton1Click:Connect(ToggleSupaTech)
+AntiFlingButton.MouseButton1Click:Connect(ToggleAntiFling)
 TouchFlingButton.MouseButton1Click:Connect(ToggleTouchFling)
 
 FlingOnceButton.MouseButton1Click:Connect(function()
@@ -1863,21 +1839,13 @@ end)
 
 FlingLoopButton.MouseButton1Click:Connect(function()
     Teleport.FlingLoopActive = not Teleport.FlingLoopActive
-    FlingLoopButton.Text = Teleport.FlingLoopActive and "循环甩飞: 开启" or "循环甩飞: 关闭"
-
-    local indicator = FlingLoopButton:FindFirstChild("Indicator")
-    if indicator then
-        indicator.BackgroundColor3 = Teleport.FlingLoopActive and Color3.fromRGB(50, 255, 50) or Color3.fromRGB(255, 50, 50)
-    end
+    UpdateToggleButton(FlingLoopButton, Teleport.FlingLoopActive, "循环甩飞:开启", "循环甩飞:关闭")
 
     if Teleport.FlingLoopActive then
         if not Teleport.Target then
             ShowNotification("请先选择目标", Color3.fromRGB(255, 50, 50))
             Teleport.FlingLoopActive = false
-            FlingLoopButton.Text = "循环甩飞: 关闭"
-            if indicator then
-                indicator.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
-            end
+            UpdateToggleButton(FlingLoopButton, false, "循环甩飞:开启", "循环甩飞:关闭")
             return
         end
 
@@ -1912,18 +1880,31 @@ end)
 
 DeleteUIButton.MouseButton1Click:Connect(DeleteUI)
 
--- ========== 预测开关和延迟时间 ==========
-local function TogglePredict()
-    Teleport.PredictEnabled = not Teleport.PredictEnabled
-    PredictButton.Text = Teleport.PredictEnabled and "预测攻击: 开启" or "预测攻击: 关闭"
-    local indicator = PredictButton:FindFirstChild("Indicator")
-    if indicator then
-        indicator.BackgroundColor3 = Teleport.PredictEnabled and Color3.fromRGB(50, 255, 50) or Color3.fromRGB(255, 50, 50)
-    end
-    ShowNotification(Teleport.PredictEnabled and "预测攻击已开启" or "预测攻击已关闭", Teleport.PredictEnabled and Color3.fromRGB(0, 255, 100) or Color3.fromRGB(255, 100, 0))
-end
+RadiusControl.Box.MouseButton1Click:Connect(function()
+    CreateNumberInputPopup(RadiusControl.Value, RadiusControl.Min, RadiusControl.Max, function(newValue)
+        RadiusControl.Value = newValue
+        RadiusControl.Box.Text = tostring(newValue)
+        Teleport.OrbitRadius = newValue
+    end)
+end)
 
-PredictButton.MouseButton1Click:Connect(TogglePredict)
+OrbitSpeedControl.Box.MouseButton1Click:Connect(function()
+    CreateNumberInputPopup(OrbitSpeedControl.Value, OrbitSpeedControl.Min, OrbitSpeedControl.Max, function(newValue)
+        OrbitSpeedControl.Value = newValue
+        OrbitSpeedControl.Box.Text = tostring(newValue)
+        Teleport.HorizontalSpeed = newValue
+    end)
+end)
+
+AntiThrowSpeedControl.Box.MouseButton1Click:Connect(function()
+    CreateNumberInputPopup(AntiThrowSpeedControl.Value, AntiThrowSpeedControl.Min, AntiThrowSpeedControl.Max, function(newValue)
+        AntiThrowSpeedControl.Value = newValue
+        AntiThrowSpeedControl.Box.Text = tostring(newValue)
+        AntiFling.MaxLinear = newValue
+        AntiFling.MaxAngular = newValue * 0.5
+        ShowNotification("防甩飞阈值已设置为: " .. newValue, Color3.fromRGB(0, 200, 255))
+    end)
+end)
 
 PredictDelayControl.Box.MouseButton1Click:Connect(function()
     CreateNumberInputPopup(PredictDelayControl.Value, PredictDelayControl.Min, PredictDelayControl.Max, function(newValue)
@@ -1933,6 +1914,203 @@ PredictDelayControl.Box.MouseButton1Click:Connect(function()
         ShowNotification("延迟时间已设置为: " .. newValue .. " 秒", Color3.fromRGB(0, 200, 255))
     end)
 end)
+
+NotifWidthControl.Box.MouseButton1Click:Connect(function()
+    CreateNumberInputPopup(NotifWidthControl.Value, NotifWidthControl.Min, NotifWidthControl.Max, function(newValue)
+        NotifWidthControl.Value = newValue
+        NotifWidthControl.Box.Text = tostring(newValue)
+        NotificationSettings.Width = newValue
+        ShowNotification("通知宽度已更新", Color3.fromRGB(0, 200, 255), 1)
+    end)
+end)
+
+NotifHeightControl.Box.MouseButton1Click:Connect(function()
+    CreateNumberInputPopup(NotifHeightControl.Value, NotifHeightControl.Min, NotifHeightControl.Max, function(newValue)
+        NotifHeightControl.Value = newValue
+        NotifHeightControl.Box.Text = tostring(newValue)
+        NotificationSettings.Height = newValue
+        ShowNotification("通知高度已更新", Color3.fromRGB(0, 200, 255), 1)
+    end)
+end)
+
+NotifTextSizeControl.Box.MouseButton1Click:Connect(function()
+    CreateNumberInputPopup(NotifTextSizeControl.Value, NotifTextSizeControl.Min, NotifTextSizeControl.Max, function(newValue)
+        NotifTextSizeControl.Value = newValue
+        NotifTextSizeControl.Box.Text = tostring(newValue)
+        NotificationSettings.TextSize = newValue
+        ShowNotification("字体大小已更新", Color3.fromRGB(0, 200, 255), 1)
+    end)
+end)
+
+SupaRadiusControl.Box.MouseButton1Click:Connect(function()
+    CreateNumberInputPopup(SupaRadiusControl.Value, SupaRadiusControl.Min, SupaRadiusControl.Max, function(newValue)
+        SupaRadiusControl.Value = newValue
+        SupaRadiusControl.Box.Text = tostring(newValue)
+        SupaTech.RandomRadius = newValue
+    end)
+end)
+
+SupaWaitControl.Box.MouseButton1Click:Connect(function()
+    CreateNumberInputPopup(SupaWaitControl.Value, SupaWaitControl.Min, SupaWaitControl.Max, function(newValue)
+        SupaWaitControl.Value = newValue
+        SupaWaitControl.Box.Text = tostring(newValue)
+        SupaTech.WaitBeforeAction = newValue
+    end)
+end)
+
+SupaVerticalControl.Box.MouseButton1Click:Connect(function()
+    CreateNumberInputPopup(SupaVerticalControl.Value, SupaVerticalControl.Min, SupaVerticalControl.Max, function(newValue)
+        SupaVerticalControl.Value = newValue
+        SupaVerticalControl.Box.Text = tostring(newValue)
+        SupaTech.VerticalOffset = newValue
+    end)
+end)
+
+SupaCooldownControl.Box.MouseButton1Click:Connect(function()
+    CreateNumberInputPopup(SupaCooldownControl.Value, SupaCooldownControl.Min, SupaCooldownControl.Max, function(newValue)
+        SupaCooldownControl.Value = newValue
+        SupaCooldownControl.Box.Text = tostring(newValue)
+        SupaTech.CooldownTime = newValue
+    end)
+end)
+
+InvisOffsetX.Box.MouseButton1Click:Connect(function()
+    CreateNumberInputPopup(InvisOffsetX.Value, InvisOffsetX.Min, InvisOffsetX.Max, function(newValue)
+        InvisOffsetX.Value = newValue
+        InvisOffsetX.Box.Text = tostring(newValue)
+        InvisData.offset = Vector3.new(newValue, InvisData.offset.Y, InvisData.offset.Z)
+        ShowNotification("隐身X偏移已更新: " .. newValue, Color3.fromRGB(0, 200, 255), 1)
+    end)
+end)
+
+InvisOffsetY.Box.MouseButton1Click:Connect(function()
+    CreateNumberInputPopup(InvisOffsetY.Value, InvisOffsetY.Min, InvisOffsetY.Max, function(newValue)
+        InvisOffsetY.Value = newValue
+        InvisOffsetY.Box.Text = tostring(newValue)
+        InvisData.offset = Vector3.new(InvisData.offset.X, newValue, InvisData.offset.Z)
+        ShowNotification("隐身Y偏移已更新: " .. newValue, Color3.fromRGB(0, 200, 255), 1)
+    end)
+end)
+
+InvisOffsetZ.Box.MouseButton1Click:Connect(function()
+    CreateNumberInputPopup(InvisOffsetZ.Value, InvisOffsetZ.Min, InvisOffsetZ.Max, function(newValue)
+        InvisOffsetZ.Value = newValue
+        InvisOffsetZ.Box.Text = tostring(newValue)
+        InvisData.offset = Vector3.new(InvisData.offset.X, InvisData.offset.Y, newValue)
+        ShowNotification("隐身Z偏移已更新: " .. newValue, Color3.fromRGB(0, 200, 255), 1)
+    end)
+end)
+
+-- ===== 修正后的隐身快捷键逻辑 =====
+local function Invis_RefreshParts()
+    InvisData.char = player.Character or player.CharacterAdded:Wait()
+    InvisData.hum = InvisData.char:WaitForChild('Humanoid')
+    InvisData.root = InvisData.char:WaitForChild('HumanoidRootPart')
+    InvisData.parts = {}
+
+    for _, part in ipairs(InvisData.char:GetDescendants()) do
+        if part:IsA('BasePart') and part.Transparency == 0 then
+            table.insert(InvisData.parts, part)
+        end
+    end
+end
+
+local function Invis_Toggle()
+    InvisData.enabled = not InvisData.enabled
+
+    for _, part in ipairs(InvisData.parts) do
+        if part and part.Parent then
+            part.Transparency = InvisData.enabled and 0.5 or 0
+        end
+    end
+
+    UpdateToggleButton(InvisButton, InvisData.enabled, "隐身:开启", "隐身:关闭")
+    ShowNotification(InvisData.enabled and "隐身已开启" or "隐身已关闭", InvisData.enabled and Color3.fromRGB(0, 255, 100) or Color3.fromRGB(255, 100, 0))
+end
+
+Invis_RefreshParts()
+
+InvisButton.MouseButton1Click:Connect(Invis_Toggle)
+
+-- 封装快捷键检测函数
+local function OnInputBegan(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == InvisHotkey then
+        Invis_Toggle()
+    end
+end
+
+-- 绑定监听
+UserInputService.InputBegan:Connect(OnInputBegan)
+
+-- 设置快捷键按钮
+SetHotkeyButton.MouseButton1Click:Connect(function()
+    ShowNotification("请按下一个键来设置隐身快捷键", Color3.fromRGB(255, 200, 100), 3)
+    local connection
+    connection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+        if gameProcessed then return end
+        if input.KeyCode ~= Enum.KeyCode.Unknown then
+            InvisHotkey = input.KeyCode
+            SetHotkeyButton.Text = "设置隐身快捷键 (" .. input.KeyCode.Name .. ")"
+            ShowNotification("隐身快捷键已设置为: " .. input.KeyCode.Name, Color3.fromRGB(0, 255, 100))
+            connection:Disconnect()
+        end
+    end)
+end)
+
+SetHotkeyButton.Text = "设置隐身快捷键 (G)"
+
+local function Invis_Heartbeat()
+    if not InvisData.enabled then return end
+    if not InvisData.root or not InvisData.hum then return end
+
+    local currentCFrame = InvisData.root.CFrame
+    local currentOffset = InvisData.hum.CameraOffset
+    local targetCFrame = currentCFrame * CFrame.new(InvisData.offset)
+    local posOffset = targetCFrame:ToObjectSpace(CFrame.new(currentCFrame.Position)).Position
+
+    InvisData.root.CFrame = targetCFrame
+    InvisData.hum.CameraOffset = posOffset
+
+    RunService.RenderStepped:Wait()
+
+    InvisData.root.CFrame = currentCFrame
+    InvisData.hum.CameraOffset = currentOffset
+end
+RunService.Heartbeat:Connect(Invis_Heartbeat)
+
+player.CharacterAdded:Connect(function()
+    Invis_RefreshParts()
+    if InvisData.enabled then
+        for _, part in ipairs(InvisData.parts) do
+            if part and part.Parent then
+                part.Transparency = 0.5
+            end
+        end
+    end
+end)
+
+SuicideButton.MouseButton1Click:Connect(function()
+    local char = player.Character
+    if char then
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hum then
+            hum.Health = 0
+            ShowNotification("已自杀，即将重生", Color3.fromRGB(255, 200, 0))
+        else
+            ShowNotification("未找到 Humanoid", Color3.fromRGB(255, 50, 50))
+        end
+    else
+        ShowNotification("角色不存在", Color3.fromRGB(255, 50, 50))
+    end
+end)
+
+local function TogglePredict()
+    Teleport.PredictEnabled = not Teleport.PredictEnabled
+    UpdateToggleButton(PredictButton, Teleport.PredictEnabled, "预测攻击:开启", "预测攻击:关闭")
+    ShowNotification(Teleport.PredictEnabled and "预测攻击已开启" or "预测攻击已关闭", Teleport.PredictEnabled and Color3.fromRGB(0, 255, 100) or Color3.fromRGB(255, 100, 0))
+end
+PredictButton.MouseButton1Click:Connect(TogglePredict)
 
 Players.PlayerAdded:Connect(function(p)
     if p ~= player then
@@ -1961,13 +2139,11 @@ player.CharacterAdded:Connect(function(char)
 
         if Teleport.TouchFlingActive then
             Teleport.TouchFlingActive = false
-            if Teleport.TouchFlingThread then
-                task.cancel(Teleport.TouchFlingThread)
-                Teleport.TouchFlingThread = nil
+            if touchCon then
+                touchCon:Disconnect()
+                touchCon = nil
             end
-            TouchFlingButton.Text = "触碰甩飞: 关闭"
-            local ind = TouchFlingButton:FindFirstChild("Indicator")
-            if ind then ind.BackgroundColor3 = Color3.fromRGB(255, 50, 50) end
+            UpdateToggleButton(TouchFlingButton, false, "触碰甩飞:开启", "触碰甩飞:关闭")
         end
 
         if Teleport.FlingLoopActive then
@@ -1976,11 +2152,13 @@ player.CharacterAdded:Connect(function(char)
                 Teleport.FlingLoopConnection:Disconnect()
                 Teleport.FlingLoopConnection = nil
             end
-            FlingLoopButton.Text = "循环甩飞: 关闭"
-            local ind = FlingLoopButton:FindFirstChild("Indicator")
-            if ind then ind.BackgroundColor3 = Color3.fromRGB(255, 50, 50) end
+            UpdateToggleButton(FlingLoopButton, false, "循环甩飞:开启", "循环甩飞:关闭")
         end
     end)
+
+    if Teleport.TouchFlingActive then
+        SetupTouchFling()
+    end
 end)
 
 RunService.Heartbeat:Connect(function()
@@ -2019,11 +2197,12 @@ end)
 
 RunService.Heartbeat:Connect(updateSupaCooldown)
 
-UpdateButtonState("防甩飞: 关闭", false)
-UpdateButtonState("穿墙视野", false)
-UpdateButtonState("平行环绕", false)
-UpdateButtonState("SupaTech", false)
-UpdateButtonState("预测攻击: 关闭", false)
+local defaultPosBtn = PosButtons["左上"]
+if defaultPosBtn then
+    local hl = defaultPosBtn:FindFirstChild("Highlight")
+    if hl then hl.Transparency = 0 end
+end
+
 InitCoordinateManager()
 ShowNotification("传送脚本已加载", Color3.fromRGB(0, 150, 255))
 wait(3)
@@ -2031,7 +2210,7 @@ ShowNotification("已复制快手号，记得去快手关注我们点赞我们�
 task.wait(3)
 ShowNotification("已复制QQ群号，喜欢这个脚本的可以去加一下呐", Color3.fromRGB(0, 150, 255))
 local text = [[
-QQ群号         959952398
+QQ群号959952398
 副作者qq号      2519623976
 快手号           xttt_888
 作者qq号        3549117299
