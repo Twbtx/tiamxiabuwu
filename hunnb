@@ -76,6 +76,7 @@ local NotificationSettings = {
 
 local InvisHotkey = Enum.KeyCode.T
 
+-- ===== 文件读写 =====
 local function ReadFile(path)
     local success, result = pcall(function()
         if readfile then
@@ -88,7 +89,6 @@ local function ReadFile(path)
     end)
     return success and result or nil
 end
-
 local function WriteFile(path, content)
     local success, result = pcall(function()
         if writefile then
@@ -103,7 +103,6 @@ local function WriteFile(path, content)
     end)
     return success and result or false
 end
-
 local function LoadCoordinates()
     local content = ReadFile(CoordinateManager.FilePath)
     if content then
@@ -117,7 +116,6 @@ local function LoadCoordinates()
     end
     return false
 end
-
 local function SaveCoordinates()
     local success = pcall(function()
         local json = HttpService:JSONEncode(CoordinateManager.SavedCoordinates)
@@ -125,19 +123,15 @@ local function SaveCoordinates()
     end)
     return success
 end
-
 local function InitCoordinateManager()
     LoadCoordinates()
 end
 
+-- ===== 通知系统 =====
 local function ShowNotification(message, color, duration)
     color = color or Color3.fromRGB(0, 150, 255)
     duration = duration or NotificationSettings.Duration
-
-    if _G.NotificationGui then
-        _G.NotificationGui:Destroy()
-    end
-
+    if _G.NotificationGui then _G.NotificationGui:Destroy() end
     local gui = Instance.new("ScreenGui")
     gui.Parent = player:WaitForChild("PlayerGui")
     gui.ResetOnSpawn = false
@@ -178,11 +172,10 @@ local function ShowNotification(message, color, duration)
     text.TextXAlignment = Enum.TextXAlignment.Left
     text.TextYAlignment = Enum.TextYAlignment.Top
 
-    local startPos, endPos
     local margin = 10
     local w = NotificationSettings.Width
     local h = NotificationSettings.Height
-
+    local startPos, endPos
     if NotificationSettings.Position == "TopLeft" then
         startPos = UDim2.new(0, margin, 0, -h - margin)
         endPos = UDim2.new(0, margin, 0, margin)
@@ -199,19 +192,12 @@ local function ShowNotification(message, color, duration)
         startPos = UDim2.new(0, margin, 0, -h - margin)
         endPos = UDim2.new(0, margin, 0, margin)
     end
-
     frame.Position = startPos
-
-    local tweenIn = TweenService:Create(frame, TweenInfo.new(NotificationSettings.PopSpeed, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-        Position = endPos
-    })
+    local tweenIn = TweenService:Create(frame, TweenInfo.new(NotificationSettings.PopSpeed, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {Position = endPos})
     tweenIn:Play()
-
     task.delay(duration, function()
         if not frame.Parent then return end
-        local tweenOut = TweenService:Create(frame, TweenInfo.new(NotificationSettings.RetractSpeed, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-            Position = startPos
-        })
+        local tweenOut = TweenService:Create(frame, TweenInfo.new(NotificationSettings.RetractSpeed, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {Position = startPos})
         tweenOut:Play()
         tweenOut.Completed:Connect(function()
             gui:Destroy()
@@ -220,10 +206,13 @@ local function ShowNotification(message, color, duration)
     end)
 end
 
+-- ===== UI 主框架（强制最顶层） =====
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Parent = player:WaitForChild("PlayerGui")
 ScreenGui.Name = "TeleportControlUI"
 ScreenGui.ResetOnSpawn = false
+ScreenGui.DisplayOrder = 999
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
 
 local MainFrame = Instance.new("Frame")
 MainFrame.Parent = ScreenGui
@@ -243,15 +232,12 @@ BackgroundImage.SliceCenter = Rect.new(8, 8, 8, 8)
 BackgroundImage.ImageColor3 = Color3.fromRGB(255, 255, 255)
 BackgroundImage.ImageTransparency = 0
 BackgroundImage.ZIndex = 0
-
 local BGCorner = Instance.new("UICorner")
 BGCorner.Parent = BackgroundImage
 BGCorner.CornerRadius = UDim.new(0, 10)
-
 local Corner = Instance.new("UICorner")
 Corner.Parent = MainFrame
 Corner.CornerRadius = UDim.new(0, 10)
-
 local Stroke = Instance.new("UIStroke")
 Stroke.Parent = MainFrame
 Stroke.Color = Color3.fromRGB(60, 120, 255)
@@ -264,11 +250,9 @@ Header.Size = UDim2.new(1, 0, 0, 28)
 Header.Position = UDim2.new(0, 0, 0, 0)
 Header.BackgroundColor3 = Color3.fromRGB(25, 25, 40)
 Header.BackgroundTransparency = 0
-
 local HeaderCorner = Instance.new("UICorner")
 HeaderCorner.Parent = Header
 HeaderCorner.CornerRadius = UDim.new(0, 10)
-
 local Title = Instance.new("TextLabel")
 Title.Parent = Header
 Title.Size = UDim2.new(1, -50, 1, 0)
@@ -279,14 +263,12 @@ Title.TextColor3 = Color3.fromRGB(180, 200, 255)
 Title.TextSize = 13
 Title.Font = Enum.Font.GothamBold
 Title.TextXAlignment = Enum.TextXAlignment.Left
-
 local Status = Instance.new("Frame")
 Status.Parent = Header
 Status.Size = UDim2.new(0, 6, 0, 6)
 Status.Position = UDim2.new(1, -35, 0.5, -3)
 Status.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
 Status.BorderSizePixel = 0
-
 local StatusCorner = Instance.new("UICorner")
 StatusCorner.Parent = Status
 StatusCorner.CornerRadius = UDim.new(1, 0)
@@ -301,11 +283,9 @@ MinimizeButton.Text = "-"
 MinimizeButton.TextColor3 = Color3.fromRGB(220, 220, 255)
 MinimizeButton.TextSize = 14
 MinimizeButton.Font = Enum.Font.GothamBold
-
 local MinimizeCorner = Instance.new("UICorner")
 MinimizeCorner.Parent = MinimizeButton
 MinimizeCorner.CornerRadius = UDim.new(0, 5)
-
 local MinimizeStroke = Instance.new("UIStroke")
 MinimizeStroke.Parent = MinimizeButton
 MinimizeStroke.Color = Color3.fromRGB(100, 150, 255)
@@ -318,13 +298,14 @@ ScrollFrame.Position = UDim2.new(0, 6, 0, 32)
 ScrollFrame.BackgroundTransparency = 1
 ScrollFrame.ScrollBarThickness = 4
 ScrollFrame.ScrollBarImageColor3 = Color3.fromRGB(80, 120, 200)
-ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 1280)
+ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 1400)
 
 local Content = Instance.new("Frame")
 Content.Parent = ScrollFrame
-Content.Size = UDim2.new(1, 0, 0, 1260)
+Content.Size = UDim2.new(1, 0, 0, 1400)
 Content.BackgroundTransparency = 1
 
+-- ===== 辅助函数 =====
 local function CreateButton(name, yPosition, hasIndicator)
     local Button = Instance.new("TextButton")
     Button.Name = name
@@ -337,16 +318,13 @@ local function CreateButton(name, yPosition, hasIndicator)
     Button.TextSize = 10
     Button.Font = Enum.Font.Gotham
     Button.Parent = Content
-
     local ButtonCorner = Instance.new("UICorner")
     ButtonCorner.Parent = Button
     ButtonCorner.CornerRadius = UDim.new(0, 6)
-
     local ButtonStroke = Instance.new("UIStroke")
     ButtonStroke.Parent = Button
     ButtonStroke.Color = Color3.fromRGB(80, 120, 200)
     ButtonStroke.Thickness = 1
-
     if hasIndicator then
         local Indicator = Instance.new("Frame")
         Indicator.Name = "Indicator"
@@ -355,12 +333,10 @@ local function CreateButton(name, yPosition, hasIndicator)
         Indicator.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
         Indicator.BorderSizePixel = 0
         Indicator.Parent = Button
-
         local IndicatorCorner = Instance.new("UICorner")
         IndicatorCorner.Parent = Indicator
         IndicatorCorner.CornerRadius = UDim.new(1, 0)
     end
-
     return Button
 end
 
@@ -370,7 +346,6 @@ local function CreateInputControl(label, yPosition, defaultValue, minValue, maxV
     ControlFrame.Position = UDim2.new(0, 0, 0, yPosition)
     ControlFrame.BackgroundTransparency = 1
     ControlFrame.Parent = Content
-
     local Label = Instance.new("TextLabel")
     Label.Size = UDim2.new(0.4, 0, 1, 0)
     Label.Position = UDim2.new(0, 0, 0, 0)
@@ -381,7 +356,6 @@ local function CreateInputControl(label, yPosition, defaultValue, minValue, maxV
     Label.Font = Enum.Font.Gotham
     Label.TextXAlignment = Enum.TextXAlignment.Left
     Label.Parent = ControlFrame
-
     local ValueBox = Instance.new("TextButton")
     ValueBox.Size = UDim2.new(0.6, 0, 1, 0)
     ValueBox.Position = UDim2.new(0.4, 0, 0, 0)
@@ -391,25 +365,299 @@ local function CreateInputControl(label, yPosition, defaultValue, minValue, maxV
     ValueBox.TextSize = 9
     ValueBox.Font = Enum.Font.Gotham
     ValueBox.Parent = ControlFrame
-
     local ValueCorner = Instance.new("UICorner")
     ValueCorner.Parent = ValueBox
     ValueCorner.CornerRadius = UDim.new(0, 4)
-
     local ValueStroke = Instance.new("UIStroke")
     ValueStroke.Parent = ValueBox
     ValueStroke.Color = Color3.fromRGB(80, 120, 200)
     ValueStroke.Thickness = 1
-
-    return {
-        Frame = ControlFrame,
-        Box = ValueBox,
-        Value = defaultValue,
-        Min = minValue,
-        Max = maxValue
-    }
+    return {Frame = ControlFrame, Box = ValueBox, Value = defaultValue, Min = minValue, Max = maxValue}
 end
 
+local function UpdateToggleButton(button, isActive, activeText, inactiveText)
+    if not button then return end
+    button.Text = isActive and (activeText or "开启") or (inactiveText or "关闭")
+    local indicator = button:FindFirstChild("Indicator")
+    if indicator then
+        indicator.BackgroundColor3 = isActive and Color3.fromRGB(50, 255, 50) or Color3.fromRGB(255, 50, 50)
+    end
+    button.BackgroundColor3 = isActive and Color3.fromRGB(40, 80, 40) or Color3.fromRGB(60, 40, 40)
+end
+
+local function CreateNumberInputPopup(currentValue, minValue, maxValue, callback)
+    local PopupGui = Instance.new("ScreenGui")
+    PopupGui.Parent = player:WaitForChild("PlayerGui")
+    local PopupFrame = Instance.new("Frame")
+    PopupFrame.Parent = PopupGui
+    PopupFrame.Size = UDim2.new(0, 220, 0, 130)
+    PopupFrame.Position = UDim2.new(0.5, -110, 0.5, -65)
+    PopupFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 35)
+    PopupFrame.Active = true
+    PopupFrame.Draggable = true
+    local PopupCorner = Instance.new("UICorner")
+    PopupCorner.Parent = PopupFrame
+    PopupCorner.CornerRadius = UDim.new(0, 10)
+    local PopupStroke = Instance.new("UIStroke")
+    PopupStroke.Parent = PopupFrame
+    PopupStroke.Color = Color3.fromRGB(80, 120, 200)
+    PopupStroke.Thickness = 2
+    local Title = Instance.new("TextLabel")
+    Title.Parent = PopupFrame
+    Title.Size = UDim2.new(1, -20, 0, 25)
+    Title.Position = UDim2.new(0, 10, 0, 8)
+    Title.BackgroundTransparency = 1
+    Title.Text = "输入数值 (" .. minValue .. "-" .. maxValue .. ")"
+    Title.TextColor3 = Color3.fromRGB(220, 220, 255)
+    Title.TextSize = 12
+    Title.Font = Enum.Font.GothamBold
+    local InputBox = Instance.new("TextBox")
+    InputBox.Parent = PopupFrame
+    InputBox.Size = UDim2.new(1, -40, 0, 30)
+    InputBox.Position = UDim2.new(0, 20, 0, 40)
+    InputBox.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+    InputBox.Text = tostring(currentValue)
+    InputBox.TextColor3 = Color3.fromRGB(220, 220, 255)
+    InputBox.TextSize = 14
+    InputBox.Font = Enum.Font.Gotham
+    InputBox.ClearTextOnFocus = false
+    local InputCorner = Instance.new("UICorner")
+    InputCorner.Parent = InputBox
+    InputCorner.CornerRadius = UDim.new(0, 6)
+    local InputStroke = Instance.new("UIStroke")
+    InputStroke.Parent = InputBox
+    InputStroke.Color = Color3.fromRGB(80, 120, 200)
+    InputStroke.Thickness = 1
+    local ConfirmButton = Instance.new("TextButton")
+    ConfirmButton.Parent = PopupFrame
+    ConfirmButton.Size = UDim2.new(0, 70, 0, 25)
+    ConfirmButton.Position = UDim2.new(0.5, -80, 1, -40)
+    ConfirmButton.BackgroundColor3 = Color3.fromRGB(40, 120, 80)
+    ConfirmButton.Text = "确认"
+    ConfirmButton.TextColor3 = Color3.fromRGB(220, 220, 255)
+    ConfirmButton.TextSize = 12
+    ConfirmButton.Font = Enum.Font.Gotham
+    local ConfirmCorner = Instance.new("UICorner")
+    ConfirmCorner.Parent = ConfirmButton
+    ConfirmCorner.CornerRadius = UDim.new(0, 5)
+    local CancelButton = Instance.new("TextButton")
+    CancelButton.Parent = PopupFrame
+    CancelButton.Size = UDim2.new(0, 70, 0, 25)
+    CancelButton.Position = UDim2.new(0.5, 10, 1, -40)
+    CancelButton.BackgroundColor3 = Color3.fromRGB(120, 40, 40)
+    CancelButton.Text = "取消"
+    CancelButton.TextColor3 = Color3.fromRGB(220, 220, 255)
+    CancelButton.TextSize = 12
+    CancelButton.Font = Enum.Font.Gotham
+    local CancelCorner = Instance.new("UICorner")
+    CancelCorner.Parent = CancelButton
+    CancelCorner.CornerRadius = UDim.new(0, 5)
+    ConfirmButton.MouseButton1Click:Connect(function()
+        local inputText = InputBox.Text
+        local numberValue = tonumber(inputText)
+        if numberValue then
+            if numberValue < minValue then numberValue = minValue
+            elseif numberValue > maxValue then numberValue = maxValue end
+            callback(numberValue)
+        end
+        PopupGui:Destroy()
+    end)
+    CancelButton.MouseButton1Click:Connect(function()
+        PopupGui:Destroy()
+    end)
+    InputBox.FocusLost:Connect(function(enterPressed)
+        if enterPressed then
+            local inputText = InputBox.Text
+            local numberValue = tonumber(inputText)
+            if numberValue then
+                if numberValue < minValue then numberValue = minValue
+                elseif numberValue > maxValue then numberValue = maxValue end
+                callback(numberValue)
+            end
+            PopupGui:Destroy()
+        end
+    end)
+end
+
+local function CreateTextInputPopup(title, placeholder, callback)
+    local PopupGui = Instance.new("ScreenGui")
+    PopupGui.Parent = player:WaitForChild("PlayerGui")
+    local PopupFrame = Instance.new("Frame")
+    PopupFrame.Parent = PopupGui
+    PopupFrame.Size = UDim2.new(0, 250, 0, 150)
+    PopupFrame.Position = UDim2.new(0.5, -125, 0.5, -75)
+    PopupFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 35)
+    PopupFrame.Active = true
+    PopupFrame.Draggable = true
+    local PopupCorner = Instance.new("UICorner")
+    PopupCorner.Parent = PopupFrame
+    PopupCorner.CornerRadius = UDim.new(0, 10)
+    local PopupStroke = Instance.new("UIStroke")
+    PopupStroke.Parent = PopupFrame
+    PopupStroke.Color = Color3.fromRGB(80, 120, 200)
+    PopupStroke.Thickness = 2
+    local TitleLabel = Instance.new("TextLabel")
+    TitleLabel.Parent = PopupFrame
+    TitleLabel.Size = UDim2.new(1, -20, 0, 25)
+    TitleLabel.Position = UDim2.new(0, 10, 0, 8)
+    TitleLabel.BackgroundTransparency = 1
+    TitleLabel.Text = title
+    TitleLabel.TextColor3 = Color3.fromRGB(220, 220, 255)
+    TitleLabel.TextSize = 12
+    TitleLabel.Font = Enum.Font.GothamBold
+    local InputBox = Instance.new("TextBox")
+    InputBox.Parent = PopupFrame
+    InputBox.Size = UDim2.new(1, -40, 0, 35)
+    InputBox.Position = UDim2.new(0, 20, 0, 40)
+    InputBox.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+    InputBox.PlaceholderText = placeholder
+    InputBox.Text = ""
+    InputBox.TextColor3 = Color3.fromRGB(220, 220, 255)
+    InputBox.TextSize = 14
+    InputBox.Font = Enum.Font.Gotham
+    InputBox.ClearTextOnFocus = false
+    local InputCorner = Instance.new("UICorner")
+    InputCorner.Parent = InputBox
+    InputCorner.CornerRadius = UDim.new(0, 6)
+    local InputStroke = Instance.new("UIStroke")
+    InputStroke.Parent = InputBox
+    InputStroke.Color = Color3.fromRGB(80, 120, 200)
+    InputStroke.Thickness = 1
+    local ConfirmButton = Instance.new("TextButton")
+    ConfirmButton.Parent = PopupFrame
+    ConfirmButton.Size = UDim2.new(0, 80, 0, 25)
+    ConfirmButton.Position = UDim2.new(0.5, -90, 1, -40)
+    ConfirmButton.BackgroundColor3 = Color3.fromRGB(40, 120, 80)
+    ConfirmButton.Text = "确认"
+    ConfirmButton.TextColor3 = Color3.fromRGB(220, 220, 255)
+    ConfirmButton.TextSize = 12
+    ConfirmButton.Font = Enum.Font.Gotham
+    local ConfirmCorner = Instance.new("UICorner")
+    ConfirmCorner.Parent = ConfirmButton
+    ConfirmCorner.CornerRadius = UDim.new(0, 5)
+    local CancelButton = Instance.new("TextButton")
+    CancelButton.Parent = PopupFrame
+    CancelButton.Size = UDim2.new(0, 80, 0, 25)
+    CancelButton.Position = UDim2.new(0.5, 10, 1, -40)
+    CancelButton.BackgroundColor3 = Color3.fromRGB(120, 40, 40)
+    CancelButton.Text = "取消"
+    CancelButton.TextColor3 = Color3.fromRGB(220, 220, 255)
+    CancelButton.TextSize = 12
+    CancelButton.Font = Enum.Font.Gotham
+    local CancelCorner = Instance.new("UICorner")
+    CancelCorner.Parent = CancelButton
+    CancelCorner.CornerRadius = UDim.new(0, 5)
+    ConfirmButton.MouseButton1Click:Connect(function()
+        local inputText = InputBox.Text
+        if inputText and inputText ~= "" then
+            callback(inputText)
+        end
+        PopupGui:Destroy()
+    end)
+    CancelButton.MouseButton1Click:Connect(function()
+        PopupGui:Destroy()
+    end)
+    InputBox.FocusLost:Connect(function(enterPressed)
+        if enterPressed then
+            local inputText = InputBox.Text
+            if inputText and inputText ~= "" then
+                callback(inputText)
+            end
+            PopupGui:Destroy()
+        end
+    end)
+end
+
+-- ===== 手动传送与坐标工具 =====
+local function parseCoordinates(input)
+    local parts = {}
+    for token in string.gmatch(input, "[^,]+") do
+        local num = tonumber(token:match("^%s*(.-)%s*$"))
+        if num then
+            table.insert(parts, num)
+        else
+            return nil, "无效数字: " .. token
+        end
+    end
+    local x, y, z = 0, 0, 0
+    if #parts >= 1 then x = parts[1] end
+    if #parts >= 2 then y = parts[2] end
+    if #parts >= 3 then z = parts[3] end
+    return Vector3.new(x, y, z), nil
+end
+
+local function manualTeleport()
+    CreateTextInputPopup("手动传送坐标", "输入 x,y,z (例如 123,456,789 或 123,456)", function(input)
+        local pos, err = parseCoordinates(input)
+        if not pos then
+            ShowNotification("解析错误: " .. err, Color3.fromRGB(255, 50, 50))
+            return
+        end
+        local char = player.Character
+        if not char then
+            ShowNotification("角色未找到", Color3.fromRGB(255, 50, 50))
+            return
+        end
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if not hrp then
+            ShowNotification("未找到HumanoidRootPart", Color3.fromRGB(255, 50, 50))
+            return
+        end
+        hrp.CFrame = CFrame.new(pos)
+        ShowNotification(string.format("已传送到 (%.2f, %.2f, %.2f)", pos.X, pos.Y, pos.Z), Color3.fromRGB(0, 255, 100))
+    end)
+end
+
+local function showCurrentPosition()
+    local char = player.Character
+    if not char then
+        ShowNotification("角色未找到", Color3.fromRGB(255, 50, 50))
+        return
+    end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then
+        ShowNotification("未找到HumanoidRootPart", Color3.fromRGB(255, 50, 50))
+        return
+    end
+    local p = hrp.Position
+    ShowNotification(string.format("当前坐标: X=%.2f, Y=%.2f, Z=%.2f", p.X, p.Y, p.Z), Color3.fromRGB(200, 200, 255))
+end
+
+local function copyCFrame()
+    local char = player.Character
+    if not char then
+        ShowNotification("角色未找到", Color3.fromRGB(255, 50, 50))
+        return
+    end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then
+        ShowNotification("未找到HumanoidRootPart", Color3.fromRGB(255, 50, 50))
+        return
+    end
+    local p = hrp.Position
+    local str = string.format("CFrame.new(%.2f, %.2f, %.2f)", p.X, p.Y, p.Z)
+    setclipboard(str)
+    ShowNotification("已复制 CFrame 格式: " .. str, Color3.fromRGB(0, 255, 100))
+end
+
+local function copyXYZ()
+    local char = player.Character
+    if not char then
+        ShowNotification("角色未找到", Color3.fromRGB(255, 50, 50))
+        return
+    end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then
+        ShowNotification("未找到HumanoidRootPart", Color3.fromRGB(255, 50, 50))
+        return
+    end
+    local p = hrp.Position
+    local str = string.format("Vector3.new(%.2f, %.2f, %.2f)", p.X, p.Y, p.Z)
+    setclipboard(str)
+    ShowNotification("已复制 Vector3 格式: " .. str, Color3.fromRGB(0, 255, 100))
+end
+
+-- ===== 主界面控件 =====
 local StartButton = CreateButton("开始传送", 0, false)
 local PlayerSelectButton = CreateButton("选择玩家", 35, false)
 local StopButton = CreateButton("停止传送", 70, false)
@@ -442,67 +690,72 @@ local SaveCoordButton = CreateButton("保存当前坐标", 308, false)
 local TeleportCoordButton = CreateButton("传送保存坐标", 343, false)
 local DeleteCoordButton = CreateButton("删除保存坐标", 378, false)
 
+local ShowPosButton = CreateButton("显示当前坐标", 413, false)
+local ManualTeleportButton = CreateButton("手动传送坐标", 438, false)
+local CopyCFrameButton = CreateButton("复制CFrame", 463, false)
+local CopyXYZButton = CreateButton("复制XYZ", 488, false)
+
 local Separator1 = Instance.new("Frame")
 Separator1.Parent = Content
 Separator1.Size = UDim2.new(1, 0, 0, 1)
-Separator1.Position = UDim2.new(0, 0, 0, 413)
+Separator1.Position = UDim2.new(0, 0, 0, 523)
 Separator1.BackgroundColor3 = Color3.fromRGB(60, 120, 255)
 Separator1.BackgroundTransparency = 0.5
 
 local SeparatorLabel1 = Instance.new("TextLabel")
 SeparatorLabel1.Parent = Content
 SeparatorLabel1.Size = UDim2.new(1, 0, 0, 18)
-SeparatorLabel1.Position = UDim2.new(0, 0, 0, 418)
+SeparatorLabel1.Position = UDim2.new(0, 0, 0, 528)
 SeparatorLabel1.BackgroundTransparency = 1
 SeparatorLabel1.Text = "环绕设置"
 SeparatorLabel1.TextColor3 = Color3.fromRGB(120, 160, 255)
 SeparatorLabel1.TextSize = 9
 SeparatorLabel1.Font = Enum.Font.GothamBold
 
-local ParallelOrbitButton = CreateButton("平行环绕", 441, true)
-local RadiusControl = CreateInputControl("环绕半径:", 476, 10, 1, 999999)
-local OrbitSpeedControl = CreateInputControl("环绕速度:", 506, 2, 0.1, 999999)
+local ParallelOrbitButton = CreateButton("平行环绕", 551, true)
+local RadiusControl = CreateInputControl("环绕半径:", 586, 10, 1, 999999)
+local OrbitSpeedControl = CreateInputControl("环绕速度:", 616, 2, 0.1, 999999)
 
 local Separator2 = Instance.new("Frame")
 Separator2.Parent = Content
 Separator2.Size = UDim2.new(1, 0, 0, 1)
-Separator2.Position = UDim2.new(0, 0, 0, 541)
+Separator2.Position = UDim2.new(0, 0, 0, 651)
 Separator2.BackgroundColor3 = Color3.fromRGB(60, 120, 255)
 Separator2.BackgroundTransparency = 0.5
 
 local SeparatorLabel2 = Instance.new("TextLabel")
 SeparatorLabel2.Parent = Content
 SeparatorLabel2.Size = UDim2.new(1, 0, 0, 18)
-SeparatorLabel2.Position = UDim2.new(0, 0, 0, 546)
+SeparatorLabel2.Position = UDim2.new(0, 0, 0, 656)
 SeparatorLabel2.BackgroundTransparency = 1
 SeparatorLabel2.Text = "高级设置"
 SeparatorLabel2.TextColor3 = Color3.fromRGB(120, 160, 255)
 SeparatorLabel2.TextSize = 9
 SeparatorLabel2.Font = Enum.Font.GothamBold
 
-local AntiThrowSpeedControl = CreateInputControl("防甩阈值:", 569, 50, 1, 999999)
+local AntiThrowSpeedControl = CreateInputControl("防甩阈值:", 679, 50, 1, 999999)
 
-local PredictButton = CreateButton("预测攻击:关闭", 599, true)
-local PredictDelayControl = CreateInputControl("延迟时间(秒):", 629, 0.125, 0.01, 0.5)
+local PredictButton = CreateButton("预测攻击:关闭", 709, true)
+local PredictDelayControl = CreateInputControl("延迟时间(秒):", 739, 0.125, 0.01, 0.5)
 
 local NotifSeparator = Instance.new("Frame")
 NotifSeparator.Parent = Content
 NotifSeparator.Size = UDim2.new(1, 0, 0, 1)
-NotifSeparator.Position = UDim2.new(0, 0, 0, 664)
+NotifSeparator.Position = UDim2.new(0, 0, 0, 774)
 NotifSeparator.BackgroundColor3 = Color3.fromRGB(255, 200, 100)
 NotifSeparator.BackgroundTransparency = 0.5
 
 local NotifSeparatorLabel = Instance.new("TextLabel")
 NotifSeparatorLabel.Parent = Content
 NotifSeparatorLabel.Size = UDim2.new(1, 0, 0, 18)
-NotifSeparatorLabel.Position = UDim2.new(0, 0, 0, 669)
+NotifSeparatorLabel.Position = UDim2.new(0, 0, 0, 779)
 NotifSeparatorLabel.BackgroundTransparency = 1
 NotifSeparatorLabel.Text = "通知设置"
 NotifSeparatorLabel.TextColor3 = Color3.fromRGB(255, 200, 100)
 NotifSeparatorLabel.TextSize = 9
 NotifSeparatorLabel.Font = Enum.Font.GothamBold
 
-local PosY = 692
+local PosY = 812
 local PosButtonSize = 38
 local PosButtons = {}
 local positions = {"左上", "右上", "左下", "右下"}
@@ -520,25 +773,20 @@ for i, posName in ipairs(positions) do
     btn.TextSize = 9
     btn.Font = Enum.Font.Gotham
     btn.Parent = Content
-
     local btnCorner = Instance.new("UICorner")
     btnCorner.Parent = btn
     btnCorner.CornerRadius = UDim.new(0, 4)
-
     local btnStroke = Instance.new("UIStroke")
     btnStroke.Parent = btn
     btnStroke.Color = Color3.fromRGB(80, 120, 200)
     btnStroke.Thickness = 1
-
     local highlight = Instance.new("UIStroke")
     highlight.Name = "Highlight"
     highlight.Parent = btn
     highlight.Color = Color3.fromRGB(255, 200, 100)
     highlight.Thickness = 2
     highlight.Transparency = 1
-
     PosButtons[posName] = btn
-
     btn.MouseButton1Click:Connect(function()
         NotificationSettings.Position = posMap[posName]
         for _, b in pairs(PosButtons) do
@@ -619,232 +867,11 @@ local DeleteUIButton = CreateButton("删除UI", PosY + 551, false)
 Content.Size = UDim2.new(1, 0, 0, PosY + 600)
 ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, PosY + 620)
 
-local function UpdateToggleButton(button, isActive, activeText, inactiveText)
-    if not button then return end
-    button.Text = isActive and (activeText or "开启") or (inactiveText or "关闭")
-    local indicator = button:FindFirstChild("Indicator")
-    if indicator then
-        indicator.BackgroundColor3 = isActive and Color3.fromRGB(50, 255, 50) or Color3.fromRGB(255, 50, 50)
-    end
-    button.BackgroundColor3 = isActive and Color3.fromRGB(40, 80, 40) or Color3.fromRGB(60, 40, 40)
-end
-
-local function CreateNumberInputPopup(currentValue, minValue, maxValue, callback)
-    local PopupGui = Instance.new("ScreenGui")
-    PopupGui.Parent = player:WaitForChild("PlayerGui")
-
-    local PopupFrame = Instance.new("Frame")
-    PopupFrame.Parent = PopupGui
-    PopupFrame.Size = UDim2.new(0, 220, 0, 130)
-    PopupFrame.Position = UDim2.new(0.5, -110, 0.5, -65)
-    PopupFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 35)
-    PopupFrame.Active = true
-    PopupFrame.Draggable = true
-
-    local PopupCorner = Instance.new("UICorner")
-    PopupCorner.Parent = PopupFrame
-    PopupCorner.CornerRadius = UDim.new(0, 10)
-
-    local PopupStroke = Instance.new("UIStroke")
-    PopupStroke.Parent = PopupFrame
-    PopupStroke.Color = Color3.fromRGB(80, 120, 200)
-    PopupStroke.Thickness = 2
-
-    local Title = Instance.new("TextLabel")
-    Title.Parent = PopupFrame
-    Title.Size = UDim2.new(1, -20, 0, 25)
-    Title.Position = UDim2.new(0, 10, 0, 8)
-    Title.BackgroundTransparency = 1
-    Title.Text = "输入数值 (" .. minValue .. "-" .. maxValue .. ")"
-    Title.TextColor3 = Color3.fromRGB(220, 220, 255)
-    Title.TextSize = 12
-    Title.Font = Enum.Font.GothamBold
-
-    local InputBox = Instance.new("TextBox")
-    InputBox.Parent = PopupFrame
-    InputBox.Size = UDim2.new(1, -40, 0, 30)
-    InputBox.Position = UDim2.new(0, 20, 0, 40)
-    InputBox.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
-    InputBox.Text = tostring(currentValue)
-    InputBox.TextColor3 = Color3.fromRGB(220, 220, 255)
-    InputBox.TextSize = 14
-    InputBox.Font = Enum.Font.Gotham
-    InputBox.ClearTextOnFocus = false
-
-    local InputCorner = Instance.new("UICorner")
-    InputCorner.Parent = InputBox
-    InputCorner.CornerRadius = UDim.new(0, 6)
-
-    local InputStroke = Instance.new("UIStroke")
-    InputStroke.Parent = InputBox
-    InputStroke.Color = Color3.fromRGB(80, 120, 200)
-    InputStroke.Thickness = 1
-
-    local ConfirmButton = Instance.new("TextButton")
-    ConfirmButton.Parent = PopupFrame
-    ConfirmButton.Size = UDim2.new(0, 70, 0, 25)
-    ConfirmButton.Position = UDim2.new(0.5, -80, 1, -40)
-    ConfirmButton.BackgroundColor3 = Color3.fromRGB(40, 120, 80)
-    ConfirmButton.Text = "确认"
-    ConfirmButton.TextColor3 = Color3.fromRGB(220, 220, 255)
-    ConfirmButton.TextSize = 12
-    ConfirmButton.Font = Enum.Font.Gotham
-
-    local ConfirmCorner = Instance.new("UICorner")
-    ConfirmCorner.Parent = ConfirmButton
-    ConfirmCorner.CornerRadius = UDim.new(0, 5)
-
-    local CancelButton = Instance.new("TextButton")
-    CancelButton.Parent = PopupFrame
-    CancelButton.Size = UDim2.new(0, 70, 0, 25)
-    CancelButton.Position = UDim2.new(0.5, 10, 1, -40)
-    CancelButton.BackgroundColor3 = Color3.fromRGB(120, 40, 40)
-    CancelButton.Text = "取消"
-    CancelButton.TextColor3 = Color3.fromRGB(220, 220, 255)
-    CancelButton.TextSize = 12
-    CancelButton.Font = Enum.Font.Gotham
-
-    local CancelCorner = Instance.new("UICorner")
-    CancelCorner.Parent = CancelButton
-    CancelCorner.CornerRadius = UDim.new(0, 5)
-
-    ConfirmButton.MouseButton1Click:Connect(function()
-        local inputText = InputBox.Text
-        local numberValue = tonumber(inputText)
-        if numberValue then
-            if numberValue < minValue then
-                numberValue = minValue
-            elseif numberValue > maxValue then
-                numberValue = maxValue
-            end
-            callback(numberValue)
-        end
-        PopupGui:Destroy()
-    end)
-
-    CancelButton.MouseButton1Click:Connect(function()
-        PopupGui:Destroy()
-    end)
-
-    InputBox.FocusLost:Connect(function(enterPressed)
-        if enterPressed then
-            local inputText = InputBox.Text
-            local numberValue = tonumber(inputText)
-            if numberValue then
-                if numberValue < minValue then
-                    numberValue = minValue
-                elseif numberValue > maxValue then
-                    numberValue = maxValue
-                end
-                callback(numberValue)
-            end
-            PopupGui:Destroy()
-        end
-    end)
-end
-
-local function CreateTextInputPopup(title, placeholder, callback)
-    local PopupGui = Instance.new("ScreenGui")
-    PopupGui.Parent = player:WaitForChild("PlayerGui")
-
-    local PopupFrame = Instance.new("Frame")
-    PopupFrame.Parent = PopupGui
-    PopupFrame.Size = UDim2.new(0, 250, 0, 150)
-    PopupFrame.Position = UDim2.new(0.5, -125, 0.5, -75)
-    PopupFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 35)
-    PopupFrame.Active = true
-    PopupFrame.Draggable = true
-
-    local PopupCorner = Instance.new("UICorner")
-    PopupCorner.Parent = PopupFrame
-    PopupCorner.CornerRadius = UDim.new(0, 10)
-
-    local PopupStroke = Instance.new("UIStroke")
-    PopupStroke.Parent = PopupFrame
-    PopupStroke.Color = Color3.fromRGB(80, 120, 200)
-    PopupStroke.Thickness = 2
-
-    local TitleLabel = Instance.new("TextLabel")
-    TitleLabel.Parent = PopupFrame
-    TitleLabel.Size = UDim2.new(1, -20, 0, 25)
-    TitleLabel.Position = UDim2.new(0, 10, 0, 8)
-    TitleLabel.BackgroundTransparency = 1
-    TitleLabel.Text = title
-    TitleLabel.TextColor3 = Color3.fromRGB(220, 220, 255)
-    TitleLabel.TextSize = 12
-    TitleLabel.Font = Enum.Font.GothamBold
-
-    local InputBox = Instance.new("TextBox")
-    InputBox.Parent = PopupFrame
-    InputBox.Size = UDim2.new(1, -40, 0, 35)
-    InputBox.Position = UDim2.new(0, 20, 0, 40)
-    InputBox.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
-    InputBox.PlaceholderText = placeholder
-    InputBox.Text = ""
-    InputBox.TextColor3 = Color3.fromRGB(220, 220, 255)
-    InputBox.TextSize = 14
-    InputBox.Font = Enum.Font.Gotham
-    InputBox.ClearTextOnFocus = false
-
-    local InputCorner = Instance.new("UICorner")
-    InputCorner.Parent = InputBox
-    InputCorner.CornerRadius = UDim.new(0, 6)
-
-    local InputStroke = Instance.new("UIStroke")
-    InputStroke.Parent = InputBox
-    InputStroke.Color = Color3.fromRGB(80, 120, 200)
-    InputStroke.Thickness = 1
-
-    local ConfirmButton = Instance.new("TextButton")
-    ConfirmButton.Parent = PopupFrame
-    ConfirmButton.Size = UDim2.new(0, 80, 0, 25)
-    ConfirmButton.Position = UDim2.new(0.5, -90, 1, -40)
-    ConfirmButton.BackgroundColor3 = Color3.fromRGB(40, 120, 80)
-    ConfirmButton.Text = "确认"
-    ConfirmButton.TextColor3 = Color3.fromRGB(220, 220, 255)
-    ConfirmButton.TextSize = 12
-    ConfirmButton.Font = Enum.Font.Gotham
-
-    local ConfirmCorner = Instance.new("UICorner")
-    ConfirmCorner.Parent = ConfirmButton
-    ConfirmCorner.CornerRadius = UDim.new(0, 5)
-
-    local CancelButton = Instance.new("TextButton")
-    CancelButton.Parent = PopupFrame
-    CancelButton.Size = UDim2.new(0, 80, 0, 25)
-    CancelButton.Position = UDim2.new(0.5, 10, 1, -40)
-    CancelButton.BackgroundColor3 = Color3.fromRGB(120, 40, 40)
-    CancelButton.Text = "取消"
-    CancelButton.TextColor3 = Color3.fromRGB(220, 220, 255)
-    CancelButton.TextSize = 12
-    CancelButton.Font = Enum.Font.Gotham
-
-    local CancelCorner = Instance.new("UICorner")
-    CancelCorner.Parent = CancelButton
-    CancelCorner.CornerRadius = UDim.new(0, 5)
-
-    ConfirmButton.MouseButton1Click:Connect(function()
-        local inputText = InputBox.Text
-        if inputText and inputText ~= "" then
-            callback(inputText)
-        end
-        PopupGui:Destroy()
-    end)
-
-    CancelButton.MouseButton1Click:Connect(function()
-        PopupGui:Destroy()
-    end)
-
-    InputBox.FocusLost:Connect(function(enterPressed)
-        if enterPressed then
-            local inputText = InputBox.Text
-            if inputText and inputText ~= "" then
-                callback(inputText)
-            end
-            PopupGui:Destroy()
-        end
-    end)
-end
+-- ===== 按钮事件绑定 =====
+ShowPosButton.MouseButton1Click:Connect(showCurrentPosition)
+ManualTeleportButton.MouseButton1Click:Connect(manualTeleport)
+CopyCFrameButton.MouseButton1Click:Connect(copyCFrame)
+CopyXYZButton.MouseButton1Click:Connect(copyXYZ)
 
 local function SaveCurrentCoordinate()
     local character = player.Character
@@ -852,13 +879,11 @@ local function SaveCurrentCoordinate()
         ShowNotification("角色未找到", Color3.fromRGB(255, 50, 50))
         return
     end
-
     local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
     if not humanoidRootPart then
         ShowNotification("未找到HumanoidRootPart", Color3.fromRGB(255, 50, 50))
         return
     end
-
     CreateTextInputPopup("保存坐标", "输入坐标名称", function(coordinateName)
         local position = humanoidRootPart.Position
         local coordinate = {
@@ -879,10 +904,8 @@ local function ShowCoordinateSelectionPopup(title, actionCallback)
         ShowNotification("没有保存的坐标", Color3.fromRGB(255, 150, 0))
         return
     end
-
     local SelectionGui = Instance.new("ScreenGui")
     SelectionGui.Parent = player:WaitForChild("PlayerGui")
-
     local SelectionFrame = Instance.new("Frame")
     SelectionFrame.Parent = SelectionGui
     SelectionFrame.Size = UDim2.new(0, 280, 0, 350)
@@ -890,16 +913,13 @@ local function ShowCoordinateSelectionPopup(title, actionCallback)
     SelectionFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 35)
     SelectionFrame.Active = true
     SelectionFrame.Draggable = true
-
     local SelectionCorner = Instance.new("UICorner")
     SelectionCorner.Parent = SelectionFrame
     SelectionCorner.CornerRadius = UDim.new(0, 10)
-
     local SelectionStroke = Instance.new("UIStroke")
     SelectionStroke.Parent = SelectionFrame
     SelectionStroke.Color = Color3.fromRGB(80, 120, 200)
     SelectionStroke.Thickness = 2
-
     local Title = Instance.new("TextLabel")
     Title.Parent = SelectionFrame
     Title.Size = UDim2.new(1, -20, 0, 30)
@@ -909,7 +929,6 @@ local function ShowCoordinateSelectionPopup(title, actionCallback)
     Title.TextColor3 = Color3.fromRGB(220, 220, 255)
     Title.TextSize = 14
     Title.Font = Enum.Font.GothamBold
-
     local ScrollFrame = Instance.new("ScrollingFrame")
     ScrollFrame.Parent = SelectionFrame
     ScrollFrame.Size = UDim2.new(1, -20, 1, -80)
@@ -917,7 +936,6 @@ local function ShowCoordinateSelectionPopup(title, actionCallback)
     ScrollFrame.BackgroundTransparency = 1
     ScrollFrame.ScrollBarThickness = 4
     ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, #CoordinateManager.SavedCoordinates * 45)
-
     local CloseButton = Instance.new("TextButton")
     CloseButton.Parent = SelectionFrame
     CloseButton.Size = UDim2.new(0, 80, 0, 25)
@@ -927,11 +945,9 @@ local function ShowCoordinateSelectionPopup(title, actionCallback)
     CloseButton.TextColor3 = Color3.fromRGB(220, 220, 255)
     CloseButton.TextSize = 12
     CloseButton.Font = Enum.Font.Gotham
-
     local CloseCorner = Instance.new("UICorner")
     CloseCorner.Parent = CloseButton
     CloseCorner.CornerRadius = UDim.new(0, 5)
-
     for i, coord in ipairs(CoordinateManager.SavedCoordinates) do
         local CoordButton = Instance.new("TextButton")
         CoordButton.Size = UDim2.new(1, 0, 0, 40)
@@ -943,22 +959,18 @@ local function ShowCoordinateSelectionPopup(title, actionCallback)
         CoordButton.Font = Enum.Font.Gotham
         CoordButton.TextWrapped = true
         CoordButton.Parent = ScrollFrame
-
         local CoordCorner = Instance.new("UICorner")
         CoordCorner.Parent = CoordButton
         CoordCorner.CornerRadius = UDim.new(0, 6)
-
         local CoordStroke = Instance.new("UIStroke")
         CoordStroke.Parent = CoordButton
         CoordStroke.Color = Color3.fromRGB(80, 120, 200)
         CoordStroke.Thickness = 1
-
         CoordButton.MouseButton1Click:Connect(function()
             actionCallback(coord, i)
             SelectionGui:Destroy()
         end)
     end
-
     CloseButton.MouseButton1Click:Connect(function()
         SelectionGui:Destroy()
     end)
@@ -971,13 +983,11 @@ local function TeleportToCoordinate()
             ShowNotification("角色未找到", Color3.fromRGB(255, 50, 50))
             return
         end
-
         local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
         if not humanoidRootPart then
             ShowNotification("未找到HumanoidRootPart", Color3.fromRGB(255, 50, 50))
             return
         end
-
         humanoidRootPart.CFrame = CFrame.new(coord.x, coord.y, coord.z)
         ShowNotification("已传送到: " .. coord.name, Color3.fromRGB(0, 255, 100))
     end)
@@ -1008,9 +1018,7 @@ end)
 local function GetAllPlayers()
     local players = {}
     for _, p in ipairs(Players:GetPlayers()) do
-        if p ~= player then
-            table.insert(players, p)
-        end
+        if p ~= player then table.insert(players, p) end
     end
     return players
 end
@@ -1020,7 +1028,6 @@ local function CreatePlayerSelectionUI()
     PlayerSelectGui.Parent = player:WaitForChild("PlayerGui")
     PlayerSelectGui.Name = "PlayerSelectionUI"
     PlayerSelectGui.ResetOnSpawn = false
-
     local PlayerSelectFrame = Instance.new("Frame")
     PlayerSelectFrame.Parent = PlayerSelectGui
     PlayerSelectFrame.Size = UDim2.new(0, 200, 0, 300)
@@ -1028,16 +1035,13 @@ local function CreatePlayerSelectionUI()
     PlayerSelectFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 35)
     PlayerSelectFrame.Active = true
     PlayerSelectFrame.Draggable = true
-
     local PlayerSelectCorner = Instance.new("UICorner")
     PlayerSelectCorner.Parent = PlayerSelectFrame
     PlayerSelectCorner.CornerRadius = UDim.new(0, 10)
-
     local PlayerSelectStroke = Instance.new("UIStroke")
     PlayerSelectStroke.Parent = PlayerSelectFrame
     PlayerSelectStroke.Color = Color3.fromRGB(80, 120, 200)
     PlayerSelectStroke.Thickness = 2
-
     local Title = Instance.new("TextLabel")
     Title.Parent = PlayerSelectFrame
     Title.Size = UDim2.new(1, -20, 0, 30)
@@ -1047,18 +1051,15 @@ local function CreatePlayerSelectionUI()
     Title.TextColor3 = Color3.fromRGB(220, 220, 255)
     Title.TextSize = 14
     Title.Font = Enum.Font.GothamBold
-
     local PlayerScroll = Instance.new("ScrollingFrame")
     PlayerScroll.Parent = PlayerSelectFrame
     PlayerScroll.Size = UDim2.new(1, -20, 1, -80)
     PlayerScroll.Position = UDim2.new(0, 10, 0, 50)
     PlayerScroll.BackgroundTransparency = 1
     PlayerScroll.ScrollBarThickness = 4
-
     local PlayerListLayout = Instance.new("UIListLayout")
     PlayerListLayout.Parent = PlayerScroll
     PlayerListLayout.SortOrder = Enum.SortOrder.Name
-
     local CloseButton = Instance.new("TextButton")
     CloseButton.Parent = PlayerSelectFrame
     CloseButton.Size = UDim2.new(0, 80, 0, 25)
@@ -1068,14 +1069,11 @@ local function CreatePlayerSelectionUI()
     CloseButton.TextColor3 = Color3.fromRGB(220, 220, 255)
     CloseButton.TextSize = 12
     CloseButton.Font = Enum.Font.Gotham
-
     local CloseCorner = Instance.new("UICorner")
     CloseCorner.Parent = CloseButton
     CloseCorner.CornerRadius = UDim.new(0, 5)
-
     Teleport.PlayerList = GetAllPlayers()
     PlayerScroll.CanvasSize = UDim2.new(0, 0, 0, #Teleport.PlayerList * 35)
-
     for _, p in ipairs(Teleport.PlayerList) do
         local PlayerButton = Instance.new("TextButton")
         PlayerButton.Size = UDim2.new(1, 0, 0, 30)
@@ -1085,53 +1083,38 @@ local function CreatePlayerSelectionUI()
         PlayerButton.TextSize = 11
         PlayerButton.Font = Enum.Font.Gotham
         PlayerButton.Parent = PlayerScroll
-
         local PlayerButtonCorner = Instance.new("UICorner")
         PlayerButtonCorner.Parent = PlayerButton
         PlayerButtonCorner.CornerRadius = UDim.new(0, 6)
-
         local PlayerButtonStroke = Instance.new("UIStroke")
         PlayerButtonStroke.Parent = PlayerButton
         PlayerButtonStroke.Color = Color3.fromRGB(80, 120, 200)
         PlayerButtonStroke.Thickness = 1
-
         PlayerButton.MouseButton1Click:Connect(function()
             Teleport.Target = p
             ShowNotification("已选择: " .. p.Name, Color3.fromRGB(0, 200, 255))
             PlayerSelectGui:Destroy()
         end)
     end
-
     CloseButton.MouseButton1Click:Connect(function()
         PlayerSelectGui:Destroy()
     end)
 end
 
 local function GetPredictedPosition(rootPart)
-    if not Teleport.PredictEnabled then
-        return rootPart.Position
-    end
+    if not Teleport.PredictEnabled then return rootPart.Position end
     local vel = rootPart.AssemblyLinearVelocity
-    if vel.Magnitude < 0.5 then
-        return rootPart.Position
-    end
+    if vel.Magnitude < 0.5 then return rootPart.Position end
     return rootPart.Position + vel * Teleport.PredictDelay
 end
 
 local function TeleportRoutine()
     if not Teleport.Active then return end
-
     local myChar = player.Character
     local targetChar = Teleport.Target and Teleport.Target.Character
-
-    if not myChar or not targetChar then
-        StopTeleport()
-        return
-    end
-
+    if not myChar or not targetChar then StopTeleport() return end
     local myRoot = myChar:FindFirstChild("HumanoidRootPart")
     local targetRoot = targetChar:FindFirstChild("HumanoidRootPart")
-
     if myRoot and targetRoot then
         local targetPos = GetPredictedPosition(targetRoot)
         local newPos = Vector3.new(targetPos.X, targetPos.Y - 5.5, targetPos.Z)
@@ -1141,33 +1124,22 @@ end
 
 local function ParallelOrbitRoutine()
     if not Teleport.HorizontalOrbitActive then return end
-
     local myChar = player.Character
     local targetChar = Teleport.Target and Teleport.Target.Character
-
-    if not myChar or not targetChar then
-        StopParallelOrbit()
-        return
-    end
-
+    if not myChar or not targetChar then StopParallelOrbit() return end
     local myRoot = myChar:FindFirstChild("HumanoidRootPart")
     local targetRoot = targetChar:FindFirstChild("HumanoidRootPart")
-
     if myRoot and targetRoot then
         local centerPos = GetPredictedPosition(targetRoot)
         Teleport.HorizontalAngle = Teleport.HorizontalAngle + Teleport.HorizontalSpeed * 0.05
         local radius = Teleport.OrbitRadius
-
         local x = centerPos.X + math.cos(Teleport.HorizontalAngle) * radius
         local z = centerPos.Z + math.sin(Teleport.HorizontalAngle) * radius
-
         local raycastParams = RaycastParams.new()
         raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
         raycastParams.FilterDescendantsInstances = {myChar}
-
         local raycastResult = Workspace:Raycast(Vector3.new(x, centerPos.Y + 10, z), Vector3.new(0, -50, 0), raycastParams)
         local y = raycastResult and raycastResult.Position.Y or centerPos.Y
-
         local newPos = Vector3.new(x, y + 3, z)
         myRoot.CFrame = CFrame.new(newPos, centerPos)
     end
@@ -1181,7 +1153,6 @@ end
 local function ToggleWallVision()
     Teleport.WallVision = not Teleport.WallVision
     UpdateToggleButton(WallVisionButton, Teleport.WallVision, "穿墙视野:开启", "穿墙视野:关闭")
-
     if Teleport.WallVision then
         Teleport.OriginalTransparency = {}
         for _, part in ipairs(workspace:GetDescendants()) do
@@ -1193,9 +1164,7 @@ local function ToggleWallVision()
         ShowNotification("穿墙视野已启用", Color3.fromRGB(0, 200, 255))
     else
         for part, transparency in pairs(Teleport.OriginalTransparency) do
-            if part:IsA("BasePart") then
-                part.Transparency = transparency
-            end
+            if part:IsA("BasePart") then part.Transparency = transparency end
         end
         Teleport.OriginalTransparency = {}
         ShowNotification("穿墙视野已禁用", Color3.fromRGB(255, 100, 0))
@@ -1204,18 +1173,15 @@ end
 
 local function StartTeleport()
     if Teleport.Active then return end
-
     if not Teleport.Target then
         ShowNotification("请先选择目标玩家", Color3.fromRGB(255, 50, 50))
         return
     end
-
     Teleport.Active = true
     Teleport.Connection = RunService.Heartbeat:Connect(function()
         TeleportRoutine()
         task.wait(0.001)
     end)
-
     ShowNotification("传送已启动 - 目标: " .. Teleport.Target.Name, Color3.fromRGB(0, 255, 100))
     Status.BackgroundColor3 = Color3.fromRGB(0, 255, 100)
 end
@@ -1232,7 +1198,6 @@ local function StopTeleport()
     else
         ShowNotification("传送未启动", Color3.fromRGB(255, 150, 0))
     end
-
     if Teleport.FlingLoopActive then
         Teleport.FlingLoopActive = false
         if Teleport.FlingLoopConnection then
@@ -1260,19 +1225,16 @@ end
 
 local function StartParallelOrbit()
     if Teleport.HorizontalOrbitActive then return end
-
     if not Teleport.Target then
         ShowNotification("请先选择目标玩家", Color3.fromRGB(255, 50, 50))
         return
     end
-
     Teleport.HorizontalOrbitActive = true
     Teleport.HorizontalAngle = 0
     Teleport.HorizontalOrbitConnection = RunService.Heartbeat:Connect(function()
         ParallelOrbitRoutine()
         task.wait(0.001)
     end)
-
     UpdateToggleButton(ParallelOrbitButton, true, "平行环绕:开启", "平行环绕:关闭")
     ShowNotification("平行环绕已启动", Color3.fromRGB(0, 200, 255))
     Status.BackgroundColor3 = Color3.fromRGB(0, 200, 255)
@@ -1283,27 +1245,18 @@ local function StopParallelOrbit()
         ShowNotification("平行环绕未启动", Color3.fromRGB(255, 150, 0))
         return
     end
-
     Teleport.HorizontalOrbitActive = false
     if Teleport.HorizontalOrbitConnection then
         Teleport.HorizontalOrbitConnection:Disconnect()
         Teleport.HorizontalOrbitConnection = nil
     end
-
     UpdateToggleButton(ParallelOrbitButton, false, "平行环绕:开启", "平行环绕:关闭")
     ShowNotification("平行环绕已停止", Color3.fromRGB(255, 100, 0))
-
-    if not Teleport.Active then
-        Status.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
-    end
+    if not Teleport.Active then Status.BackgroundColor3 = Color3.fromRGB(255, 50, 50) end
 end
 
 local function ToggleParallelOrbit()
-    if Teleport.HorizontalOrbitActive then
-        StopParallelOrbit()
-    else
-        StartParallelOrbit()
-    end
+    if Teleport.HorizontalOrbitActive then StopParallelOrbit() else StartParallelOrbit() end
 end
 
 local function randomOffset()
@@ -1318,9 +1271,7 @@ local function isPlayingAnim(hum, animId)
         local anim = track.Animation
         if anim then
             local id = anim.AnimationId
-            if id and string.find(id, animId) then
-                return true
-            end
+            if id and string.find(id, animId) then return true end
         end
     end
     return false
@@ -1329,15 +1280,12 @@ end
 local function getNearestEnemy()
     local char = player.Character
     if not char then return nil, nil end
-
     local root = char:FindFirstChild("HumanoidRootPart")
     if not root then return nil, nil end
-
     local nearest = nil
     local nearestRoot = nil
     local nearestDist = math.huge
     local myPos = root.Position
-
     for _, other in ipairs(Players:GetPlayers()) do
         if other ~= player then
             local oChar = other.Character
@@ -1354,7 +1302,6 @@ local function getNearestEnemy()
             end
         end
     end
-
     for _, obj in ipairs(Workspace:GetDescendants()) do
         if obj:IsA("Model") and obj ~= char then
             local hum = obj:FindFirstChild("Humanoid")
@@ -1369,7 +1316,6 @@ local function getNearestEnemy()
             end
         end
     end
-
     if nearest and nearestRoot then
         return nearest, nearestRoot
     end
@@ -1379,7 +1325,6 @@ end
 local function doDash()
     local char = player.Character
     if not char then return end
-
     local comm = char:FindFirstChild("Communicate")
     if comm then
         local args = {
@@ -1399,11 +1344,8 @@ end
 local function updateSupaCooldown()
     if SupaTech.IsCooldown then
         local remaining = SupaTech.CooldownEndTime - tick()
-        if remaining <= 0 then
-            SupaTech.IsCooldown = false
-        end
+        if remaining <= 0 then SupaTech.IsCooldown = false end
     end
-
     if SupaStatusLabel then
         if SupaTech.IsCooldown then
             local remaining = SupaTech.CooldownEndTime - tick()
@@ -1425,88 +1367,66 @@ local function startTeleportLoop(enemyChar, enemyRoot)
     local startTime = tick()
     local myChar = player.Character
     if not myChar then return end
-
     local myRoot = myChar:FindFirstChild("HumanoidRootPart")
     if not myRoot then return end
-
     local myHum = myChar:FindFirstChild("Humanoid")
     if not myHum then return end
-
     local enemyHum = enemyChar:FindFirstChild("Humanoid")
     if not enemyHum then return end
-
     myHum.PlatformStand = true
     local fixedOffset = randomOffset()
-
     local myPos = myRoot.Position
     local enemyPos = enemyRoot.Position
     local dirToEnemy = (enemyPos - myPos).Unit
     local facePos = enemyPos - dirToEnemy * SupaTech.FaceDistance
     facePos = Vector3.new(facePos.X, enemyPos.Y, facePos.Z)
-
     myRoot.CFrame = CFrame.new(facePos + fixedOffset) * CFrame.Angles(math.rad(SupaTech.UpwardAngle), 0, 0)
     task.wait(0.1)
-
     local footPos = enemyRoot.Position - Vector3.new(0, SupaTech.TeleportOffset, 0)
     myRoot.CFrame = CFrame.new(footPos + fixedOffset) * CFrame.Angles(math.rad(SupaTech.UpwardAngle), 0, 0)
-
     while tick() - startTime < SupaTech.TeleportDuration do
         if not SupaTech.Enabled then break end
         if not enemyRoot or not enemyRoot.Parent then break end
         if not myRoot or not myRoot.Parent then break end
         if not myHum then break end
-
         local currentEnemyHum = enemyChar:FindFirstChild("Humanoid")
         if not currentEnemyHum then break end
-
-        if isPlayingAnim(currentEnemyHum, SupaTech.EndAnimId) or isPlayingAnim(currentEnemyHum, SupaTech.RagdollAnimId) then
-            break
-        end
-
+        if isPlayingAnim(currentEnemyHum, SupaTech.EndAnimId) or isPlayingAnim(currentEnemyHum, SupaTech.RagdollAnimId) then break end
         local newFootPos = enemyRoot.Position - Vector3.new(0, SupaTech.TeleportOffset, 0)
         myRoot.CFrame = CFrame.new(newFootPos + fixedOffset) * CFrame.Angles(math.rad(SupaTech.UpwardAngle), 0, 0)
         task.wait()
     end
-
     if enemyRoot and enemyRoot.Parent and myRoot and myRoot.Parent then
         local finalFootPos = enemyRoot.Position - Vector3.new(0, SupaTech.VerticalOffset, 0)
         myRoot.CFrame = CFrame.new(finalFootPos + fixedOffset) * CFrame.Angles(math.rad(SupaTech.UpwardAngle), 0, 0)
     end
-
     myHum.PlatformStand = false
 end
 
 local function executeSupaTech()
     if SupaTech.IsExecuting then return end
     if SupaTech.IsCooldown then return end
-
     SupaTech.IsExecuting = true
     local enemyChar, enemyRoot = getNearestEnemy()
-
     if not enemyChar or not enemyRoot then
         SupaTech.IsExecuting = false
         return
     end
-
     local enemyHumCheck = enemyChar:FindFirstChild("Humanoid")
     if enemyHumCheck and (isPlayingAnim(enemyHumCheck, SupaTech.RagdollAnimId) or isPlayingAnim(enemyHumCheck, SupaTech.EndAnimId)) then
         SupaTech.IsExecuting = false
         return
     end
-
     task.wait(SupaTech.WaitBeforeAction)
-
     if not enemyChar.Parent or not enemyRoot.Parent then
         SupaTech.IsExecuting = false
         return
     end
-
     local enemyHum2 = enemyChar:FindFirstChild("Humanoid")
     if enemyHum2 and (isPlayingAnim(enemyHum2, SupaTech.RagdollAnimId) or isPlayingAnim(enemyHum2, SupaTech.EndAnimId)) then
         SupaTech.IsExecuting = false
         return
     end
-
     doDash()
     startTeleportLoop(enemyChar, enemyRoot)
     SupaTech.IsExecuting = false
@@ -1515,7 +1435,6 @@ end
 local function ToggleSupaTech()
     SupaTech.Enabled = not SupaTech.Enabled
     UpdateToggleButton(SupaTechButton, SupaTech.Enabled, "SupaTech:开启", "SupaTech:关闭")
-
     if SupaTech.Enabled then
         ShowNotification("Supa Tech 已启用", Color3.fromRGB(0, 255, 100))
     else
@@ -1524,25 +1443,67 @@ local function ToggleSupaTech()
     end
 end
 
+-- ===== AntiFling (修复残留 & 恢复原始碰撞) =====
 local AntiFling = {
     Enabled = false,
     MaxLinear = 200,
     MaxAngular = 100,
     SafeCFrame = nil,
     BodyMovers = {"BodyVelocity", "BodyAngularVelocity", "BodyForce", "BodyThrust", "BodyPosition", "BodyGyro"},
-    Conns = {}
+    Conns = {},
+    HeartbeatCon = nil,
+    OriginalCanCollide = {},
+    RestoreTask = nil,
 }
 
-local function FlingNeutralize()
+local function RecordOriginalCollide()
     local char = player.Character
     if not char then return end
+    AntiFling.OriginalCanCollide = {}
+    for _, part in ipairs(char:GetDescendants()) do
+        if part:IsA("BasePart") then
+            AntiFling.OriginalCanCollide[part] = part.CanCollide
+        end
+    end
+end
 
+local function RestoreOriginalCollide()
+    if AntiFling.RestoreTask then
+        task.cancel(AntiFling.RestoreTask)
+        AntiFling.RestoreTask = nil
+    end
+    for part, original in pairs(AntiFling.OriginalCanCollide) do
+        if part and part.Parent then
+            part.CanCollide = original
+            part.AssemblyLinearVelocity = Vector3.zero
+            part.AssemblyAngularVelocity = Vector3.zero
+            part.Velocity = Vector3.zero
+            part.RotVelocity = Vector3.zero
+        end
+    end
+    AntiFling.OriginalCanCollide = {}
+    local char = player.Character
+    if char then
+        for _, part in ipairs(char:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.AssemblyLinearVelocity = Vector3.zero
+                part.AssemblyAngularVelocity = Vector3.zero
+                part.Velocity = Vector3.zero
+                part.RotVelocity = Vector3.zero
+            end
+        end
+    end
+end
+
+local function FlingNeutralize()
+    if not AntiFling.Enabled then return end
+    local char = player.Character
+    if not char then return end
     for _, obj in ipairs(char:GetDescendants()) do
         if table.find(AntiFling.BodyMovers, obj.ClassName) then
             pcall(function() obj:Destroy() end)
         end
     end
-
     for _, part in ipairs(char:GetDescendants()) do
         if part:IsA("BasePart") then
             part.CanCollide = false
@@ -1552,23 +1513,24 @@ local function FlingNeutralize()
             part.RotVelocity = Vector3.zero
         end
     end
-
     local root = char:FindFirstChild("HumanoidRootPart")
     if root and AntiFling.SafeCFrame then
         root.CFrame = AntiFling.SafeCFrame
         char:SetPrimaryPartCFrame(AntiFling.SafeCFrame)
     end
-
-    task.delay(0.4, function()
+    if AntiFling.RestoreTask then
+        task.cancel(AntiFling.RestoreTask)
+    end
+    AntiFling.RestoreTask = task.delay(0.4, function()
         if char and char.Parent then
-            for _, part in ipairs(char:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    part.CanCollide = true
+            for part, original in pairs(AntiFling.OriginalCanCollide) do
+                if part and part.Parent then
+                    part.CanCollide = original
                 end
             end
         end
+        AntiFling.RestoreTask = nil
     end)
-
     ShowNotification("检测到被甩飞，已 neutralize", Color3.fromRGB(255, 100, 0))
 end
 
@@ -1586,20 +1548,15 @@ end
 
 local function AntiFlingHeartbeat()
     if not AntiFling.Enabled then return end
-
     local char = player.Character
     if not char then return end
-
     local root = char:FindFirstChild("HumanoidRootPart")
     if not root then return end
-
     local linear = root.AssemblyLinearVelocity.Magnitude
     local angular = root.AssemblyAngularVelocity.Magnitude
-
     if linear < 60 and angular < 40 then
         AntiFling.SafeCFrame = root.CFrame
     end
-
     if linear > AntiFling.MaxLinear or angular > AntiFling.MaxAngular then
         FlingNeutralize()
     end
@@ -1613,14 +1570,16 @@ local function SetupAntiFling(char)
     task.wait(0.3)
     if char and char.Parent then
         WatchBodyMovers(char)
+        if AntiFling.Enabled then
+            RecordOriginalCollide()
+        end
     end
 end
 
-if player.Character then
-    SetupAntiFling(player.Character)
-end
+if player.Character then SetupAntiFling(player.Character) end
 player.CharacterAdded:Connect(SetupAntiFling)
-RunService.Heartbeat:Connect(AntiFlingHeartbeat)
+
+AntiFling.HeartbeatCon = RunService.Heartbeat:Connect(AntiFlingHeartbeat)
 
 local function ToggleAntiFling()
     AntiFling.Enabled = not AntiFling.Enabled
@@ -1628,25 +1587,41 @@ local function ToggleAntiFling()
 
     if AntiFling.Enabled then
         ShowNotification("防甩飞已启用", Color3.fromRGB(0, 255, 100))
+        if not AntiFling.HeartbeatCon then
+            AntiFling.HeartbeatCon = RunService.Heartbeat:Connect(AntiFlingHeartbeat)
+        end
+        local char = player.Character
+        if char then SetupAntiFling(char) end
     else
         ShowNotification("防甩飞已禁用", Color3.fromRGB(255, 100, 0))
+        if AntiFling.HeartbeatCon then
+            AntiFling.HeartbeatCon:Disconnect()
+            AntiFling.HeartbeatCon = nil
+        end
+        for _, con in ipairs(AntiFling.Conns) do
+            pcall(function() con:Disconnect() end)
+        end
+        AntiFling.Conns = {}
+        if AntiFling.RestoreTask then
+            task.cancel(AntiFling.RestoreTask)
+            AntiFling.RestoreTask = nil
+        end
+        RestoreOriginalCollide()
+        AntiFling.SafeCFrame = nil
     end
 end
 
+-- ===== Touch Fling =====
 local touchCon = nil
-
 local function SetupTouchFling()
     if touchCon then
         touchCon:Disconnect()
         touchCon = nil
     end
-
     local char = player.Character
     if not char then return end
-
     local hrp = char:FindFirstChild("HumanoidRootPart")
     if not hrp then return end
-
     touchCon = hrp.Touched:Connect(function(hit)
         if not Teleport.TouchFlingActive then return end
         if not hit or not hit.Parent then return end
@@ -1655,13 +1630,10 @@ local function SetupTouchFling()
             hitChar = hitChar.Parent
             if not hitChar or not hitChar:IsA("Model") then return end
         end
-
         local hum = hitChar:FindFirstChildOfClass("Humanoid")
         if not hum then return end
-
         local targetPlayer = Players:GetPlayerFromCharacter(hitChar)
         if not targetPlayer or targetPlayer == player then return end
-
         FlingPlayer(targetPlayer)
     end)
 end
@@ -1669,7 +1641,6 @@ end
 local function ToggleTouchFling()
     Teleport.TouchFlingActive = not Teleport.TouchFlingActive
     UpdateToggleButton(TouchFlingButton, Teleport.TouchFlingActive, "触碰甩飞:开启", "触碰甩飞:关闭")
-
     if Teleport.TouchFlingActive then
         SetupTouchFling()
         ShowNotification("触碰甩飞已启动", Color3.fromRGB(0, 200, 255))
@@ -1682,141 +1653,212 @@ local function ToggleTouchFling()
     end
 end
 
-local function FlingPlayer(targetPlayer)
-    if not targetPlayer then
-        ShowNotification("未选择目标", Color3.fromRGB(255, 50, 50))
+-- ===== 甩飞函数（来自皮脚本，增加距离检测与视角恢复） =====
+local function FlingPlayer(TargetPlayer)
+    local Character = player.Character
+    local Humanoid = Character and Character:FindFirstChildOfClass("Humanoid")
+    local RootPart = Humanoid and Humanoid.RootPart
+
+    if not TargetPlayer or not TargetPlayer.Character then
+        ShowNotification("目标无效", Color3.fromRGB(255, 50, 50))
         return
     end
 
-    local char = player.Character
-    if not char then
-        ShowNotification("角色未就绪", Color3.fromRGB(255, 50, 50))
-        return
+    local TCharacter = TargetPlayer.Character
+    local THumanoid
+    local TRootPart
+    local THead
+    local Accessory
+    local Handle
+
+    if TCharacter:FindFirstChildOfClass("Humanoid") then
+        THumanoid = TCharacter:FindFirstChildOfClass("Humanoid")
+    end
+    if THumanoid and THumanoid.RootPart then
+        TRootPart = THumanoid.RootPart
+    end
+    if TCharacter:FindFirstChild("Head") then
+        THead = TCharacter.Head
+    end
+    if TCharacter:FindFirstChildOfClass("Accessory") then
+        Accessory = TCharacter:FindFirstChildOfClass("Accessory")
+    end
+    if Accessory and Accessory:FindFirstChild("Handle") then
+        Handle = Accessory.Handle
     end
 
-    local hum = char:FindFirstChildOfClass("Humanoid")
-    local root = hum and hum.RootPart
-    if not root then
-        ShowNotification("角色未就绪", Color3.fromRGB(255, 50, 50))
-        return
-    end
+    if Character and Humanoid and RootPart then
+        if RootPart.Velocity.Magnitude < 50 then
+            local OldPos = RootPart.CFrame
+            getgenv().OldPos = OldPos
+        end
+        if THumanoid and THumanoid.Sit then
+            ShowNotification("目标正在坐着", Color3.fromRGB(255, 200, 0))
+            return
+        end
 
-    local tChar = targetPlayer.Character
-    if not tChar then
-        ShowNotification("目标无角色", Color3.fromRGB(255, 50, 50))
-        return
-    end
+        -- 记录目标初始位置（用于距离检测）
+        local targetStartPos = (TRootPart or THead or Handle).Position
 
-    local tHum = tChar:FindFirstChildOfClass("Humanoid")
-    local tRoot = tHum and tHum.RootPart
-    local tHead = tChar:FindFirstChild("Head")
-    local acc = tChar:FindFirstChildOfClass("Accessory")
-    local handle = acc and acc:FindFirstChild("Handle")
+        if THead then
+            workspace.CurrentCamera.CameraSubject = THead
+        elseif not THead and Handle then
+            workspace.CurrentCamera.CameraSubject = Handle
+        elseif THumanoid and TRootPart then
+            workspace.CurrentCamera.CameraSubject = THumanoid
+        end
+        if not TCharacter:FindFirstChildWhichIsA("BasePart") then
+            ShowNotification("目标缺少部件", Color3.fromRGB(255, 50, 50))
+            return
+        end
 
-    if not (tRoot or tHead or handle) then
-        ShowNotification("目标缺少部件", Color3.fromRGB(255, 50, 50))
-        return
-    end
+        local oldFPDH = workspace.FallenPartsDestroyHeight
+        workspace.FallenPartsDestroyHeight = 0/0
 
-    local oldCam = workspace.CurrentCamera.CameraSubject
-    if tHead then
-        workspace.CurrentCamera.CameraSubject = tHead
-    elseif handle then
-        workspace.CurrentCamera.CameraSubject = handle
-    elseif tHum then
-        workspace.CurrentCamera.CameraSubject = tHum
-    end
+        local FPos = function(BasePart, Pos, Ang)
+            RootPart.CFrame = CFrame.new(BasePart.Position) * Pos * Ang
+            Character:SetPrimaryPartCFrame(CFrame.new(BasePart.Position) * Pos * Ang)
+            RootPart.Velocity = Vector3.new(9e7, 9e7 * 10, 9e7)
+            RootPart.RotVelocity = Vector3.new(9e8, 9e8, 9e8)
+        end
 
-    local oldFPDH = workspace.FallenPartsDestroyHeight
-    workspace.FallenPartsDestroyHeight = math.huge
+        local SFBasePart = function(BasePart)
+            local TimeToWait = 2
+            local Time = tick()
+            local Angle = 0
 
-    local selfPos = root.CFrame
+            repeat
+                -- ★ 距离检测：如果目标离开初始位置超过 100 格，立即恢复视角并跳出
+                if (BasePart.Position - targetStartPos).Magnitude > 100 then
+                    workspace.CurrentCamera.CameraSubject = Humanoid
+                    ShowNotification("目标飞出太远，视角已恢复", Color3.fromRGB(255, 200, 100))
+                    break
+                end
 
-    local function FPos(basePart, pos, ang)
-        root.CFrame = CFrame.new(basePart.Position) * pos * ang
-        char:SetPrimaryPartCFrame(CFrame.new(basePart.Position) * pos * ang)
-        root.Velocity = Vector3.new(9e7, 9e7 * 10, 9e7)
-        root.RotVelocity = Vector3.new(9e8, 9e8, 9e8)
-    end
+                if RootPart and THumanoid then
+                    if BasePart.Velocity.Magnitude < 50 then
+                        Angle = Angle + 100
 
-    local function SFBasePart(basePart)
-        local timeToWait = 2
-        local startTime = tick()
-        local angle = 0
+                        FPos(BasePart, CFrame.new(0, 1.5, 0) + THumanoid.MoveDirection * BasePart.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(Angle),0 ,0))
+                        task.wait()
 
-        repeat
-            if not root or not tHum then break end
+                        FPos(BasePart, CFrame.new(0, -1.5, 0) + THumanoid.MoveDirection * BasePart.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(Angle), 0, 0))
+                        task.wait()
 
-            if basePart.Velocity.Magnitude < 50 then
-                angle = angle + 100
-                FPos(basePart, CFrame.new(0, 1.5, 0) + tHum.MoveDirection * basePart.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(angle), 0, 0))
-                task.wait()
-                FPos(basePart, CFrame.new(0, -1.5, 0) + tHum.MoveDirection * basePart.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(angle), 0, 0))
-                task.wait()
-                FPos(basePart, CFrame.new(2.25, 1.5, -2.25) + tHum.MoveDirection * basePart.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(angle), 0, 0))
-                task.wait()
-                FPos(basePart, CFrame.new(-2.25, -1.5, 2.25) + tHum.MoveDirection * basePart.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(angle), 0, 0))
-                task.wait()
-                FPos(basePart, CFrame.new(0, 1.5, 0) + tHum.MoveDirection, CFrame.Angles(math.rad(angle), 0, 0))
-                task.wait()
-                FPos(basePart, CFrame.new(0, -1.5, 0) + tHum.MoveDirection, CFrame.Angles(math.rad(angle), 0, 0))
-                task.wait()
+                        FPos(BasePart, CFrame.new(2.25, 1.5, -2.25) + THumanoid.MoveDirection * BasePart.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(Angle), 0, 0))
+                        task.wait()
+
+                        FPos(BasePart, CFrame.new(-2.25, -1.5, 2.25) + THumanoid.MoveDirection * BasePart.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(Angle), 0, 0))
+                        task.wait()
+
+                        FPos(BasePart, CFrame.new(0, 1.5, 0) + THumanoid.MoveDirection, CFrame.Angles(math.rad(Angle), 0, 0))
+                        task.wait()
+
+                        FPos(BasePart, CFrame.new(0, -1.5, 0) + THumanoid.MoveDirection, CFrame.Angles(math.rad(Angle), 0, 0))
+                        task.wait()
+                    else
+                        FPos(BasePart, CFrame.new(0, 1.5, THumanoid.WalkSpeed), CFrame.Angles(math.rad(90), 0, 0))
+                        task.wait()
+
+                        FPos(BasePart, CFrame.new(0, -1.5, -THumanoid.WalkSpeed), CFrame.Angles(0, 0, 0))
+                        task.wait()
+
+                        FPos(BasePart, CFrame.new(0, 1.5, THumanoid.WalkSpeed), CFrame.Angles(math.rad(90), 0, 0))
+                        task.wait()
+
+                        FPos(BasePart, CFrame.new(0, 1.5, TRootPart.Velocity.Magnitude / 1.25), CFrame.Angles(math.rad(90), 0, 0))
+                        task.wait()
+
+                        FPos(BasePart, CFrame.new(0, -1.5, -TRootPart.Velocity.Magnitude / 1.25), CFrame.Angles(0, 0, 0))
+                        task.wait()
+
+                        FPos(BasePart, CFrame.new(0, 1.5, TRootPart.Velocity.Magnitude / 1.25), CFrame.Angles(math.rad(90), 0, 0))
+                        task.wait()
+
+                        FPos(BasePart, CFrame.new(0, -1.5, 0), CFrame.Angles(math.rad(90), 0, 0))
+                        task.wait()
+
+                        FPos(BasePart, CFrame.new(0, -1.5, 0), CFrame.Angles(0, 0, 0))
+                        task.wait()
+
+                        FPos(BasePart, CFrame.new(0, -1.5 ,0), CFrame.Angles(math.rad(-90), 0, 0))
+                        task.wait()
+
+                        FPos(BasePart, CFrame.new(0, -1.5, 0), CFrame.Angles(0, 0, 0))
+                        task.wait()
+                    end
+                else
+                    break
+                end
+            until BasePart.Velocity.Magnitude > 500 or BasePart.Parent ~= TargetPlayer.Character or TargetPlayer.Parent ~= Players or not TargetPlayer.Character == TCharacter or THumanoid.Sit or Humanoid.Health <= 0 or tick() > Time + TimeToWait
+
+            -- 循环结束后，确保视角恢复到自己
+            workspace.CurrentCamera.CameraSubject = Humanoid
+        end
+
+        local BV = Instance.new("BodyVelocity")
+        BV.Name = "EpixVel"
+        BV.Parent = RootPart
+        BV.Velocity = Vector3.new(9e8, 9e8, 9e8)
+        BV.MaxForce = Vector3.new(1/0, 1/0, 1/0)
+
+        Humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
+
+        if TRootPart and THead then
+            if (TRootPart.CFrame.p - THead.CFrame.p).Magnitude > 5 then
+                SFBasePart(THead)
             else
-                FPos(basePart, CFrame.new(0, 1.5, tHum.WalkSpeed), CFrame.Angles(math.rad(90), 0, 0))
-                task.wait()
-                FPos(basePart, CFrame.new(0, -1.5, -tHum.WalkSpeed), CFrame.Angles(0, 0, 0))
-                task.wait()
-                FPos(basePart, CFrame.new(0, 1.5, tHum.WalkSpeed), CFrame.Angles(math.rad(90), 0, 0))
-                task.wait()
-                FPos(basePart, CFrame.new(0, 1.5, tRoot.Velocity.Magnitude / 1.25), CFrame.Angles(math.rad(90), 0, 0))
-                task.wait()
-                FPos(basePart, CFrame.new(0, -1.5, -tRoot.Velocity.Magnitude / 1.25), CFrame.Angles(0, 0, 0))
-                task.wait()
-                FPos(basePart, CFrame.new(0, 1.5, tRoot.Velocity.Magnitude / 1.25), CFrame.Angles(math.rad(90), 0, 0))
-                task.wait()
-                FPos(basePart, CFrame.new(0, -1.5, 0), CFrame.Angles(math.rad(90), 0, 0))
-                task.wait()
-                FPos(basePart, CFrame.new(0, -1.5, 0), CFrame.Angles(0, 0, 0))
-                task.wait()
-                FPos(basePart, CFrame.new(0, -1.5, 0), CFrame.Angles(math.rad(-90), 0, 0))
-                task.wait()
-                FPos(basePart, CFrame.new(0, -1.5, 0), CFrame.Angles(0, 0, 0))
-                task.wait()
+                SFBasePart(TRootPart)
             end
-        until basePart.Velocity.Magnitude > 500 or not basePart.Parent or not targetPlayer.Character or targetPlayer.Parent ~= Players or tHum.Sit or hum.Health <= 0 or tick() > startTime + timeToWait
-    end
+        elseif TRootPart and not THead then
+            SFBasePart(TRootPart)
+        elseif not TRootPart and THead then
+            SFBasePart(THead)
+        elseif not TRootPart and not THead and Accessory and Handle then
+            SFBasePart(Handle)
+        else
+            ShowNotification("目标缺少可用部件", Color3.fromRGB(255, 50, 50))
+            BV:Destroy()
+            Humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
+            workspace.CurrentCamera.CameraSubject = Humanoid
+            workspace.FallenPartsDestroyHeight = oldFPDH
+            return
+        end
 
-    local bv = Instance.new("BodyVelocity")
-    bv.Name = "EpixVel"
-    bv.Parent = root
-    bv.Velocity = Vector3.new(9e8, 9e8, 9e8)
-    bv.MaxForce = Vector3.new(1/0, 1/0, 1/0)
+        BV:Destroy()
+        Humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
+        workspace.CurrentCamera.CameraSubject = Humanoid
 
-    hum:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
+        local oldPos = getgenv().OldPos or RootPart.CFrame
+        repeat
+            RootPart.CFrame = oldPos * CFrame.new(0, .5, 0)
+            Character:SetPrimaryPartCFrame(oldPos * CFrame.new(0, .5, 0))
+            Humanoid:ChangeState("GettingUp")
+            for _, part in ipairs(Character:GetChildren()) do
+                if part:IsA("BasePart") then
+                    part.Velocity = Vector3.new()
+                    part.RotVelocity = Vector3.new()
+                end
+            end
+            task.wait()
+        until (RootPart.Position - oldPos.p).Magnitude < 25
 
-    if tRoot and tHead and (tRoot.CFrame.p - tHead.CFrame.p).Magnitude > 5 then
-        SFBasePart(tHead)
-    elseif tRoot then
-        SFBasePart(tRoot)
-    elseif tHead then
-        SFBasePart(tHead)
-    elseif handle then
-        SFBasePart(handle)
+        RootPart.CFrame = oldPos
+        Character:SetPrimaryPartCFrame(oldPos)
+        for _, part in ipairs(Character:GetChildren()) do
+            if part:IsA("BasePart") then
+                part.Velocity = Vector3.new()
+                part.RotVelocity = Vector3.new()
+            end
+        end
+        workspace.FallenPartsDestroyHeight = oldFPDH
+        ShowNotification("甩飞完成", Color3.fromRGB(100, 200, 255))
     else
-        ShowNotification("目标缺失部件", Color3.fromRGB(255, 50, 50))
+        ShowNotification("角色或 Humanoid 丢失", Color3.fromRGB(255, 50, 50))
     end
-
-    bv:Destroy()
-    hum:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
-    workspace.CurrentCamera.CameraSubject = oldCam or hum
-    workspace.FallenPartsDestroyHeight = oldFPDH
-
-    root.CFrame = selfPos
-    char:SetPrimaryPartCFrame(selfPos)
-    root.Velocity = Vector3.zero
-    root.RotVelocity = Vector3.zero
 end
 
+-- ===== 按钮事件 =====
 StartButton.MouseButton1Click:Connect(StartTeleport)
 PlayerSelectButton.MouseButton1Click:Connect(CreatePlayerSelectionUI)
 StopButton.MouseButton1Click:Connect(StopTeleport)
@@ -1840,7 +1882,6 @@ end)
 FlingLoopButton.MouseButton1Click:Connect(function()
     Teleport.FlingLoopActive = not Teleport.FlingLoopActive
     UpdateToggleButton(FlingLoopButton, Teleport.FlingLoopActive, "循环甩飞:开启", "循环甩飞:关闭")
-
     if Teleport.FlingLoopActive then
         if not Teleport.Target then
             ShowNotification("请先选择目标", Color3.fromRGB(255, 50, 50))
@@ -1848,26 +1889,20 @@ FlingLoopButton.MouseButton1Click:Connect(function()
             UpdateToggleButton(FlingLoopButton, false, "循环甩飞:开启", "循环甩飞:关闭")
             return
         end
-
         Teleport.FlingLoopConnection = RunService.Heartbeat:Connect(function()
             if Teleport.FlingLoopActive and Teleport.Target then
                 local now = tick()
                 if now - Teleport.LastFlingTime >= Teleport.FlingInterval then
                     Teleport.LastFlingTime = now
-
                     local tChar = Teleport.Target.Character
                     if tChar then
                         local tRoot = tChar:FindFirstChild("HumanoidRootPart")
-                        if tRoot and tRoot.AssemblyLinearVelocity.Magnitude > 100 then
-                            return
-                        end
+                        if tRoot and tRoot.AssemblyLinearVelocity.Magnitude > 100 then return end
                     end
-
                     FlingPlayer(Teleport.Target)
                 end
             end
         end)
-
         ShowNotification("循环甩飞已启动（间隔0.5秒）", Color3.fromRGB(0, 200, 255))
     else
         if Teleport.FlingLoopConnection then
@@ -2001,13 +2036,12 @@ InvisOffsetZ.Box.MouseButton1Click:Connect(function()
     end)
 end)
 
--- ===== 修正后的隐身快捷键逻辑 =====
+-- ===== 隐身功能 =====
 local function Invis_RefreshParts()
     InvisData.char = player.Character or player.CharacterAdded:Wait()
     InvisData.hum = InvisData.char:WaitForChild('Humanoid')
     InvisData.root = InvisData.char:WaitForChild('HumanoidRootPart')
     InvisData.parts = {}
-
     for _, part in ipairs(InvisData.char:GetDescendants()) do
         if part:IsA('BasePart') and part.Transparency == 0 then
             table.insert(InvisData.parts, part)
@@ -2017,33 +2051,26 @@ end
 
 local function Invis_Toggle()
     InvisData.enabled = not InvisData.enabled
-
     for _, part in ipairs(InvisData.parts) do
         if part and part.Parent then
             part.Transparency = InvisData.enabled and 0.5 or 0
         end
     end
-
     UpdateToggleButton(InvisButton, InvisData.enabled, "隐身:开启", "隐身:关闭")
     ShowNotification(InvisData.enabled and "隐身已开启" or "隐身已关闭", InvisData.enabled and Color3.fromRGB(0, 255, 100) or Color3.fromRGB(255, 100, 0))
 end
 
 Invis_RefreshParts()
-
 InvisButton.MouseButton1Click:Connect(Invis_Toggle)
 
--- 封装快捷键检测函数
 local function OnInputBegan(input, gameProcessed)
     if gameProcessed then return end
     if input.KeyCode == InvisHotkey then
         Invis_Toggle()
     end
 end
-
--- 绑定监听
 UserInputService.InputBegan:Connect(OnInputBegan)
 
--- 设置快捷键按钮
 SetHotkeyButton.MouseButton1Click:Connect(function()
     ShowNotification("请按下一个键来设置隐身快捷键", Color3.fromRGB(255, 200, 100), 3)
     local connection
@@ -2063,17 +2090,13 @@ SetHotkeyButton.Text = "设置隐身快捷键 (G)"
 local function Invis_Heartbeat()
     if not InvisData.enabled then return end
     if not InvisData.root or not InvisData.hum then return end
-
     local currentCFrame = InvisData.root.CFrame
     local currentOffset = InvisData.hum.CameraOffset
     local targetCFrame = currentCFrame * CFrame.new(InvisData.offset)
     local posOffset = targetCFrame:ToObjectSpace(CFrame.new(currentCFrame.Position)).Position
-
     InvisData.root.CFrame = targetCFrame
     InvisData.hum.CameraOffset = posOffset
-
     RunService.RenderStepped:Wait()
-
     InvisData.root.CFrame = currentCFrame
     InvisData.hum.CameraOffset = currentOffset
 end
@@ -2113,11 +2136,8 @@ end
 PredictButton.MouseButton1Click:Connect(TogglePredict)
 
 Players.PlayerAdded:Connect(function(p)
-    if p ~= player then
-        table.insert(Teleport.PlayerList, p)
-    end
+    if p ~= player then table.insert(Teleport.PlayerList, p) end
 end)
-
 Players.PlayerRemoving:Connect(function(p)
     for i, pl in ipairs(Teleport.PlayerList) do
         if pl == p then
@@ -2129,14 +2149,9 @@ end)
 
 player.CharacterAdded:Connect(function(char)
     char:WaitForChild("Humanoid").Died:Connect(function()
-        if Teleport.Active then
-            StopTeleport()
-        end
-        if Teleport.HorizontalOrbitActive then
-            StopParallelOrbit()
-        end
+        if Teleport.Active then StopTeleport() end
+        if Teleport.HorizontalOrbitActive then StopParallelOrbit() end
         SupaTech.IsExecuting = false
-
         if Teleport.TouchFlingActive then
             Teleport.TouchFlingActive = false
             if touchCon then
@@ -2145,7 +2160,6 @@ player.CharacterAdded:Connect(function(char)
             end
             UpdateToggleButton(TouchFlingButton, false, "触碰甩飞:开启", "触碰甩飞:关闭")
         end
-
         if Teleport.FlingLoopActive then
             Teleport.FlingLoopActive = false
             if Teleport.FlingLoopConnection then
@@ -2155,29 +2169,20 @@ player.CharacterAdded:Connect(function(char)
             UpdateToggleButton(FlingLoopButton, false, "循环甩飞:开启", "循环甩飞:关闭")
         end
     end)
-
-    if Teleport.TouchFlingActive then
-        SetupTouchFling()
-    end
+    if Teleport.TouchFlingActive then SetupTouchFling() end
 end)
 
 RunService.Heartbeat:Connect(function()
     if not SupaTech.Enabled then
-        if SupaTech.IsExecuting then
-            SupaTech.IsExecuting = false
-        end
+        if SupaTech.IsExecuting then SupaTech.IsExecuting = false end
         return
     end
-
     if SupaTech.IsExecuting then return end
     if SupaTech.IsCooldown then return end
-
     local char = player.Character
     if not char then return end
-
     local hum = char:FindFirstChild("Humanoid")
     if not hum then return end
-
     if isPlayingAnim(hum, SupaTech.AnimId) then
         local enemyChar, enemyRoot = getNearestEnemy()
         if enemyChar and enemyRoot then
