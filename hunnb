@@ -713,8 +713,8 @@ SeparatorLabel1.TextSize = 9
 SeparatorLabel1.Font = Enum.Font.GothamBold
 
 local ParallelOrbitButton = CreateButton("平行环绕", 551, true)
-local RadiusControl = CreateInputControl("环绕半径:", 586, 10, 1, 999999)
-local OrbitSpeedControl = CreateInputControl("环绕速度:", 616, 2, 0.1, 999999)
+local RadiusControl = CreateInputControl("环绕半径:", 586, 6, 1, 999999)
+local OrbitSpeedControl = CreateInputControl("环绕速度:", 616, 1, 0, 999999)
 
 local Separator2 = Instance.new("Frame")
 Separator2.Parent = Content
