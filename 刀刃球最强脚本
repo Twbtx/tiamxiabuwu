@@ -1,7 +1,7 @@
 --可二改
 --但是不能倒卖
 --删掉我这一段话直接全家暴毙而死。
-
+--混脚本主群qq959952398
 task.spawn(function()
 
 local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
