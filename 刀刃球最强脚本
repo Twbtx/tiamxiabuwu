@@ -928,7 +928,6 @@ function System.autoparry.start()
                 end
             end
         end
-        -- 3D范围更新 - 三个独立开关
         local root = LocalPlayer.Character and LocalPlayer.Character.PrimaryPart
         if root then
             local parryRad = System.__properties.__current_parry_accuracy or 0
@@ -1231,9 +1230,6 @@ getgenv().slashName="SlashEffect"; getgenv().AutoVote=false
 
 local spamKeyCode  = Enum.KeyCode.E
 
--- ==================== UI ====================
-
--- 自动格挡标签页
 local autoparry_section = Tabs.Rage:AddSection("自动格挡", "shield")
 
 autoparry_section:AddToggle("AutoParryToggle", {
@@ -1312,7 +1308,6 @@ autocurve_section:AddToggle("AutoCurveHotkeyNotify", {
     Callback=function(value) getgenv().AutoCurveHotkeyNotify=value end
 })
 
--- 检测标签页
 local infinity_section=Tabs.Detection:AddSection("无限检测","infinity")
 infinity_section:AddToggle("InfinityDetection",{Title="无限检测",Default=false,Callback=function(v) System.__config.__detections.__infinity=v end})
 infinity_section:AddToggle("InfinityNotify",{Title="通知",Default=false,Callback=function(v) getgenv().InfinityNotify=v end})
@@ -1331,7 +1326,6 @@ slashes_section:AddSlider("MaxParryCount",{Title="最大格挡次数",Default=35
 local phantom_section=Tabs.Detection:AddSection("反幻影","ghost")
 phantom_section:AddToggle("AntiPhantom",{Title="反幻影",Default=false,Callback=function(v) System.__config.__detections.__phantom=v end})
 
--- 连点标签页
 local manual_spam_section=Tabs.Spam:AddSection("手动连点","zap")
 
 manual_spam_section:AddToggle("ManualSpamToggle", {
@@ -1416,7 +1410,6 @@ auto_spam_section:AddDropdown("AutoSpamMode",{Title="模式",Values={"Remote","K
 auto_spam_section:AddSlider("ParryThreshold",{Title="格挡阈值",Default=2.5,Min=0,Max=10,Rounding=1,Callback=function(v) System.__properties.__spam_threshold=v end})
 auto_spam_section:AddSlider("DistanceMultiplier",{Title="距离倍率",Default=0.3,Min=0.3,Max=3.0,Rounding=1,Callback=function(v) System.__properties.__auto_spam_distance_multiplier=v end})
 
--- 玩家标签页
 local avatar_section=Tabs.Player:AddSection("角色外观修改","user")
 
 avatar_section:AddToggle("AvatarChanger", {
@@ -1625,7 +1618,6 @@ character_section:AddSlider("HipHeightValue",{Title="臀部高度值",Default=0,
     end
 end})
 
--- 视觉效果标签页
 local ability_esp={
     __config={gui_name="AbilityESPGui",gui_size=UDim2.new(0,200,0,40),studs_offset=Vector3.new(0,3.2,0),
         text_color=Color3.fromRGB(255,255,255),stroke_color=Color3.fromRGB(0,0,0),
@@ -1736,10 +1728,8 @@ ball_velocity_section:AddToggle("ShowSpeed",{Title="显示球速",Default=false,
     end
 end})
 
--- ========== 3D范围设置 ==========
 local rangeSettingsSection = Tabs.Visuals:AddSection("3D范围显示", "circle")
 
--- 自动格挡
 rangeSettingsSection:AddParagraph({Title = "自动格挡", Content = ""})
 rangeSettingsSection:AddToggle("ShowParryRange", {
     Title = "显示自动格挡范围",
@@ -1787,7 +1777,6 @@ rangeSettingsSection:AddSlider("ParryOutlineSize", {
     Callback = function(v) System.__properties.__range_params.parry.outline_size = v end
 })
 
--- 自动技能
 rangeSettingsSection:AddParagraph({Title = "自动技能", Content = ""})
 rangeSettingsSection:AddToggle("ShowAbilityRange", {
     Title = "显示自动技能范围",
@@ -1835,7 +1824,6 @@ rangeSettingsSection:AddSlider("AbilityOutlineSize", {
     Callback = function(v) System.__properties.__range_params.ability.outline_size = v end
 })
 
--- 自动连点
 rangeSettingsSection:AddParagraph({Title = "自动连点", Content = ""})
 rangeSettingsSection:AddToggle("ShowSpamRange", {
     Title = "显示自动连点范围",
@@ -1883,7 +1871,6 @@ rangeSettingsSection:AddSlider("SpamOutlineSize", {
     Callback = function(v) System.__properties.__range_params.spam.outline_size = v end
 })
 
--- 格挡信息显示（现在包含三个值）
 local info_section = Tabs.Visuals:AddSection("格挡信息显示","info")
 info_section:AddToggle("ShowParryInfo", {
     Title = "显示格挡信息",
@@ -1910,8 +1897,6 @@ info_section:AddToggle("ShowParryInfo", {
     end
 })
 
--- ========== 杂项标签页 ==========
--- 防AFK（最上方）
 local antiAFKSection = Tabs.Misc:AddSection("防挂机", "clock")
 
 local antiAFKThread = nil
@@ -1969,7 +1954,6 @@ antiAFKSection:AddToggle("AntiAFKToggle", {
     end
 })
 
--- 皮肤修改
 local skin_changer_section = Tabs.Misc:AddSection("皮肤修改","sword")
 
 skin_changer_section:AddToggle("SkinChanger",{
@@ -1999,7 +1983,6 @@ skin_changer_section:AddInput("SwordFXName",{Title="剑特效名称",Placeholder
     getgenv().swordFX=t; if getgenv().skinChangerEnabled and getgenv().changeSwordFX then getgenv().updateSword() end
 end})
 
--- 无渲染
 local no_render_section=Tabs.Misc:AddSection("无渲染","eye-off")
 local Connections_Manager={}
 no_render_section:AddToggle("NoRender",{Title="无渲染",Default=false,Callback=function(state)
@@ -2014,7 +1997,6 @@ no_render_section:AddToggle("NoRender",{Title="无渲染",Default=false,Callback
     end
 end})
 
--- 移动端UI按钮
 local mobile_ui_button=nil
 local function create_mobile_ui_button()
     if mobile_ui_button then mobile_ui_button.gui:Destroy() end
@@ -2037,7 +2019,6 @@ if System.__properties.__is_mobile then
     task.spawn(function() task.wait(2); create_mobile_ui_button() end)
 end
 
--- ========== 设置标签页 ==========
 local keybinds_section=Tabs.Settings:AddSection("按键绑定","keyboard")
 
 keybinds_section:AddKeybind("SpamKeybind", {
@@ -2051,7 +2032,6 @@ keybinds_section:AddKeybind("SpamKeybind", {
     end
 })
 
--- ========== SaveManager & InterfaceManager ==========
 SaveManager:SetLibrary(Fluent)
 InterfaceManager:SetLibrary(Fluent)
 SaveManager:IgnoreThemeSettings()
@@ -2063,7 +2043,6 @@ SaveManager:BuildConfigSection(Tabs.Settings)
 Window:SelectTab(1)
 SaveManager:LoadAutoloadConfig()
 
--- ========== info_gui 补全（包含自动连点） ==========
 if not System.create_info_gui then
     System.create_info_gui = function()
         if System.__properties.__info_gui then System.__properties.__info_gui:Destroy() end
@@ -2122,7 +2101,6 @@ end
 
 local info_connection = nil
 
--- ========== 按键绑定 ==========
 UserInputService.InputBegan:Connect(function(input, gp)
     if gp then return end
     local kc = input.KeyCode
@@ -2151,5 +2129,5 @@ UserInputService.InputBegan:Connect(function(input, gp)
     end
 end)
 
-print("Eagle Hub X loaded!")
+print("混脚本已加载")
 end)
