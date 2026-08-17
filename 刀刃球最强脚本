@@ -9,7 +9,7 @@ local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/d
 local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
 
 local Window = Fluent:CreateWindow({
-    Title = "混脚本测试版本"
+    Title = "混脚本测试版本",
     SubTitle = "免费版拥有付费版一切功能",
     TabWidth = 100,
     Size = UDim2.fromOffset(500, 400),
