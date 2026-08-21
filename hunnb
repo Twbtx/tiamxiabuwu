@@ -1,0 +1,8 @@
+--我是原作者，就是在这个链接
+--由于我之前删库，但是还有人去传我的衣钵，就改成这个脚本。
+--源码可找他可找我要
+--企鹅959952398
+--作者本人是群里面的管理THX
+--找不到可以去搜3549117299
+
+loadstring(game:HttpGet("https://raw.githubusercontent.com/haob114514/tsb/refs/heads/main/tsbTHX.lua"))()
