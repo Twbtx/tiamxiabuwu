@@ -5,4 +5,4 @@
 --作者本人是群里面的管理THX
 --找不到可以去搜3549117299
 
-loadstring(game:HttpGet("https://raw.githubusercontent.com/haob114514/tsb/refs/heads/main/tsbTHX.lua"))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/haob114514/tsb/refs/heads/main/WTfree.lua"))()
