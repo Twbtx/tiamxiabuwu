@@ -1550,7 +1550,7 @@ end
 
 local function ToggleTouchFling()
     Teleport.TouchFlingActive = not Teleport.TouchFlingActive
-    UpdateToggleButton(TouchFlingButton, Teleport.TouchFlingActive, "触碰甩飞: 开启", "触碰甩飞: 关闭")
+    UpdateToggleButton(TouchFlingButton, Teleport.TouchFlingActive, "触碰甩飞: 开启 未修复 别用了", "触碰甩飞: 关闭 未修复")
 
     if Teleport.TouchFlingActive then
         SetupTouchFling()
