@@ -1,0 +1,924 @@
+local WasUI = loadstring(game:HttpGet("https://github.com/WasKKal/WasUI-For-Roblox/raw/refs/heads/main/WasUIPro.lua"))()
+if not WasUI then error("加载 WasUI 失败") end
+
+WasUI:SetDefaultTheme("Dark")
+WasUI:SetDefaultRainbowMode("流动")
+WasUI:SetDefaultLanguage("中文")
+
+if _G.AutoScript then
+    if _G.AutoScript.connections then
+        for _, conn in ipairs(_G.AutoScript.connections) do
+            pcall(function() conn:Disconnect() end)
+        end
+    end
+    if _G.AutoScript.tasks then
+        for _, t in ipairs(_G.AutoScript.tasks) do
+            pcall(function() if type(t) == "thread" then task.cancel(t) end end)
+        end
+    end
+    if _G.AutoScript.mainWindow and _G.AutoScript.mainWindow._panel then
+        pcall(function() _G.AutoScript.mainWindow._panel.Instance:Destroy() end)
+    end
+    _G.AutoScript = nil
+end
+
+_G.AutoScript = { connections = {}, tasks = {} }
+
+local function addConnection(conn)
+    if conn and type(conn.Disconnect) == "function" then
+        table.insert(_G.AutoScript.connections, conn)
+    end
+    return conn
+end
+
+local function addTask(task)
+    if task and type(task) == "thread" then
+        table.insert(_G.AutoScript.tasks, task)
+    end
+    return task
+end
+
+local mainWindow = WasUI:CreateWindow({
+    Title = "自动功能",
+    Theme = "Dark",
+    RainbowMode = "流动",
+    Folder = "AutoFunctions",
+    WelcomeText = "WasUI 完整版",
+    MinimizedText = "Auto",
+    SnowEnabled = true,
+    Background = "",
+    FeatureNameColor = {Color3.fromRGB(255,100,200), Color3.fromRGB(255,150,50)}
+})
+_G.AutoScript.mainWindow = mainWindow
+
+local controlTab = mainWindow:Tab({ Title = "控制" })
+local controlCategory = controlTab:Category({ Title = "功能", IconName = "zap" })
+
+local powerRunning = false
+local powerConn = nil
+controlCategory:Toggle({
+    Title = "自动获得力量",
+    Value = false,
+    FeatureName = "自动获得力量",
+    Icon = "mouse-pointer-click",
+    ConfigKey = "autoClick",
+    Tooltip = "每0.05秒执行 Click 远程事件",
+    Callback = function(state)
+        if state then
+            powerRunning = true
+            local last = tick()
+            powerConn = addConnection(game:GetService("RunService").Heartbeat:Connect(function()
+                if not powerRunning then return end
+                if tick() - last >= 0.05 then
+                    last = tick()
+                    pcall(function()
+                        game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Server"):WaitForChild("Click"):FireServer()
+                    end)
+                end
+            end))
+        else
+            powerRunning = false
+            if powerConn then powerConn:Disconnect(); powerConn = nil end
+        end
+    end
+})
+
+local rebirthRunning = false
+local rebirthConn = nil
+local rebirthInterval = 2
+controlCategory:Slider({
+    Title = "重生间隔",
+    Min = 0.1,
+    Max = 5,
+    Default = 2,
+    Step = 0.1,
+    ConfigKey = "rebirthInterval",
+    Callback = function(value) rebirthInterval = value end
+})
+controlCategory:Toggle({
+    Title = "自动重生",
+    Value = false,
+    FeatureName = "自动重生",
+    Icon = "rotate-ccw",
+    ConfigKey = "autoRebirth",
+    Tooltip = "按设定间隔执行 Rebirth 远程事件",
+    Callback = function(state)
+        if state then
+            rebirthRunning = true
+            local last = tick()
+            rebirthConn = addConnection(game:GetService("RunService").Heartbeat:Connect(function()
+                if not rebirthRunning then return end
+                if tick() - last >= rebirthInterval then
+                    last = tick()
+                    pcall(function()
+                        local args = { "Rebirth" }
+                        game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Server"):WaitForChild("Rebirth"):FireServer(unpack(args))
+                    end)
+                end
+            end))
+        else
+            rebirthRunning = false
+            if rebirthConn then rebirthConn:Disconnect(); rebirthConn = nil end
+        end
+    end
+})
+
+controlCategory:Button({
+    Text = "卖出所有矿石",
+    Icon = "dollar-sign",
+    Tooltip = "点击一次立即卖出所有矿石",
+    Callback = function()
+        pcall(function()
+            game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Server"):WaitForChild("SellAllLoot"):FireServer()
+        end)
+        WasUI:Notify({ Title = "卖出", Content = "已执行卖出所有矿石", Duration = 1 })
+    end
+})
+
+local sellLoopRunning = false
+local sellLoopConn = nil
+local sellLoopInterval = 1
+controlCategory:Slider({
+    Title = "循环卖出间隔",
+    Min = 0.5,
+    Max = 10,
+    Default = 1,
+    Step = 0.1,
+    ConfigKey = "sellInterval",
+    Callback = function(value) sellLoopInterval = value end
+})
+controlCategory:Toggle({
+    Title = "循环卖出所有矿石",
+    Value = false,
+    FeatureName = "循环卖出",
+    Icon = "repeat",
+    ConfigKey = "autoSell",
+    Tooltip = "按设定间隔循环执行卖出",
+    Callback = function(state)
+        if state then
+            sellLoopRunning = true
+            local last = tick()
+            sellLoopConn = addConnection(game:GetService("RunService").Heartbeat:Connect(function()
+                if not sellLoopRunning then return end
+                if tick() - last >= sellLoopInterval then
+                    last = tick()
+                    pcall(function()
+                        game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Server"):WaitForChild("SellAllLoot"):FireServer()
+                    end)
+                    WasUI:Notify({ Title = "循环卖出", Content = "已执行一次卖出", Duration = 0.5 })
+                end
+            end))
+        else
+            sellLoopRunning = false
+            if sellLoopConn then sellLoopConn:Disconnect(); sellLoopConn = nil end
+            WasUI:Notify({ Title = "循环卖出", Content = "已停止", Duration = 1 })
+        end
+    end
+})
+
+controlCategory:Button({
+    Text = "回到地面",
+    Icon = "arrow-up",
+    Tooltip = "点击立即传送回地面",
+    Callback = function()
+        pcall(function()
+            game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Server"):WaitForChild("GotoSurface"):FireServer()
+        end)
+        WasUI:Notify({ Title = "传送", Content = "已回到地面", Duration = 1 })
+    end
+})
+
+local wallTab = mainWindow:Tab({ Title = "打墙" })
+local wallCategory = wallTab:Category({ Title = "自动打墙（单层）", IconName = "hammer" })
+
+local wallRunning = false
+local wallConn = nil
+
+local statusPara = wallCategory:Paragraph({
+    Title = "状态",
+    Icon = "eye"
+})
+local statusLabel = statusPara.ContentLabel
+statusLabel.Text = "未检测到层级（可能在空中）"
+
+local function updateStatus(stage, sub)
+    if statusLabel then
+        if stage and sub then
+            statusLabel.Text = string.format("当前层级：%d - %d", stage, sub)
+        else
+            statusLabel.Text = "未检测到层级（可能在空中）"
+        end
+    end
+end
+
+local function getCurrentStage()
+    local char = game.Players.LocalPlayer.Character
+    if not char then return nil, nil end
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not root then return nil, nil end
+    local origin = root.Position
+    local raycastParams = RaycastParams.new()
+    raycastParams.FilterDescendantsInstances = {char}
+    raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+    local result = workspace:Raycast(origin, Vector3.new(0, -1, 0) * 5, raycastParams)
+    if not result then return nil, nil end
+    local hitPart = result.Instance
+    if not hitPart then return nil, nil end
+
+    local stageNum, subStageNum = nil, nil
+    local current = hitPart
+    while current do
+        if current.Parent and current.Parent.Name == "Stages" then
+            local parentStage = current.Parent.Parent
+            if parentStage and parentStage.Name and parentStage.Name:match("^Stage %d+$") then
+                local stageStr = parentStage.Name:match("^Stage (%d+)$")
+                if stageStr then
+                    stageNum = tonumber(stageStr)
+                    local subName = current.Name
+                    local subNum = tonumber(subName)
+                    if subNum then
+                        subStageNum = subNum
+                        break
+                    end
+                end
+            end
+        end
+        current = current.Parent
+    end
+
+    if not stageNum or not subStageNum then
+        local parentStage = hitPart.Parent
+        if parentStage and parentStage.Name and parentStage.Name:match("^Stage %d+$") then
+            local stageStr = parentStage.Name:match("^Stage (%d+$)")
+            if stageStr then
+                stageNum = tonumber(stageStr)
+                local stagesFolder = parentStage:FindFirstChild("Stages")
+                if stagesFolder then
+                    local children = stagesFolder:GetChildren()
+                    if #children > 0 then
+                        local firstSub = children[1].Name
+                        local subNum = tonumber(firstSub)
+                        if subNum then
+                            subStageNum = subNum
+                        end
+                    end
+                end
+                if subStageNum then
+                    return stageNum, subStageNum
+                else
+                    return nil, nil
+                end
+            end
+        end
+    end
+
+    if stageNum and subStageNum then
+        return stageNum, subStageNum
+    end
+    return nil, nil
+end
+
+wallCategory:Toggle({
+    Title = "自动打墙",
+    Value = false,
+    FeatureName = "自动打墙",
+    Icon = "pickaxe",
+    ConfigKey = "autoWall",
+    Tooltip = "每0.05秒检测脚下层级并发送 HitWall",
+    Callback = function(state)
+        if state then
+            wallRunning = true
+            local last = tick()
+            wallConn = addConnection(game:GetService("RunService").Heartbeat:Connect(function()
+                if not wallRunning then return end
+                if tick() - last >= 0.05 then
+                    last = tick()
+                    local stage, sub = getCurrentStage()
+                    updateStatus(stage, sub)
+                    if stage and sub then
+                        pcall(function()
+                            game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Server"):WaitForChild("HitWall"):FireServer(stage, sub)
+                        end)
+                    end
+                end
+            end))
+        else
+            wallRunning = false
+            if wallConn then wallConn:Disconnect(); wallConn = nil end
+            updateStatus(nil, nil)
+        end
+    end
+})
+
+wallCategory:Button({
+    Text = "手动发送当前层级",
+    Icon = "send",
+    Tooltip = "立即检测并发送一次 HitWall",
+    Callback = function()
+        local stage, sub = getCurrentStage()
+        if stage and sub then
+            pcall(function()
+                game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Server"):WaitForChild("HitWall"):FireServer(stage, sub)
+            end)
+            WasUI:Notify({ Title = "手动发送", Content = string.format("发送层级 %d - %d", stage, sub), Duration = 1 })
+        else
+            WasUI:Notify({ Title = "错误", Content = "未检测到有效层级", Duration = 1 })
+        end
+    end
+})
+
+local wallV2Category = wallTab:Category({ Title = "自动打墙V2（顺序扫描+停留）", IconName = "refresh-cw" })
+
+local wallV2Running = false
+local wallV2Conn = nil
+local scanMain = 1
+local scanSub = 1
+local maxMain = 100
+local maxSub = 3
+local useTransparency = true
+
+local statusV2Para = wallV2Category:Paragraph({
+    Title = "V2 状态",
+    Icon = "clock"
+})
+local statusV2Label = statusV2Para.ContentLabel
+statusV2Label.Text = "未启动"
+
+local function getStagePart(main, sub)
+    local stageFolder = workspace:FindFirstChild("Stages")
+    if not stageFolder then return nil end
+    local mainStage = stageFolder:FindFirstChild("Stage " .. main)
+    if not mainStage then return nil end
+    local subFolder = mainStage:FindFirstChild("Stages")
+    if not subFolder then return nil end
+    return subFolder:FindFirstChild(tostring(sub))
+end
+
+local function isValid(part)
+    if not part then return false end
+    if useTransparency then
+        return part.Transparency < 1
+    else
+        return part.CanCollide == true
+    end
+end
+
+local function updateStatusV2(main, sub, state)
+    if statusV2Label then
+        local mode = useTransparency and "透明度" or "CanCollide"
+        if state == "active" then
+            statusV2Label.Text = string.format("【%s】正在攻击：主层 %d - 子层 %d", mode, main, sub)
+        elseif state == "search" then
+            statusV2Label.Text = string.format("【%s】搜索中：主层 %d - 子层 %d", mode, main, sub)
+        else
+            statusV2Label.Text = "已停止"
+        end
+    end
+end
+
+wallV2Category:Toggle({
+    Title = "检测透明度（关闭则检测 CanCollide）",
+    Value = true,
+    FeatureName = "检测方式",
+    ConfigKey = "detectMode",
+    Tooltip = "开启时使用透明度<1判断有效，关闭时使用 CanCollide==true",
+    Callback = function(state)
+        useTransparency = state
+        if wallV2Running then
+            local part = getStagePart(scanMain, scanSub)
+            if part and isValid(part) then
+                updateStatusV2(scanMain, scanSub, "active")
+            else
+                updateStatusV2(scanMain, scanSub, "search")
+            end
+        end
+    end
+})
+
+wallV2Category:Toggle({
+    Title = "自动打墙V2（开启）",
+    Value = false,
+    FeatureName = "自动打墙V2",
+    Icon = "rotate-cw",
+    ConfigKey = "autoWallV2",
+    Tooltip = "从 (1,1) 开始，检测到有效层则停留攻击直至消失，再自动下一层",
+    Callback = function(state)
+        if state then
+            scanMain = 1; scanSub = 1
+            wallV2Running = true
+            local last = tick()
+            wallV2Conn = addConnection(game:GetService("RunService").Heartbeat:Connect(function()
+                if not wallV2Running then return end
+                if tick() - last < 0.05 then return end
+                last = tick()
+                local part = getStagePart(scanMain, scanSub)
+                if part and isValid(part) then
+                    local char = game.Players.LocalPlayer.Character
+                    if char then
+                        local root = char:FindFirstChild("HumanoidRootPart")
+                        if root then
+                            root.CFrame = CFrame.new(part.Position + Vector3.new(0, 2, 0))
+                        end
+                    end
+                    pcall(function()
+                        game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Server"):WaitForChild("HitWall"):FireServer(scanMain, scanSub)
+                    end)
+                    updateStatusV2(scanMain, scanSub, "active")
+                else
+                    scanSub = scanSub + 1
+                    if scanSub > maxSub then
+                        scanSub = 1
+                        scanMain = scanMain + 1
+                        if scanMain > maxMain then scanMain = 1 end
+                    end
+                    updateStatusV2(scanMain, scanSub, "search")
+                end
+            end))
+        else
+            wallV2Running = false
+            if wallV2Conn then wallV2Conn:Disconnect(); wallV2Conn = nil end
+            updateStatusV2(0,0,"stopped")
+        end
+    end
+})
+
+wallV2Category:Button({
+    Text = "重置进度到 (1,1)",
+    Icon = "refresh-cw",
+    Tooltip = "手动重置当前发送位置（仅在关闭后生效）",
+    Callback = function()
+        if not wallV2Running then
+            scanMain = 1; scanSub = 1
+            updateStatusV2(scanMain, scanSub, "search")
+            WasUI:Notify({ Title = "重置", Content = "进度已重置", Duration = 1 })
+        else
+            WasUI:Notify({ Title = "提示", Content = "请先关闭 V2 再重置", Duration = 1 })
+        end
+    end
+})
+
+local antiTab = mainWindow:Tab({ Title = "反作弊" })
+local antiCategory = antiTab:Category({ Title = "反制措施", IconName = "shield" })
+
+local function disableAnticheat()
+    pcall(function()
+        local ac = game:GetService("ReplicatedFirst"):FindFirstChild("AnticheatClient")
+        if ac then ac.Disabled = true end
+    end)
+end
+
+local function blockReports()
+    pcall(function()
+        local remote = game:GetService("ReplicatedStorage"):FindFirstChild("ZAC_Report")
+        if remote then remote.FireServer = function() end end
+    end)
+end
+
+local function blockJumpscare()
+    pcall(function()
+        local remote = game:GetService("ReplicatedStorage"):FindFirstChild("ZAC_Jumpscare")
+        if remote then
+            remote.OnClientEvent:Connect(function() end)
+            if getconnections then
+                for _, con in ipairs(getconnections(remote.OnClientEvent) or {}) do con:Disconnect() end
+            end
+        end
+    end)
+end
+
+local function clearGlobals()
+    pcall(function()
+        local globals = {"syn","KRNL_LOADED","rconsoleprint","fluxus","WAVE_LOADED","ronix","Electron","SENTINEL_V2","is_sirhurt_cx","PROTOSMASHER","calyxenv","CELERY_LOADED","writefile","readfile","appendfile","listfiles","isfile","makefolder","isfolder","delfile","loadfile","getgenv","getrenv","getnilinstances","getloadedmodules","getrunningscripts","getscripts","gethui","gethiddenproperty","sethiddenproperty","decompile","dumpstring","identifyexecutor","getexecutorname","http_request","hookfunction","hookmetamethod","newcclosure","clonefunction","replaceclosure","checkcaller","isexecutorclosure","islclosure","setreadonly","getconnections","getcallingscript","getscriptbytecode","getscripthash","firetouchinterest","fireproximityprompt","fireclickdetector","mouse1click","keypress","screenshot"}
+        for _, name in ipairs(globals) do _G[name] = nil end
+    end)
+end
+
+local function blockIdled()
+    pcall(function()
+        local plr = game.Players.LocalPlayer
+        if plr then plr.Idled:Connect(function() end) end
+    end)
+end
+
+local function blockLogDetection()
+    pcall(function()
+        local logService = game:GetService("LogService")
+        if logService then logService.MessageOut.Connect = function() end end
+    end)
+end
+
+antiCategory:Toggle({
+    Title = "禁用反作弊脚本",
+    Value = true,
+    FeatureName = "禁用反作弊",
+    ConfigKey = "disableAC",
+    Callback = function(state)
+        if state then disableAnticheat(); WasUI:Notify({ Title = "反作弊", Content = "已禁用反作弊脚本", Duration = 1 }) end
+    end
+})
+
+antiCategory:Toggle({
+    Title = "阻止报告发送",
+    Value = true,
+    FeatureName = "阻止报告",
+    ConfigKey = "blockReports",
+    Callback = function(state)
+        if state then blockReports(); WasUI:Notify({ Title = "反作弊", Content = "已阻止报告发送", Duration = 1 }) end
+    end
+})
+
+antiCategory:Toggle({
+    Title = "阻止跳杀触发",
+    Value = true,
+    FeatureName = "阻止跳杀",
+    ConfigKey = "blockJumpscare",
+    Callback = function(state)
+        if state then blockJumpscare(); WasUI:Notify({ Title = "反作弊", Content = "已阻止跳杀", Duration = 1 }) end
+    end
+})
+
+antiCategory:Toggle({
+    Title = "清除全局检测变量",
+    Value = true,
+    FeatureName = "清除全局",
+    ConfigKey = "clearGlobals",
+    Callback = function(state)
+        if state then clearGlobals(); WasUI:Notify({ Title = "反作弊", Content = "已清除全局检测变量", Duration = 1 }) end
+    end
+})
+
+antiCategory:Toggle({
+    Title = "阻止Idled检测",
+    Value = true,
+    FeatureName = "阻止Idled",
+    ConfigKey = "blockIdled",
+    Callback = function(state)
+        if state then blockIdled(); WasUI:Notify({ Title = "反作弊", Content = "已阻止 Idled 检测", Duration = 1 }) end
+    end
+})
+
+antiCategory:Toggle({
+    Title = "阻止日志检测",
+    Value = true,
+    FeatureName = "阻止日志",
+    ConfigKey = "blockLogs",
+    Callback = function(state)
+        if state then blockLogDetection(); WasUI:Notify({ Title = "反作弊", Content = "已阻止日志检测", Duration = 1 }) end
+    end
+})
+
+antiCategory:Button({
+    Text = "一键执行所有反制",
+    Icon = "shield-check",
+    Callback = function()
+        disableAnticheat(); blockReports(); blockJumpscare(); clearGlobals(); blockIdled(); blockLogDetection()
+        WasUI:Notify({ Title = "反作弊", Content = "已执行所有反制措施", Duration = 2 })
+    end
+})
+
+disableAnticheat()
+blockReports()
+blockJumpscare()
+clearGlobals()
+blockIdled()
+blockLogDetection()
+
+local playerTab = mainWindow:Tab({ Title = "玩家" })
+local playerCategory = playerTab:Category({ Title = "玩家功能", IconName = "user" })
+
+local speedEnabled = false
+local speedValue = 16
+local speedConn = nil
+local speedBodyVel = nil
+local speedCharConn = nil
+
+local function applySpeed()
+    local char = game.Players.LocalPlayer.Character
+    if not char then return end
+    if speedEnabled then
+        if speedBodyVel then speedBodyVel:Destroy(); speedBodyVel = nil end
+        local root = char:FindFirstChild("HumanoidRootPart")
+        if root then
+            speedBodyVel = Instance.new("BodyVelocity")
+            speedBodyVel.MaxForce = Vector3.new(math.huge, 0, math.huge)
+            speedBodyVel.Velocity = Vector3.new(0, 0, 0)
+            speedBodyVel.Parent = root
+        end
+    else
+        if speedBodyVel then
+            speedBodyVel:Destroy()
+            speedBodyVel = nil
+        end
+    end
+end
+
+playerCategory:Slider({
+    Title = "行走速度",
+    Min = 1,
+    Max = 200,
+    Default = 16,
+    Step = 1,
+    ConfigKey = "speedValue",
+    Callback = function(value)
+        speedValue = value
+        if speedEnabled and speedBodyVel then
+            local char = game.Players.LocalPlayer.Character
+            if char then
+                local hum = char:FindFirstChildOfClass("Humanoid")
+                if hum then
+                    local moveDir = hum.MoveDirection
+                    speedBodyVel.Velocity = moveDir * speedValue
+                end
+            end
+        end
+    end
+})
+playerCategory:Toggle({
+    Title = "启用速度",
+    Value = false,
+    FeatureName = "速度锁",
+    Icon = "gauge",
+    ConfigKey = "speedLock",
+    Callback = function(state)
+        speedEnabled = state
+        if state then
+            applySpeed()
+            if speedCharConn then speedCharConn:Disconnect() end
+            speedCharConn = addConnection(game.Players.LocalPlayer.CharacterAdded:Connect(function()
+                applySpeed()
+            end))
+            if speedConn then speedConn:Disconnect() end
+            speedConn = addConnection(game:GetService("RunService").Heartbeat:Connect(function()
+                if not speedEnabled then return end
+                local char = game.Players.LocalPlayer.Character
+                if char and speedBodyVel and speedBodyVel.Parent then
+                    local hum = char:FindFirstChildOfClass("Humanoid")
+                    if hum then
+                        local moveDir = hum.MoveDirection
+                        if moveDir.Magnitude > 0 then
+                            speedBodyVel.Velocity = moveDir * speedValue
+                        else
+                            speedBodyVel.Velocity = Vector3.new(0, 0, 0)
+                        end
+                    end
+                end
+            end))
+        else
+            if speedCharConn then speedCharConn:Disconnect(); speedCharConn = nil end
+            if speedConn then speedConn:Disconnect(); speedConn = nil end
+            if speedBodyVel then
+                speedBodyVel:Destroy()
+                speedBodyVel = nil
+            end
+        end
+    end
+})
+
+local jumpEnabled = false
+local jumpValue = 50
+local jumpConn = nil
+playerCategory:Slider({
+    Title = "跳跃高度",
+    Min = 0,
+    Max = 500,
+    Default = 50,
+    Step = 1,
+    ConfigKey = "jumpValue",
+    Callback = function(value)
+        jumpValue = value
+        if jumpEnabled then
+            local char = game.Players.LocalPlayer.Character
+            if char then
+                local hum = char:FindFirstChildOfClass("Humanoid")
+                if hum then hum.JumpPower = value end
+            end
+        end
+    end
+})
+playerCategory:Toggle({
+    Title = "启用跳跃",
+    Value = false,
+    FeatureName = "跳跃锁",
+    Icon = "arrow-up",
+    ConfigKey = "jumpLock",
+    Callback = function(state)
+        jumpEnabled = state
+        if state then
+            if jumpConn then jumpConn:Disconnect() end
+            jumpConn = addConnection(game:GetService("RunService").Heartbeat:Connect(function()
+                if not jumpEnabled then return end
+                local char = game.Players.LocalPlayer.Character
+                if char then
+                    local hum = char:FindFirstChildOfClass("Humanoid")
+                    if hum and hum.JumpPower ~= jumpValue then
+                        hum.JumpPower = jumpValue
+                    end
+                end
+            end))
+            local char = game.Players.LocalPlayer.Character
+            if char then
+                local hum = char:FindFirstChildOfClass("Humanoid")
+                if hum then hum.JumpPower = jumpValue end
+            end
+        else
+            if jumpConn then jumpConn:Disconnect(); jumpConn = nil end
+            local char = game.Players.LocalPlayer.Character
+            if char then
+                local hum = char:FindFirstChildOfClass("Humanoid")
+                if hum and hum.JumpPower == jumpValue then
+                    hum.JumpPower = 50
+                end
+            end
+        end
+    end
+})
+
+local gravityEnabled = false
+local gravityValue = 196.2
+local gravityConn = nil
+playerCategory:Slider({
+    Title = "重力",
+    Min = 0,
+    Max = 500,
+    Default = 196.2,
+    Step = 0.1,
+    ConfigKey = "gravityValue",
+    Callback = function(value)
+        gravityValue = value
+        if gravityEnabled then
+            workspace.Gravity = value
+        end
+    end
+})
+playerCategory:Toggle({
+    Title = "启用重力",
+    Value = false,
+    FeatureName = "重力锁",
+    Icon = "arrow-down",
+    ConfigKey = "gravityLock",
+    Callback = function(state)
+        gravityEnabled = state
+        if state then
+            if gravityConn then gravityConn:Disconnect() end
+            gravityConn = addConnection(game:GetService("RunService").Heartbeat:Connect(function()
+                if not gravityEnabled then return end
+                if workspace.Gravity ~= gravityValue then
+                    workspace.Gravity = gravityValue
+                end
+            end))
+            workspace.Gravity = gravityValue
+        else
+            if gravityConn then gravityConn:Disconnect(); gravityConn = nil end
+            if workspace.Gravity == gravityValue then
+                workspace.Gravity = 196.2
+            end
+        end
+    end
+})
+
+local fovEnabled = false
+local fovValue = 70
+local fovConn = nil
+playerCategory:Slider({
+    Title = "视野 (FOV)",
+    Min = 1,
+    Max = 120,
+    Default = 70,
+    Step = 1,
+    ConfigKey = "fovValue",
+    Callback = function(value)
+        fovValue = value
+        if fovEnabled then
+            workspace.CurrentCamera.FieldOfView = value
+        end
+    end
+})
+playerCategory:Toggle({
+    Title = "启用视野",
+    Value = false,
+    FeatureName = "FOV锁",
+    Icon = "eye",
+    ConfigKey = "fovLock",
+    Callback = function(state)
+        fovEnabled = state
+        if state then
+            if fovConn then fovConn:Disconnect() end
+            fovConn = addConnection(game:GetService("RunService").Heartbeat:Connect(function()
+                if not fovEnabled then return end
+                if workspace.CurrentCamera.FieldOfView ~= fovValue then
+                    workspace.CurrentCamera.FieldOfView = fovValue
+                end
+            end))
+            workspace.CurrentCamera.FieldOfView = fovValue
+        else
+            if fovConn then fovConn:Disconnect(); fovConn = nil end
+            if workspace.CurrentCamera.FieldOfView == fovValue then
+                workspace.CurrentCamera.FieldOfView = 70
+            end
+        end
+    end
+})
+
+local promptService = game:GetService("ProximityPromptService")
+local promptConnection = nil
+playerCategory:Toggle({
+    Title = "秒互动",
+    Value = false,
+    FeatureName = "秒互动",
+    Icon = "zap",
+    ConfigKey = "instantPrompt",
+    Tooltip = "开启后所有ProximityPrompt立即完成",
+    Callback = function(state)
+        if state then
+            if promptConnection then promptConnection:Disconnect() end
+            promptConnection = addConnection(promptService.PromptButtonHoldBegan:Connect(function(prompt)
+                prompt.HoldDuration = 0
+            end))
+        else
+            if promptConnection then
+                promptConnection:Disconnect()
+                promptConnection = nil
+            end
+        end
+    end
+})
+
+local noclipEnabled = false
+local noclipConn = nil
+local noclipBackup = {}
+playerCategory:Toggle({
+    Title = "穿墙 (Noclip)",
+    Value = false,
+    FeatureName = "穿墙",
+    Icon = "box",
+    ConfigKey = "noclip",
+    Tooltip = "开启后角色可穿过墙体，关闭恢复原始碰撞",
+    Callback = function(state)
+        noclipEnabled = state
+        if state then
+            noclipBackup = {}
+            local char = game.Players.LocalPlayer.Character
+            if char then
+                for _, part in ipairs(char:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        table.insert(noclipBackup, {part, part.CanCollide})
+                        part.CanCollide = false
+                    end
+                end
+            end
+            if noclipConn then noclipConn:Disconnect() end
+            noclipConn = addConnection(game:GetService("RunService").Heartbeat:Connect(function()
+                if not noclipEnabled then return end
+                local char = game.Players.LocalPlayer.Character
+                if char then
+                    for _, part in ipairs(char:GetDescendants()) do
+                        if part:IsA("BasePart") then
+                            part.CanCollide = false
+                        end
+                    end
+                end
+            end))
+        else
+            if noclipConn then noclipConn:Disconnect(); noclipConn = nil end
+            for _, data in ipairs(noclipBackup) do
+                local part = data[1]
+                if part and part.Parent then
+                    part.CanCollide = data[2]
+                end
+            end
+            noclipBackup = {}
+        end
+    end
+})
+
+local infiniteJumpEnabled = false
+local infiniteJumpConn = nil
+playerCategory:Toggle({
+    Title = "无限跳跃",
+    Value = false,
+    FeatureName = "无限跳",
+    Icon = "rocket",
+    ConfigKey = "infiniteJump",
+    Tooltip = "开启后可在空中多次跳跃",
+    Callback = function(state)
+        infiniteJumpEnabled = state
+        if state then
+            if infiniteJumpConn then infiniteJumpConn:Disconnect() end
+            infiniteJumpConn = addConnection(game:GetService("UserInputService").JumpRequest:Connect(function()
+                if not infiniteJumpEnabled then return end
+                local char = game.Players.LocalPlayer.Character
+                if char then
+                    local hum = char:FindFirstChildOfClass("Humanoid")
+                    if hum then
+                        hum:ChangeState(Enum.HumanoidStateType.Jumping)
+                    end
+                end
+            end))
+        else
+            if infiniteJumpConn then infiniteJumpConn:Disconnect(); infiniteJumpConn = nil end
+        end
+    end
+})
+
+mainWindow:EnableHotkeyToggle(Enum.KeyCode.F1)
+WasUI:Notify({ Title = "脚本已加载", Content = "WasUI 完整版已启用", Duration = 3 })
