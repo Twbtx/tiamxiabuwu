@@ -8322,10 +8322,8 @@ do
         local text = table.concat(report, "\n")
         if not opts.silent then print(text) end
         return text
-    end
+end
 
-    -- 自动执行一次
-    FT.run({silent = true})
 end
 
 print("ok")
