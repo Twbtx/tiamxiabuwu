@@ -14,7 +14,33 @@
       D.FetchAPI()
     ═══════════════════════════════════════════════════════════════════════
 ]]
+-- 放在库的最前面, 给所有 HTTP 函数加 5 秒超时
+local HTTP_TIMEOUT = 5
+local _rawHttpFn = nil
+pcall(function() if request then _rawHttpFn = request end end)
+pcall(function() if not _rawHttpFn and http_request then _rawHttpFn = http_request end end)
+pcall(function() if not _rawHttpFn and syn and syn.request then _rawHttpFn = syn.request end end)
 
+if _rawHttpFn then
+    local function safeRequest(opts)
+        local result, finished = nil, false
+        task.spawn(function()
+            local ok, res = pcall(_rawHttpFn, opts)
+            if ok and type(res) == "table" then result = res end
+            finished = true
+        end)
+        local t0 = tick()
+        while not finished and (tick() - t0) < HTTP_TIMEOUT do task.wait(0.1) end
+        if not finished then
+            return {StatusCode = 0, Body = "", Headers = {}}
+        end
+        return result
+    end
+    if request then request = function(o) return safeRequest(o) end end
+    if http_request then http_request = function(o) return safeRequest(o) end end
+    if syn and syn.request then syn.request = function(o) return safeRequest(o) end end
+    print("[HTTP 超时补丁] 已应用 (" .. HTTP_TIMEOUT .. "s)")
+end
 local D = {}
 D.Version = "1.1"
 
