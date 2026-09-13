@@ -14,33 +14,7 @@
       D.FetchAPI()
     ═══════════════════════════════════════════════════════════════════════
 ]]
--- 放在库的最前面, 给所有 HTTP 函数加 5 秒超时
-local HTTP_TIMEOUT = 5
-local _rawHttpFn = nil
-pcall(function() if request then _rawHttpFn = request end end)
-pcall(function() if not _rawHttpFn and http_request then _rawHttpFn = http_request end end)
-pcall(function() if not _rawHttpFn and syn and syn.request then _rawHttpFn = syn.request end end)
 
-if _rawHttpFn then
-    local function safeRequest(opts)
-        local result, finished = nil, false
-        task.spawn(function()
-            local ok, res = pcall(_rawHttpFn, opts)
-            if ok and type(res) == "table" then result = res end
-            finished = true
-        end)
-        local t0 = tick()
-        while not finished and (tick() - t0) < HTTP_TIMEOUT do task.wait(0.1) end
-        if not finished then
-            return {StatusCode = 0, Body = "", Headers = {}}
-        end
-        return result
-    end
-    if request then request = function(o) return safeRequest(o) end end
-    if http_request then http_request = function(o) return safeRequest(o) end end
-    if syn and syn.request then syn.request = function(o) return safeRequest(o) end end
-    print("[HTTP 超时补丁] 已应用 (" .. HTTP_TIMEOUT .. "s)")
-end
 local D = {}
 D.Version = "1.1"
 
@@ -8322,8 +8296,957 @@ do
         local text = table.concat(report, "\n")
         if not opts.silent then print(text) end
         return text
+    end
+
+ 
+
 end
 
+-- ============================================================
+-- [33] TokenOpt — Token 优化核心 (纯函数, 无状态)
+--      职责: 把工具返回的大结果自动压缩到预算内
+-- ============================================================
+D.TokenOpt = {}
+do
+    local TO = D.TokenOpt
+
+    -- ==========================================================
+    -- 预算配置
+    -- ==========================================================
+    TO.budget = {
+        default = 2000,
+        perTool = {
+            read_script      = 3000,
+            analyze_script   = 2000,
+            execute_lua      = 1500,
+            list_scripts     = 1500,
+            list_remotes     = 1500,
+            list_players     = 800,
+            find_instances   = 1200,
+            inspect_instance = 600,
+        },
+    }
+
+    -- ==========================================================
+    -- Token 估算 (中文/代码平均 ~3.2 字符/token)
+    -- ==========================================================
+    TO.estimate = function(text)
+        if type(text) ~= "string" then return 0 end
+        return math.floor(#text / 3.2)
+    end
+
+    -- ==========================================================
+    -- 主压缩管线
+    -- ==========================================================
+    --[[ TO.optimize(text, opts) -> {
+            text,            -- 压缩后的文本
+            mode,            -- full / skeleton-* / report / truncated
+            tokens,          -- 压缩后 token
+            originalTokens,  -- 原 token
+            saved,           -- 省了多少 token
+            savedPercent,    -- 省了百分比
+         }
+    ]]
+    TO.optimize = function(text, opts)
+        opts = opts or {}
+        if type(text) ~= "string" then
+            return {text = tostring(text), mode = "n/a", tokens = 0, originalTokens = 0, saved = 0}
+        end
+
+        local toolName = opts.toolName
+        local budget = opts.budget
+            or (toolName and TO.budget.perTool[toolName])
+            or TO.budget.default
+
+        local origTokens = TO.estimate(text)
+
+        -- 一级: 没超预算, 原样返回
+        if origTokens <= budget then
+            return {
+                text = text, mode = "full",
+                tokens = origTokens, originalTokens = origTokens,
+                saved = 0, savedPercent = 0,
+            }
+        end
+
+        local result = text
+        local mode = nil
+
+        -- 二级: 代码骨架 (AST)
+        if D.CodeSkeleton and D.CodeSkeleton.packForLLM then
+            local ok, payload, tokens, m = pcall(D.CodeSkeleton.packForLLM, text, budget)
+            if ok and payload and m and m ~= "full" then
+                result = payload
+                mode = "skeleton-" .. tostring(m)
+            end
+        end
+
+        -- 三级: 结构化报告
+        if (not mode or TO.estimate(result) > budget) and D.CodeReader then
+            local ok, report = pcall(D.CodeReader.report, text, {budget = budget})
+            if ok and report and TO.estimate(report) <= budget then
+                result = report
+                mode = "report"
+            end
+        end
+
+        -- 四级: 硬截断 (兜底)
+        if TO.estimate(result) > budget then
+            local maxChars = budget * 3
+            if #result > maxChars then
+                result = result:sub(1, maxChars)
+                    .. "\n\n... [已截断, 原长 " .. #text ..
+                       " 字符, 约 " .. origTokens .. " tokens]"
+            end
+            if not mode then mode = "truncated" end
+        end
+
+        local newTokens = TO.estimate(result)
+        return {
+            text = result,
+            mode = mode or "unknown",
+            tokens = newTokens,
+            originalTokens = origTokens,
+            saved = origTokens - newTokens,
+            savedPercent = origTokens > 0
+                and math.floor((origTokens - newTokens) / origTokens * 100)
+                or 0,
+        }
+    end
+
+    -- ==========================================================
+    -- Lazy 工具描述 (懒加载, 减少 system prompt 体积)
+    -- ==========================================================
+    --[[ TO.lazyToolList(tools, toolOrder) -> string
+         只返回 "名字: 一句话", 完整参数等外部 AI 按需拉
+    ]]
+    TO.lazyToolList = function(tools, toolOrder)
+        local lines = {"## 可用工具 (简要)"}
+        for _, name in ipairs(toolOrder) do
+            local t = tools[name]
+            local desc = t.description or ""
+            if #desc > 60 then desc = desc:sub(1, 60) .. "..." end
+            lines[#lines+1] = "- " .. name .. ": " .. desc
+        end
+        lines[#lines+1] = ""
+        lines[#lines+1] = "需要某工具的完整参数时, 调用 [TOOL:describe_tool] {\"name\":\"工具名\"}"
+        return table.concat(lines, "\n")
+    end
+
+    -- ==========================================================
+    -- 结构化摘要 (对列表结果)
+    -- ==========================================================
+    --[[ TO.summarizeList(text, opts) -> string
+         把长列表变成 "共 N 条, 前 5 条: ..."
+    ]]
+    TO.summarizeList = function(text, opts)
+        opts = opts or {}
+        local maxItems = opts.maxItems or 10
+        if type(text) ~= "string" then return text end
+
+        local lines = {}
+        for line in text:gmatch("[^\n]+") do lines[#lines+1] = line end
+
+        if #lines <= maxItems then return text end
+
+        local out = {}
+        for i = 1, maxItems do out[#out+1] = lines[i] end
+        out[#out+1] = "... [共 " .. #lines .. " 条, 只显示前 " .. maxItems .. " 条]"
+        return table.concat(out, "\n")
+    end
+
+    -- ==========================================================
+    -- 结果缓存 (避免重复执行相同工具)
+    -- ==========================================================
+    TO._cache = {}
+    TO.cacheTTL = 60
+
+    TO.cacheGet = function(key)
+        local c = TO._cache[key]
+        if c and (tick() - c.time) < TO.cacheTTL then
+            return c.value
+        end
+        return nil
+    end
+
+    TO.cacheSet = function(key, value)
+        TO._cache[key] = {value = value, time = tick()}
+    end
+
+    TO.cacheClear = function()
+        TO._cache = {}
+    end
+
+    -- ==========================================================
+    -- 分页
+    -- ==========================================================
+    TO.paginate = function(text, page, pageSize)
+        page = page or 1
+        pageSize = pageSize or 3000
+        if type(text) ~= "string" then return text end
+        local start = (page - 1) * pageSize + 1
+        if start > #text then return "[空]" end
+        local chunk = text:sub(start, start + pageSize - 1)
+        local totalPages = math.ceil(#text / pageSize)
+        return chunk .. "\n\n[第 " .. page .. "/" .. totalPages .. " 页]"
+    end
+
+    -- ==========================================================
+    -- 统计
+    -- ==========================================================
+    TO._stats = {
+        totalCalls = 0,
+        optimizedCalls = 0,
+        totalSaved = 0,
+        cacheHits = 0,
+    }
+
+    TO.stats = function()
+        local s = TO._stats
+        return {
+            totalCalls = s.totalCalls,
+            optimizedCalls = s.optimizedCalls,
+            totalSaved = s.totalSaved,
+            cacheHits = s.cacheHits,
+            savedPercent = s.totalCalls > 0
+                and math.floor(s.optimizedCalls / s.totalCalls * 100)
+                or 0,
+        }
+    end
+
+    TO.resetStats = function()
+        TO._stats = {totalCalls = 0, optimizedCalls = 0, totalSaved = 0, cacheHits = 0}
+    end
+end
+
+
+-- ============================================================
+-- [34] HUNTools — 工具桥接 (无 LLM, 无 API)
+--      集成: TokenOpt / 缓存 / 分页 / Lazy 描述
+-- ============================================================
+D.HUNTools = {}
+do
+    local T = D.HUNTools
+
+    T.tools = {}
+    T.toolOrder = {}
+    T.autoOptimize = true   -- 关闭可设 false
+    T.cacheEnabled = true
+
+    -- ==========================================================
+    -- 注册 / 注销 / 列清单
+    -- ==========================================================
+    T.register = function(name, def)
+        T.tools[name] = {
+            name = name,
+            description = def.description or "",
+            parameters = def.parameters or { type = "object", properties = {} },
+            fn = def.fn,
+        }
+        T.toolOrder[#T.toolOrder+1] = name
+    end
+
+    T.unregister = function(name)
+        T.tools[name] = nil
+        for i = #T.toolOrder, 1, -1 do
+            if T.toolOrder[i] == name then table.remove(T.toolOrder, i) end
+        end
+    end
+
+    -- 完整清单 (含参数)
+    T.list = function()
+        local out = {}
+        for _, name in ipairs(T.toolOrder) do
+            local t = T.tools[name]
+            out[#out+1] = {
+                name = name,
+                description = t.description,
+                parameters = t.parameters,
+            }
+        end
+        return out
+    end
+
+    -- ==========================================================
+    -- 执行
+    -- ==========================================================
+    --[[ T.execute(toolName, args, opts) -> {
+            success, result, error, cached,
+            tokens, originalTokens, saved, mode, page
+         }
+         opts = {
+             page = 1,        -- 分页页码
+             pageSize = 3000, -- 每页字符数
+             noCache = false, -- 跳过缓存
+             noOpt = false,   -- 跳过 token 优化
+             budget = nil,    -- 覆盖默认预算
+         }
+    ]]
+    T.execute = function(toolName, args, opts)
+        opts = opts or {}
+        D.TokenOpt._stats.totalCalls = D.TokenOpt._stats.totalCalls + 1
+
+        local tool = T.tools[toolName]
+        if not tool then
+            return {success = false, error = "未知工具: " .. tostring(toolName),
+                    available = T.toolOrder}
+        end
+
+        -- 缓存 key
+        local cacheKey
+        if T.cacheEnabled and not opts.noCache then
+            local ok, argsJson = pcall(D.service.HttpService.JSONEncode,
+                D.service.HttpService, args or {})
+            cacheKey = toolName .. "|" .. (ok and argsJson or "")
+            local cached = D.TokenOpt.cacheGet(cacheKey)
+            if cached then
+                D.TokenOpt._stats.cacheHits = D.TokenOpt._stats.cacheHits + 1
+                return {
+                    success = true, result = cached, cached = true,
+                    tokens = D.TokenOpt.estimate(cached),
+                    originalTokens = D.TokenOpt.estimate(cached),
+                }
+            end
+        end
+
+        -- 执行
+        local ok, result = pcall(tool.fn, args or {})
+        if not ok then
+            return {success = false, error = tostring(result)}
+        end
+
+        -- 结果统一为字符串
+        if type(result) == "table" then
+            local s, json = pcall(D.service.HttpService.JSONEncode,
+                D.service.HttpService, result)
+            result = s and json or tostring(result)
+        end
+        result = tostring(result)
+
+        -- 分页
+        if opts.page and opts.pageSize then
+            local paged = D.TokenOpt.paginate(result, opts.page, opts.pageSize)
+            return {success = true, result = paged, page = opts.page, paged = true}
+        end
+
+        -- Token 优化
+        local meta = {
+            tokens = D.TokenOpt.estimate(result),
+            originalTokens = D.TokenOpt.estimate(result),
+            saved = 0,
+            mode = "full",
+        }
+
+        if T.autoOptimize and not opts.noOpt then
+            local opt = D.TokenOpt.optimize(result, {
+                toolName = toolName,
+                budget = opts.budget,
+            })
+            result = opt.text
+            meta = {
+                tokens = opt.tokens,
+                originalTokens = opt.originalTokens,
+                saved = opt.saved,
+                mode = opt.mode,
+            }
+            if opt.mode ~= "full" then
+                D.TokenOpt._stats.optimizedCalls = D.TokenOpt._stats.optimizedCalls + 1
+                D.TokenOpt._stats.totalSaved = D.TokenOpt._stats.totalSaved + opt.saved
+            end
+        end
+
+        -- 缓存
+        if cacheKey then
+            D.TokenOpt.cacheSet(cacheKey, result)
+        end
+
+        return {
+            success = true,
+            result = result,
+            tokens = meta.tokens,
+            originalTokens = meta.originalTokens,
+            saved = meta.saved,
+            mode = meta.mode,
+        }
+    end
+
+    -- ==========================================================
+    -- 解析并执行外部指令
+    -- ==========================================================
+    T.executeText = function(text, opts)
+        if type(text) ~= "string" then
+            return {success = false, error = "输入不是字符串"}
+        end
+
+        local toolLine, toolName, toolJson = text:match("(%[TOOL:([%w_]+)%]%s*(.-))[\n\r]")
+        if not toolLine then
+            toolLine, toolName, toolJson = text:match("(%[TOOL:([%w_]+)%]%s*(.+))$")
+        end
+
+        if not toolName then
+            return {success = false, error = "未找到 [TOOL:xxx] 指令"}
+        end
+
+        local args = {}
+        if toolJson and toolJson ~= "" then
+            local ok, decoded = pcall(D.service.HttpService.JSONDecode,
+                D.service.HttpService, toolJson)
+            if ok and type(decoded) == "table" then args = decoded end
+        end
+
+        local r = T.execute(toolName, args, opts)
+        r.parsed = { toolName = toolName, args = args, raw = toolLine }
+        return r
+    end
+
+    -- ==========================================================
+    -- 生成给外部 AI 的工具描述 (Lazy 模式, 省 system prompt)
+    -- ==========================================================
+    --[[ T.describe(mode) -> string
+         mode = "full" (默认) / "lazy"
+    ]]
+    T.describe = function(mode)
+        if mode == "lazy" then
+            return D.TokenOpt.lazyToolList(T.tools, T.toolOrder)
+        end
+
+        local lines = {
+            "## 可用工具",
+            "",
+            "调用格式: [TOOL:工具名] {\"参数\": \"值\"}",
+            "",
+        }
+        for _, name in ipairs(T.toolOrder) do
+            local t = T.tools[name]
+            lines[#lines+1] = "### " .. name
+            lines[#lines+1] = t.description
+            local params = t.parameters and t.parameters.properties
+            if params then
+                local plist = {}
+                for pname, pinfo in pairs(params) do
+                    plist[#plist+1] = string.format("  - %s (%s)", pname, pinfo.type or "any")
+                end
+                if #plist > 0 then
+                    lines[#lines+1] = "参数:"
+                    for _, p in ipairs(plist) do lines[#lines+1] = p end
+                end
+            end
+            lines[#lines+1] = ""
+        end
+        return table.concat(lines, "\n")
+    end
+
+    -- ==========================================================
+    -- 自动注册内置工具 (含 describe_tool 懒加载元工具)
+    -- ==========================================================
+    T.autoRegister = function()
+        local count = 0
+
+        -- 元工具: 获取某工具的完整描述 (配合 lazy 描述使用)
+        T.register("describe_tool", {
+            description = "获取指定工具的完整描述和参数",
+            parameters = {
+                type = "object",
+                properties = { name = {type = "string"} },
+                required = {"name"},
+            },
+            fn = function(args)
+                local t = T.tools[args.name]
+                if not t then return "未找到工具: " .. tostring(args.name) end
+                local lines = {
+                    "### " .. t.name,
+                    t.description,
+                }
+                local params = t.parameters and t.parameters.properties
+                if params then
+                    lines[#lines+1] = "参数:"
+                    for pname, pinfo in pairs(params) do
+                        lines[#lines+1] = string.format("  - %s (%s)",
+                            pname, pinfo.type or "any")
+                    end
+                end
+                return table.concat(lines, "\n")
+            end,
+        })
+        count = count + 1
+
+        -- 工具 1: 列出脚本
+        T.register("list_scripts", {
+            description = "列出游戏里所有脚本的路径 (只返回路径, 不返回源码, 省 token)",
+            parameters = { type = "object", properties = {} },
+            fn = function()
+                local out = {}
+                for _, obj in ipairs(game:GetDescendants()) do
+                    if obj:IsA("LuaSourceContainer") then
+                        out[#out+1] = obj.ClassName .. "  " .. D.GetInstancePath(obj)
+                    end
+                end
+                return table.concat(out, "\n")
+            end,
+        })
+        count = count + 1
+
+        -- 工具 2: 读脚本源码 (走 token 优化)
+        T.register("read_script", {
+            description = "读取脚本源码 (只读 Source 属性, 不联网; 结果会自动压缩到 token 预算内)",
+            parameters = {
+                type = "object",
+                properties = { path = {type = "string"} },
+                required = {"path"},
+            },
+            fn = function(args)
+                local scr = game:FindFirstChild(args.path, true)
+                if not scr or not scr:IsA("LuaSourceContainer") then
+                    return "找不到脚本: " .. tostring(args.path)
+                end
+                local ok, src = pcall(function() return scr.Source end)
+                if ok and type(src) == "string" and #src > 0 then return src end
+                return "执行器不支持读 Source 属性"
+            end,
+        })
+        count = count + 1
+
+        -- 工具 3: 脚本结构分析 (只给摘要, 不给源码)
+        T.register("analyze_script", {
+            description = "分析脚本结构(函数列表/URL/远程调用/危险操作), 不返回源码",
+            parameters = {
+                type = "object",
+                properties = { path = {type = "string"} },
+                required = {"path"},
+            },
+            fn = function(args)
+                local scr = game:FindFirstChild(args.path, true)
+                if not scr or not scr:IsA("LuaSourceContainer") then
+                    return "找不到脚本"
+                end
+                local code = D.CodeReader.readScript(scr)
+                if not code then return "无法读取源码" end
+                return D.CodeReader.report(code)
+            end,
+        })
+        count = count + 1
+
+        -- 工具 4: 列出远程
+        T.register("list_remotes", {
+            description = "列出游戏里所有 RemoteEvent/RemoteFunction",
+            parameters = { type = "object", properties = {} },
+            fn = function()
+                local out = {}
+                for _, obj in ipairs(game:GetDescendants()) do
+                    if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction")
+                        or obj:IsA("UnreliableRemoteEvent") then
+                        out[#out+1] = obj.ClassName .. "  " .. D.GetInstancePath(obj)
+                    end
+                end
+                return table.concat(out, "\n")
+            end,
+        })
+        count = count + 1
+
+        -- 工具 5: 列出玩家
+        T.register("list_players", {
+            description = "列出当前游戏里的玩家 (名字/血量/距离)",
+            parameters = { type = "object", properties = {} },
+            fn = function()
+                local lines = {}
+                local myHrp = D.plr.Character
+                    and D.plr.Character:FindFirstChild("HumanoidRootPart")
+                for _, p in ipairs(D.service.Players:GetPlayers()) do
+                    local char = p.Character
+                    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+                    local hum = char and char:FindFirstChildOfClass("Humanoid")
+                    local dist = (hrp and myHrp)
+                        and math.floor((hrp.Position - myHrp.Position).Magnitude) or -1
+                    lines[#lines+1] = string.format("%s  血量=%s  距离=%d",
+                        p.Name, hum and math.floor(hum.Health) or "?", dist)
+                end
+                return table.concat(lines, "\n")
+            end,
+        })
+        count = count + 1
+
+        -- 工具 6: 搜实例
+        T.register("find_instances", {
+            description = "按名字模糊搜索游戏里的实例",
+            parameters = {
+                type = "object",
+                properties = {
+                    query = {type = "string"},
+                    limit = {type = "number"},
+                },
+                required = {"query"},
+            },
+            fn = function(args)
+                local limit = args.limit or 20
+                local lower = string.lower
+                local q = lower(args.query)
+                local out = {}
+                for _, obj in ipairs(game:GetDescendants()) do
+                    if lower(obj.Name):find(q, 1, true) then
+                        out[#out+1] = obj.ClassName .. "  " .. D.GetInstancePath(obj)
+                        if #out >= limit then break end
+                    end
+                end
+                return #out > 0 and table.concat(out, "\n") or "没找到"
+            end,
+        })
+        count = count + 1
+
+        -- 工具 7: 执行 Lua
+        T.register("execute_lua", {
+            description = "执行一段 Lua 代码并返回结果",
+            parameters = {
+                type = "object",
+                properties = { code = {type = "string"} },
+                required = {"code"},
+            },
+            fn = function(args)
+                if D.Executor and D.Executor.run then
+                    return D.Executor.run(args.code)
+                end
+                local fn, err = loadstring(args.code)
+                if not fn then return "编译失败: " .. tostring(err) end
+                local ok, result = pcall(fn)
+                return ok and tostring(result) or ("失败: " .. tostring(result))
+            end,
+        })
+        count = count + 1
+
+        -- 工具 8: 查看实例属性
+        T.register("inspect_instance", {
+            description = "查看实例的常用属性",
+            parameters = {
+                type = "object",
+                properties = { path = {type = "string"} },
+                required = {"path"},
+            },
+            fn = function(args)
+                local inst = game:FindFirstChild(args.path, true)
+                if not inst then return "找不到: " .. tostring(args.path) end
+                local lines = {
+                    "名称: " .. inst.Name,
+                    "类型: " .. inst.ClassName,
+                    "路径: " .. D.GetInstancePath(inst),
+                }
+                local props = {"Position","Size","Color","Anchored",
+                    "Health","MaxHealth","Value","Text","Visible"}
+                for _, p in ipairs(props) do
+                    local ok, v = pcall(function() return inst[p] end)
+                    if ok and v ~= nil then
+                        lines[#lines+1] = p .. " = " .. tostring(v)
+                    end
+                end
+                return table.concat(lines, "\n")
+            end,
+        })
+        count = count + 1
+
+        -- 工具 9: 报告 token 使用情况
+        T.register("token_stats", {
+            description = "查看 token 优化统计 (调用次数/节省量/缓存命中)",
+            parameters = { type = "object", properties = {} },
+            fn = function()
+                local s = D.TokenOpt.stats()
+                return string.format(
+                    "总调用: %d\n优化触发: %d (%d%%)\n节省 token: %d\n缓存命中: %d",
+                    s.totalCalls, s.optimizedCalls, s.savedPercent,
+                    s.totalSaved, s.cacheHits)
+            end,
+        })
+        count = count + 1
+
+        return count
+    end
+
+    T.autoRegister()
+end
+
+
+-- ============================================================
+-- [35] HUNPersona — 人格库 (纯数据, 无 LLM 调用)
+--      用途: 外部 AI 从游戏内拉取人格 prompt 文本
+-- ============================================================
+D.HUNPersona = {}
+do
+    local P = D.HUNPersona
+    P.current = nil
+
+    P.list = {
+        anticheat = {
+            name = "反作弊研究",
+            desc = "识别反作弊, 分析 hook 点, 制定绕过方案",
+            keywords = {
+                core = {"反作弊","绕过","bypass","anti-cheat","anticheat","封号","ban","kick","检测","adonis","byfron","krampus","knightfall","citadel","hyperion","hook"},
+                normal = {"反检测","防封","屏蔽","隐藏作弊","反举报","挂机检测","反踢","反踢出","反封","反ban","绕过检测","过检测","过封","保护","自保","逃过检测","不被踢"},
+            },
+            systemPrompt = [[
+你是游戏客户端安全研究员, 目标是**绕过反作弊**让自动化脚本能运行。
+
+工作原则:
+1. 侦察: 用 list_scripts 找反作弊脚本
+2. 分析: 用 analyze_script 提取 hook 函数、监控点
+3. 识别: Adonis / Byfron / Krampus / Knightfall / Citadel / Hyperion
+4. 绕过: 关线程 / hook 检测函数 / 屏蔽上报
+
+[THINK]...[/THINK] 推理, [ANSWER]...[/ANSWER] 结论, [TOOL:xxx] {...} 调用工具。
+]],
+        },
+        automation = {
+            name = "自动化脚本",
+            desc = "编写挂机 / 自动操作 / 循环任务脚本",
+            keywords = {
+                core = {"自动","挂机","循环","自动打怪","自动刷","自动点击","auto","bot","farm","循环执行","定时"},
+                normal = {"手速","高频","反复","多次","连续","一直","长期运行","后台运行","一直做","重复","不停"},
+            },
+            systemPrompt = [[
+你是 Roblox 自动化脚本工程师, 目标是**让游戏自动运行**。
+
+用 ```lua``` 包裹代码。
+[THINK]...[/THINK] 推理, [ANSWER]...[/ANSWER] 结论, [TOOL:xxx] {...} 调用工具。
+]],
+        },
+        reverse = {
+            name = "逆向分析",
+            desc = "反编译源码, 分析逻辑, 找漏洞",
+            keywords = {
+                core = {"反编译","源码","逆向","decompile","source","反汇编","分析代码","看代码","逻辑"},
+                normal = {"原理","怎么实现","实现原理","代码分析","字节码","bytecode","拆解","解析","看看源码","看看代码"},
+            },
+            systemPrompt = [[
+你是 Roblox 逆向工程师, 目标是**理解游戏内部逻辑**。
+
+[THINK]...[/THINK] 推理, [ANSWER]...[/ANSWER] 结论, [TOOL:xxx] {...} 调用工具。
+]],
+        },
+        pentest = {
+            name = "渗透测试",
+            desc = "主动探测客户端边界, 找可利用的远程",
+            keywords = {
+                core = {"远程","探测","渗透","remote","抓包","spy","抓远程","抓事件","测试远程","远程事件"},
+                normal = {"fire","invoke","调用","触发","攻击","试探","枚举","遍历","尝试","复现","重放"},
+            },
+            systemPrompt = [[
+你是游戏客户端渗透测试员, 目标是**探测客户端信任边界**。
+
+[THINK]...[/THINK] 推理, [ANSWER]...[/ANSWER] 结论, [TOOL:xxx] {...} 调用工具。
+]],
+        },
+        stealth = {
+            name = "潜行模式",
+            desc = "低调操作, 尽量避免被检测或上报",
+            keywords = {
+                core = {"低调","隐蔽","隐藏","潜行","不被检测","静默","stealth","不被发现","不引起注意"},
+                normal = {"安全","保险","缓慢","温柔","偷偷","悄悄","不显眼","减少痕迹","不留痕迹","安静"},
+            },
+            systemPrompt = [[
+你是隐蔽自动化助手, 目标是**在不触发反作弊的前提下操作**。
+
+[THINK]...[/THINK] 推理, [ANSWER]...[/ANSWER] 结论, [TOOL:xxx] {...} 调用工具。
+]],
+        },
+        esp = {
+            name = "透视/视觉",
+            desc = "画方框、显血、显示玩家位置",
+            keywords = {
+                core = {"透视","esp","画方框","显血","显名","显示位置","方框","血条","wallhack","视距"},
+                normal = {"视觉","屏幕","标记","追踪","描点","描框","可视化","高亮","图像","线条","画出来"},
+            },
+            systemPrompt = [[
+你是 Roblox ESP 开发者, 目标是**在屏幕上显示游戏信息**。
+
+[THINK]...[/THINK] 推理, [ANSWER]...[/ANSWER] 结论, [TOOL:xxx] {...} 调用工具。
+]],
+        },
+        aimbot = {
+            name = "自瞄/辅助",
+            desc = "辅助瞄准、锁头、自动转向",
+            keywords = {
+                core = {"自瞄","辅助瞄准","aimbot","aim","锁头","锁人","自动瞄准","瞄准"},
+                normal = {"追踪","锁定","跟随","转向","对准","追踪目标","追踪玩家","锁定目标","自动锁定"},
+            },
+            systemPrompt = [[
+你是 Roblox 自瞄开发者, 目标是**自动瞄准目标玩家**。
+
+[THINK]...[/THINK] 推理, [ANSWER]...[/ANSWER] 结论, [TOOL:xxx] {...} 调用工具。
+]],
+        },
+        farm = {
+            name = "刷资源",
+            desc = "刷金币、刷经验、刷道具、刷等级",
+            keywords = {
+                core = {"刷钱","刷金币","刷资源","刷等级","刷经验","刷道具","刷货币","无限","infinite","免费获取","刷"},
+                normal = {"收集","堆积","囤积","攒","拾取","捡","增加","涨","获得","获取"},
+            },
+            systemPrompt = [[
+你是 Roblox 刷资源助手, 目标是**快速增加游戏内资源**。
+
+[THINK]...[/THINK] 推理, [ANSWER]...[/ANSWER] 结论, [TOOL:xxx] {...} 调用工具。
+]],
+        },
+        teleport = {
+            name = "传送/移动",
+            desc = "瞬移、快速到达、寻路",
+            keywords = {
+                core = {"传送","瞬移","定位","teleport","tp","快速移动","快速到","到某地","移动到"},
+                normal = {"移动","走过去","到达","位置","坐标","导航","寻路","飞去","跳过去"},
+            },
+            systemPrompt = [[
+你是 Roblox 传送助手, 目标是**让角色快速到达目标位置**。
+
+[THINK]...[/THINK] 推理, [ANSWER]...[/ANSWER] 结论, [TOOL:xxx] {...} 调用工具。
+]],
+        },
+        tool = {
+            name = "工具开发",
+            desc = "写工具、做插件、开发脚本",
+            keywords = {
+                core = {"写个工具","做个脚本","开发","做插件","工具开发","制作脚本","写插件"},
+                normal = {"帮我写","帮我做","写个","做个","生成代码","生成脚本","创建功能","开发功能"},
+            },
+            systemPrompt = [[
+你是 Roblox 工具开发者, 目标是**按要求生成可用的脚本**。
+
+[THINK]...[/THINK] 推理, [ANSWER]...[/ANSWER] 结论, [TOOL:xxx] {...} 调用工具。
+]],
+        },
+        debug = {
+            name = "调试/诊断",
+            desc = "排查报错、崩溃、卡死",
+            keywords = {
+                core = {"调试","诊断","报错","错误","bug","崩溃","卡死","debug","排查","不工作"},
+                normal = {"为什么没反应","出错","修复","修一下","帮助","解决","出问题","不生效","失败"},
+            },
+            systemPrompt = [[
+你是 Roblox 调试助手, 目标是**找出问题原因并修复**。
+
+[THINK]...[/THINK] 推理, [ANSWER]...[/ANSWER] 结论, [TOOL:xxx] {...} 调用工具。
+]],
+        },
+        generic = {
+            name = "通用助手",
+            desc = "其他一切场景的兜底",
+            keywords = { core = {}, normal = {"帮忙","帮助","看看","查查","告诉我","问一下"} },
+            systemPrompt = [[
+你是 Roblox 游戏内 AI 助手。
+
+[THINK]...[/THINK] 推理, [ANSWER]...[/ANSWER] 结论, [TOOL:xxx] {...} 调用工具。
+]],
+        },
+    }
+
+    P.use = function(name)
+        if not P.list[name] then return false, "未知人格: " .. tostring(name) end
+        P.current = name
+        return true
+    end
+
+    P.names = function()
+        local n = {}
+        for k in pairs(P.list) do n[#n+1] = k end
+        table.sort(n)
+        return n
+    end
+
+    -- 生成 system prompt (含工具清单, 供外部 AI 使用)
+    --[[ P.buildPrompt(name, describeMode) -> string
+         name         = 人格名, 默认当前
+         describeMode = "full" | "lazy", 默认 "lazy"
+    ]]
+    P.buildPrompt = function(name, describeMode)
+        name = name or P.current or "generic"
+        local p = P.list[name]
+        if not p then return nil end
+        return p.systemPrompt .. "\n\n" .. D.HUNTools.describe(describeMode or "lazy")
+    end
+
+    P.printList = function()
+        print("═══════════ 人格列表 (" .. #P.names() .. " 种) ═══════════")
+        for _, key in ipairs(P.names()) do
+            local p = P.list[key]
+            print(string.format("[%s] %s — %s", key, p.name, p.desc))
+        end
+        print("════════════════════════════════════")
+    end
+end
+
+
+-- ============================================================
+-- [36] HUNRouter — 关键词路由 (纯本地, 无 AI)
+--      用途: 外部 AI 可以先问一句"这话属于哪类", 游戏内返回关键词建议
+-- ============================================================
+D.HUNRouter = {}
+do
+    local R = D.HUNRouter
+
+    -- 加权关键词匹配 (core=3分, normal=1分)
+    R.route = function(text)
+        if type(text) ~= "string" then
+            return {persona = "generic", score = 0, reason = "输入不是字符串"}
+        end
+        local lower = string.lower(text)
+        local scores = {}
+
+        for pname, persona in pairs(D.HUNPersona.list) do
+            if persona.keywords then
+                local score = 0
+                local hits = {}
+                for _, w in ipairs(persona.keywords.core or {}) do
+                    if lower:find(string.lower(w), 1, true) then
+                        score = score + 3
+                        hits[#hits+1] = w
+                    end
+                end
+                for _, w in ipairs(persona.keywords.normal or {}) do
+                    if lower:find(string.lower(w), 1, true) then
+                        score = score + 1
+                        hits[#hits+1] = w
+                    end
+                end
+                scores[#scores+1] = { name = pname, score = score, hits = hits }
+            end
+        end
+
+        table.sort(scores, function(a, b) return a.score > b.score end)
+
+        local best = scores[1] or {name = "generic", score = 0, hits = {}}
+        local second = scores[2] or {name = "?", score = 0}
+
+        return {
+            persona = best.score > 0 and best.name or "generic",
+            score = best.score,
+            hits = best.hits,
+            second = second.name,
+            secondScore = second.score,
+            confidence = best.score >= 6 and "high"
+                or best.score >= 3 and "mid"
+                or best.score >= 1 and "low"
+                or "none",
+        }
+    end
+
+    -- 打印测试
+    R.test = function()
+        local tests = {
+            "帮我绕过这个游戏的反作弊",
+            "写个自动刷金币的脚本",
+            "反编译一下这个脚本看看逻辑",
+            "探测一下这个游戏的远程事件",
+            "低调一点别被检测到",
+            "画个方框显示所有玩家",
+            "帮我锁头打人",
+            "刷一下我的等级",
+            "带我传送到那边",
+            "这个脚本报错了帮我看看",
+            "今天天气怎么样",
+        }
+        print("═══════ 路由测试 ═══════")
+        for _, t in ipairs(tests) do
+            local r = R.route(t)
+            print(string.format("%-30s → %-12s (分 %d, %s)",
+                t, r.persona, r.score, r.confidence))
+        end
+        print("═══════════════════════")
+    end
 end
 
 print("ok")
