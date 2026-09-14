@@ -9249,5 +9249,418 @@ do
     end
 end
 
+
+-- ══════════════════════════════════════════════════════════════
+-- [37] 官方核心排除补丁 v2.0
+--      功能: 所有"扫全游戏"操作自动跳过官方核心
+--      排除: CoreGui / CorePackages / CoreScripts / RobloxReplicatedStorage
+--            / RobloxPluginGuiService / RobloxScriptSecurity
+--      位置: 追加在 return D 之前
+-- ══════════════════════════════════════════════════════════════
+do
+    -- ─────────── 核心工具 ───────────
+    local CORE = {
+        CoreGui = true,
+        CorePackages = true,
+        CoreScripts = true,
+        RobloxReplicatedStorage = true,
+        RobloxPluginGuiService = true,
+        RobloxScriptSecurity = true,
+    }
+
+    local function isCore(inst)
+        if not inst then return false end
+        local cur, depth = inst, 0
+        while cur and cur ~= game and depth < 25 do
+            if CORE[cur.Name] then return true end
+            cur = cur.Parent
+            depth = depth + 1
+        end
+        return false
+    end
+
+    local function safeDescendants()
+        local out = {}
+        local children = game:GetChildren()
+        for i = 1, #children do
+            local svc = children[i]
+            if not CORE[svc.Name] then
+                out[#out + 1] = svc
+                local ok, descs = pcall(function() return svc:GetDescendants() end)
+                if ok and descs then
+                    for j = 1, #descs do
+                        out[#out + 1] = descs[j]
+                    end
+                end
+            end
+        end
+        return out
+    end
+
+    -- 暴露到 D
+    D.CORE_CONTAINERS = CORE
+    D.IsCoreObject = isCore
+    D.GetDescendants = safeDescendants
+
+    -- ═══════════════════════════════════════════════════════════
+    -- [1] D.getScriptFromSource
+    -- ═══════════════════════════════════════════════════════════
+    D.getScriptFromSource = function(source)
+        if type(source) ~= "string" then return nil end
+        local path = source:gsub("^@", "")
+        if path:find("=") then return nil end
+        for _, v in ipairs(safeDescendants()) do
+            if v:IsA("LocalScript") or v:IsA("ModuleScript") or v:IsA("Script") then
+                if v:GetFullName() == path or v.Name == path then return v end
+            end
+        end
+        local filename = path:match("([^/\\]+)$")
+        if filename then
+            for _, v in ipairs(safeDescendants()) do
+                if v:IsA("LocalScript") or v:IsA("ModuleScript") or v:IsA("Script") then
+                    if v.Name == filename then return v end
+                end
+            end
+        end
+        return nil
+    end
+
+    -- ═══════════════════════════════════════════════════════════
+    -- [2] D.getScriptFromSrc
+    -- ═══════════════════════════════════════════════════════════
+    D.getScriptFromSrc = function(src)
+        if type(src) ~= "string" then return nil end
+        local realPath, runningTest, s, e
+        local match = false
+        if src:sub(1, 1) == "=" then
+            realPath = game
+            s = 2
+        else
+            runningTest = src:sub(2, e and e - 1 or -1)
+            if getnilinstances then
+                for _, v in ipairs(getnilinstances()) do
+                    if v.Name == runningTest and not isCore(v) then
+                        realPath = v
+                        break
+                    end
+                end
+            end
+            s = #runningTest + 1
+        end
+        if realPath then
+            e = src:sub(s, -1):find("%.")
+            local i = 0
+            repeat
+                i = i + 1
+                if not e then
+                    runningTest = src:sub(s, -1)
+                    local test = realPath.FindFirstChild(realPath, runningTest)
+                    if test then realPath = test end
+                    match = true
+                else
+                    runningTest = src:sub(s, e)
+                    local test = realPath.FindFirstChild(realPath, runningTest)
+                    local yeOld = e
+                    if test then
+                        realPath = test
+                        s = e + 2
+                        e = src:sub(e + 2, -1):find("%.")
+                        e = e and e + yeOld or e
+                    else
+                        e = src:sub(e + 2, -1):find("%.")
+                        e = e and e + yeOld or e
+                    end
+                end
+            until match or i >= 50
+        end
+        return realPath
+    end
+
+    -- ═══════════════════════════════════════════════════════════
+    -- [3][4] RemoteSpy: hook_instance + start
+    -- ═══════════════════════════════════════════════════════════
+    do
+        local RS = D.RemoteSpy
+        if RS then
+            RS.hook_instance = function(inst)
+                if isCore(inst) then return end
+                if RS.seen[inst] then return end
+                local sig = RS.in_signals[inst.ClassName]
+                if not sig then return end
+                RS.seen[inst] = true
+                local ok, con = pcall(function()
+                    return inst[sig]:Connect(function(...)
+                        RS.add_log("in", inst, sig, table.pack(...))
+                    end)
+                end)
+                if ok and con then RS.hook_cons[#RS.hook_cons + 1] = con end
+            end
+
+            RS.start = function()
+                if RS.active then return end
+                RS.active = true
+                if hookmetamethod and not RS.namecall_orig then
+                    local ok, orig = pcall(hookmetamethod, game, "__namecall", function(self, ...)
+                        local method = getnamecallmethod and getnamecallmethod() or ""
+                        if RS.active and typeof(self) == "Instance"
+                            and not isCore(self)
+                            and RS.remote_classes[self.ClassName] and RS.out_methods[method] then
+                            RS.add_log("out", self, method, table.pack(...))
+                        end
+                        return RS.namecall_orig(self, ...)
+                    end)
+                    if ok then RS.namecall_orig = orig end
+                end
+                for _, inst in ipairs(safeDescendants()) do
+                    RS.hook_instance(inst)
+                end
+                if getnilinstances then
+                    local ok2, nils = pcall(getnilinstances)
+                    if ok2 then
+                        for _, inst in ipairs(nils) do
+                            if not isCore(inst) then
+                                RS.hook_instance(inst)
+                            end
+                        end
+                    end
+                end
+                local con = game.DescendantAdded:Connect(function(inst)
+                    if RS.active and not isCore(inst) then
+                        RS.hook_instance(inst)
+                    end
+                end)
+                RS.hook_cons[#RS.hook_cons + 1] = con
+            end
+        end
+    end
+
+    -- ═══════════════════════════════════════════════════════════
+    -- [5][6] SimpleSpy: findRemoteByName + dumpAllRemotes
+    -- ═══════════════════════════════════════════════════════════
+    do
+        local SS = D.SimpleSpy
+        if SS then
+            SS.findRemoteByName = function(name)
+                local results = {}
+                for _, obj in ipairs(safeDescendants()) do
+                    if (obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction")
+                        or obj:IsA("BindableEvent") or obj:IsA("BindableFunction")
+                        or obj:IsA("UnreliableRemoteEvent"))
+                        and obj.Name:find(name, 1, true) then
+                        results[#results + 1] = obj
+                    end
+                end
+                return results
+            end
+
+            SS.dumpAllRemotes = function()
+                local out = {}
+                for _, obj in ipairs(safeDescendants()) do
+                    if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction")
+                        or obj:IsA("BindableEvent") or obj:IsA("BindableFunction")
+                        or obj:IsA("UnreliableRemoteEvent") then
+                        out[#out + 1] = {
+                            path = D.GetInstancePath(obj),
+                            name = obj.Name,
+                            class = obj.ClassName,
+                            parent = obj.Parent and obj.Parent.Name or nil,
+                        }
+                    end
+                end
+                return out
+            end
+        end
+    end
+
+    -- ═══════════════════════════════════════════════════════════
+    -- [7][8] Injector: injectAll + writeAll
+    -- ═══════════════════════════════════════════════════════════
+    do
+        local I = D.Injector
+        if I then
+            I.injectAll = function(filter, code)
+                if type(code) ~= "string" then return 0, {} end
+                local count = 0
+                local results = {}
+                for _, obj in ipairs(safeDescendants()) do
+                    if obj:IsA("LuaSourceContainer") then
+                        if not filter or filter(obj) then
+                            local r = I.execIn(obj, code)
+                            results[#results + 1] = {script = obj, result = r}
+                            if r.success then count = count + 1 end
+                        end
+                    end
+                end
+                return count, results
+            end
+
+            I.writeAll = function(filter, sourceGen)
+                if type(sourceGen) ~= "function" then
+                    return {success = false, error = "sourceGen 必须是函数"}
+                end
+                local results = {}
+                for _, obj in ipairs(safeDescendants()) do
+                    if obj:IsA("LuaSourceContainer") then
+                        if not filter or filter(obj) then
+                            local src = sourceGen(obj)
+                            if type(src) == "string" then
+                                local r = I.writeScript(obj, src)
+                                r.script = obj
+                                results[#results + 1] = r
+                            end
+                        end
+                    end
+                end
+                return results
+            end
+        end
+    end
+
+    -- ═══════════════════════════════════════════════════════════
+    -- [9] CodeReader.readAll
+    -- ═══════════════════════════════════════════════════════════
+    do
+        local CR = D.CodeReader
+        if CR then
+            CR.readAll = function(filter, opts)
+                opts = opts or {}
+                local scripts = {}
+                local lines = {"=== 全游戏脚本索引 ==="}
+                for _, obj in ipairs(safeDescendants()) do
+                    if obj:IsA("LuaSourceContainer") then
+                        if not filter or filter(obj) then
+                            local code = CR.readScript(obj)
+                            if code and #code > 0 then
+                                local tokens = CR.estimateTokens(code)
+                                local path = D.GetInstancePath(obj)
+                                scripts[#scripts + 1] = {
+                                    script = obj,
+                                    path = path,
+                                    class = obj.ClassName,
+                                    chars = #code,
+                                    tokens = tokens,
+                                    code = code,
+                                }
+                                lines[#lines + 1] = string.format("  [%s] %s  (%d 字符, ~%d token)",
+                                    obj.ClassName, path, #code, tokens)
+                            end
+                        end
+                    end
+                end
+                return {
+                    scripts = scripts,
+                    report = table.concat(lines, "\n"),
+                }
+            end
+        end
+    end
+
+    -- ═══════════════════════════════════════════════════════════
+    -- [10] AIAgent 工具覆盖
+    -- ═══════════════════════════════════════════════════════════
+    do
+        local A = D.AIAgent
+        if A and A.registerTool then
+            A.registerTool("list_scripts", {
+                description = "列出游戏里所有脚本路径 (跳过核心)",
+                parameters = { type = "object", properties = {} },
+                fn = function()
+                    local out = {}
+                    for _, obj in ipairs(safeDescendants()) do
+                        if obj:IsA("LuaSourceContainer") then
+                            out[#out + 1] = obj.ClassName .. "  " .. D.GetInstancePath(obj)
+                        end
+                    end
+                    return table.concat(out, "\n")
+                end,
+            })
+
+            A.registerTool("find_instances", {
+                description = "按名字搜实例 (跳过核心)",
+                parameters = {
+                    type = "object",
+                    properties = {
+                        query = { type = "string" },
+                        limit = { type = "number" },
+                    },
+                    required = { "query" },
+                },
+                fn = function(args)
+                    local limit = args.limit or 20
+                    local q = string.lower(args.query)
+                    local out = {}
+                    for _, obj in ipairs(safeDescendants()) do
+                        if string.lower(obj.Name):find(q, 1, true) then
+                            out[#out + 1] = obj.ClassName .. "  " .. D.GetInstancePath(obj)
+                            if #out >= limit then break end
+                        end
+                    end
+                    return #out > 0 and table.concat(out, "\n") or "没有找到"
+                end,
+            })
+        end
+    end
+
+    -- ═══════════════════════════════════════════════════════════
+    -- [11] HUNTools 工具覆盖
+    -- ═══════════════════════════════════════════════════════════
+    do
+        local T = D.HUNTools
+        if T then
+            if T.tools["list_scripts"] then
+                T.tools["list_scripts"].description = "列出脚本路径 (最多200, 跳过核心)"
+                T.tools["list_scripts"].fn = function(args)
+                    args = args or {}
+                    local limit = args.limit or 200
+                    local out, n = {}, 0
+                    for _, obj in ipairs(safeDescendants()) do
+                        if obj:IsA("LuaSourceContainer") then
+                            n = n + 1
+                            if n > limit then break end
+                            out[#out + 1] = obj.ClassName .. "  " .. D.GetInstancePath(obj)
+                        end
+                    end
+                    local suffix = ""
+                    if n > limit then suffix = "\n... [已达上限 " .. limit .. " 条]" end
+                    return #out > 0 and (table.concat(out, "\n") .. suffix) or "无脚本"
+                end
+            end
+
+            if T.tools["list_remotes"] then
+                T.tools["list_remotes"].description = "列出远程事件/函数 (跳过核心)"
+                T.tools["list_remotes"].fn = function()
+                    local out = {}
+                    for _, obj in ipairs(safeDescendants()) do
+                        if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction")
+                            or obj:IsA("UnreliableRemoteEvent") then
+                            out[#out + 1] = obj.ClassName .. "  " .. D.GetInstancePath(obj)
+                        end
+                    end
+                    return #out > 0 and table.concat(out, "\n") or "无远程"
+                end
+            end
+
+            if T.tools["find_instances"] then
+                T.tools["find_instances"].fn = function(args)
+                    args = args or {}
+                    local limit = args.limit or 30
+                    local q = string.lower(args.query or "")
+                    if q == "" then return "请提供 query" end
+                    local out = {}
+                    for _, obj in ipairs(safeDescendants()) do
+                        if string.lower(obj.Name):find(q, 1, true) then
+                            out[#out + 1] = obj.ClassName .. "  " .. D.GetInstancePath(obj)
+                            if #out >= limit then break end
+                        end
+                    end
+                    return #out > 0 and table.concat(out, "\n") or "没找到"
+                end
+            end
+        end
+    end
+
+    print("[DSH] 核心排除补丁 v2.0 已加载 (CoreGui/CorePackages/CoreScripts 已屏蔽)")
+end
+
 print("ok")
 return D
