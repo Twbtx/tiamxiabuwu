@@ -2504,6 +2504,9 @@ local function tryDecompile(data)
     return nil
 end
 
+D.decompileAny = tryDecompile
+D._OPMAP_V9, D._OPMAP_V12 = OPMAP_V9, OPMAP_V12
+
 local function isSkipped(inst)
     -- 过滤 Roblox 官方组件
     local cur = inst
